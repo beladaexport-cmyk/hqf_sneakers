@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { LayoutDashboard, ShoppingBag, DollarSign, Package, Settings } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, DollarSign, Package, Settings, TrendingDown } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import Catalog from './components/Catalog';
 import Sales from './components/Sales';
+import Expenses from './components/Expenses';
 import Suppliers from './components/Suppliers';
 
-type Tab = 'dashboard' | 'catalog' | 'sales' | 'suppliers' | 'settings';
+type Tab = 'dashboard' | 'catalog' | 'sales' | 'expenses' | 'suppliers' | 'settings';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -14,6 +15,7 @@ function App() {
     { id: 'dashboard' as Tab, label: '📊 Дашборд', icon: LayoutDashboard },
     { id: 'catalog' as Tab, label: '👟 Каталог', icon: ShoppingBag },
     { id: 'sales' as Tab, label: '💰 Продажи', icon: DollarSign },
+    { id: 'expenses' as Tab, label: '💸 Расходы', icon: TrendingDown },
     { id: 'suppliers' as Tab, label: '📦 Поставщики', icon: Package },
     { id: 'settings' as Tab, label: '⚙️ Настройки', icon: Settings },
   ];
@@ -26,6 +28,8 @@ function App() {
         return <Catalog />;
       case 'sales':
         return <Sales />;
+      case 'expenses':
+        return <Expenses />;
       case 'suppliers':
         return <Suppliers />;
       case 'settings':

@@ -41,6 +41,9 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
   const selectedProduct = available.find((p) => p.id === productId);
 
   const total = selectedProduct ? selectedProduct.retailPrice * quantity : 0;
+  const profit = selectedProduct
+    ? (selectedProduct.retailPrice - selectedProduct.purchasePrice) * quantity
+    : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +61,9 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
       productName: `${selectedProduct.brand} ${selectedProduct.model} (${selectedProduct.size})`,
       quantity,
       price: selectedProduct.retailPrice,
+      purchasePrice: selectedProduct.purchasePrice,
       total,
+      profit,
       date: new Date().toISOString(),
       customer: customer.trim() || undefined,
     };
@@ -89,7 +94,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
               <option value="">— Выберите товар —</option>
               {available.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} ₽
+                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
                   (ост: {p.quantity})
                 </option>
               ))}
@@ -132,13 +137,13 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Цена за шт:</span>
                   <span className="font-medium">
-                    {selectedProduct.retailPrice.toLocaleString('ru-RU')} ₽
+                    {selectedProduct.retailPrice.toLocaleString('ru-RU')} Br
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-gray-600">Итого:</span>
                   <span className="text-xl font-bold text-green-600">
-                    {total.toLocaleString('ru-RU')} ₽
+                    {total.toLocaleString('ru-RU')} Br
                   </span>
                 </div>
               </div>
@@ -227,7 +232,7 @@ const Sales: React.FC = () => {
         <div className="flex items-center text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2 ml-auto">
           <DollarSign className="w-4 h-4 mr-1" />
           <span className="text-sm font-medium">
-            Выручка: {totalRevenue.toLocaleString('ru-RU')} ₽
+            Выручка: {totalRevenue.toLocaleString('ru-RU')} Br
           </span>
         </div>
       </div>
@@ -238,7 +243,7 @@ const Sales: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Дата', 'Товар', 'Артикул', 'Покупатель', 'Кол-во', 'Цена', 'Итого'].map((h) => (
+                {['Дата', 'Товар', 'Артикул', 'Покупатель', 'Кол-во', 'Цена', 'Закупка', 'Прибыль', 'Итого'].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -251,7 +256,7 @@ const Sales: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
                     {sales.length === 0 ? 'Продаж пока нет' : 'Нет продаж за выбранный период'}
                   </td>
                 </tr>
@@ -268,10 +273,16 @@ const Sales: React.FC = () => {
                     <td className="px-4 py-3 text-sm text-gray-600">{sale.customer || '—'}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{sale.quantity}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">
-                      {sale.price.toLocaleString('ru-RU')} ₽
+                      {sale.price.toLocaleString('ru-RU')} Br
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {(sale.purchasePrice ?? 0).toLocaleString('ru-RU')} Br
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-green-600">
-                      {sale.total.toLocaleString('ru-RU')} ₽
+                      {(sale.profit ?? 0).toLocaleString('ru-RU')} Br
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-green-600">
+                      {sale.total.toLocaleString('ru-RU')} Br
                     </td>
                   </tr>
                 ))

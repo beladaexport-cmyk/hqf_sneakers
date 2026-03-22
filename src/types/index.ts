@@ -23,9 +23,20 @@ export interface Sale {
   productName: string;
   quantity: number;
   price: number;
+  purchasePrice: number;
   total: number;
+  profit: number;
   date: string;
   customer?: string;
+}
+
+export interface Expense {
+  id: string;
+  type: 'advertising' | 'delivery' | 'other';
+  amount: number;
+  description: string;
+  date: string;
+  notes?: string;
 }
 
 export interface Supplier {
