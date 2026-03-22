@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown } from 'lucide-react';
+import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown, XCircle } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, Expense } from '../types';
 
@@ -51,14 +51,31 @@ const Dashboard: React.FC = () => {
   const lowStock = products.filter((p) => p.quantity <= p.minStock);
 
   const today = new Date().toISOString().split('T')[0];
-  const todaySales = sales.filter((s) => s.date.startsWith(today));
+  const todaySales = sales.filter((s) => s.date.startsWith(today) && (s.status ?? 'completed') === 'completed');
   const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
-  const monthSales = sales.filter((s) => s.date.startsWith(currentMonth));
+  const monthSales = sales.filter((s) => s.date.startsWith(currentMonth) && (s.status ?? 'completed') === 'completed');
   const monthRevenue = monthSales.reduce((sum, s) => sum + s.total, 0);
   const monthCogs = monthSales.reduce((sum, s) => sum + (s.purchasePrice ?? 0) * s.quantity, 0);
   const grossProfit = monthSales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
+
+  const monthAllSales = sales.filter((s) => s.date.startsWith(currentMonth));
+  const monthCancelledSales = monthAllSales.filter((s) => s.status === 'cancelled');
+  const cancellationRate = monthAllSales.length > 0
+    ? Math.round((monthCancelledSales.length / monthAllSales.length) * 100)
+    : 0;
+
+  // Top cancellation reasons
+  const reasonCounts: Record<string, number> = {};
+  monthCancelledSales.forEach((s) => {
+    if (s.cancellationReason) {
+      reasonCounts[s.cancellationReason] = (reasonCounts[s.cancellationReason] ?? 0) + 1;
+    }
+  });
+  const topReasons = Object.entries(reasonCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
 
   const monthExpenses = expenses
     .filter((e) => e.date.startsWith(currentMonth))
@@ -105,6 +122,32 @@ const Dashboard: React.FC = () => {
           color={netProfit >= 0 ? 'green' : 'red'}
         />
       </div>
+
+      {/* Cancelled Sales Card */}
+      {monthCancelledSales.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-900">
+                Отменённые продажи за месяц: {monthCancelledSales.length} ({cancellationRate}%)
+              </h3>
+              {topReasons.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm text-red-700 font-medium">Топ причин отказов:</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {topReasons.map(([reason, count]) => (
+                      <li key={reason} className="text-sm text-red-600">
+                        {count}× — {reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Low Stock Alert */}
       {lowStock.length > 0 && (
@@ -194,24 +237,39 @@ const Dashboard: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Сумма
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Статус
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {recentSales.map((sale, idx) => (
-                  <tr key={sale.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(sale.date).toLocaleDateString('ru-RU')}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{sale.productName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {sale.customer || '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{sale.quantity}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-green-600">
-                      {sale.total.toLocaleString('ru-RU')} Br
-                    </td>
-                  </tr>
-                ))}
+               {recentSales.map((sale, idx) => {
+                    const isCancelled = sale.status === 'cancelled';
+                    return (
+                    <tr key={sale.id} className={isCancelled ? 'bg-red-50 opacity-70' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')}>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {new Date(sale.date).toLocaleDateString('ru-RU')}
+                      </td>
+                      <td className={`px-4 py-3 text-sm text-gray-900 ${isCancelled ? 'line-through' : ''}`}>{sale.productName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {sale.customer || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{sale.quantity}</td>
+                      <td className={`px-4 py-3 text-sm font-semibold ${isCancelled ? 'text-gray-400 line-through' : 'text-green-600'}`}>
+                        {sale.total.toLocaleString('ru-RU')} Br
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {isCancelled ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Отменена</span>
+                        ) : sale.status === 'pending' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">В процессе</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Завершена</span>
+                        )}
+                      </td>
+                    </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
