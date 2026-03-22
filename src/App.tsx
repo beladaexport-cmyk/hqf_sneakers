@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { LayoutDashboard, ShoppingBag, DollarSign, Package, Settings, TrendingDown } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, DollarSign, Package, Settings, TrendingDown, LogOut } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Catalog from './components/Catalog';
 import Sales from './components/Sales';
@@ -8,8 +10,13 @@ import Suppliers from './components/Suppliers';
 
 type Tab = 'dashboard' | 'catalog' | 'sales' | 'expenses' | 'suppliers' | 'settings';
 
-function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const { currentUser, logout } = useAuth();
+
+  if (!currentUser) {
+    return <Login />;
+  }
 
   const tabs = [
     { id: 'dashboard' as Tab, label: '📊 Дашборд', icon: LayoutDashboard },
@@ -34,10 +41,16 @@ function App() {
         return <Suppliers />;
       case 'settings':
         return (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-500">Настройки в разработке</h2>
-            <p className="text-gray-400 mt-2">Этот раздел будет доступен в следующей версии.</p>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4">Настройки</h2>
+            <p className="text-gray-600 mb-4">Вы вошли как: {currentUser.email}</p>
+            <button
+              onClick={() => logout()}
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Выйти
+            </button>
           </div>
         );
     }
@@ -47,8 +60,15 @@ function App() {
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">👟 HQF Sneakers - Учет магазина</h1>
+          <button
+            onClick={() => logout()}
+            className="text-gray-600 hover:text-gray-900 flex items-center transition-colors"
+          >
+            <LogOut className="w-5 h-5 mr-2" />
+            Выйти
+          </button>
         </div>
       </header>
 
@@ -78,6 +98,14 @@ function App() {
         {renderContent()}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

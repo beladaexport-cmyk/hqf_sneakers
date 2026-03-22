@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, X, Megaphone, Truck, FileText } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useFirestore } from '../hooks/useFirestore';
 import { Expense } from '../types';
 
 type Period = 'all' | 'today' | 'week' | 'month';
@@ -163,7 +163,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, ti
 };
 
 const Expenses: React.FC = () => {
-  const [expenses, setExpenses] = useLocalStorage<Expense[]>('hqf_expenses', []);
+  const { data: expenses, loading, add, update, remove } = useFirestore<Expense>('expenses');
   const [showForm, setShowForm] = useState(false);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
   const [period, setPeriod] = useState<Period>('month');
@@ -176,23 +176,30 @@ const Expenses: React.FC = () => {
 
   const totalAmount = filtered.reduce((sum, e) => sum + e.amount, 0);
 
-  const handleAdd = (data: Omit<Expense, 'id'>) => {
-    const newExpense: Expense = { ...data, id: Date.now().toString() };
-    setExpenses([...expenses, newExpense]);
+  const handleAdd = async (data: Omit<Expense, 'id'>) => {
+    await add(data);
     setShowForm(false);
   };
 
-  const handleEdit = (data: Omit<Expense, 'id'>) => {
-    if (!editExpense) return;
-    setExpenses(expenses.map((e) => (e.id === editExpense.id ? { ...data, id: e.id } : e)));
+  const handleEdit = async (data: Omit<Expense, 'id'>) => {
+    if (!editExpense?.id) return;
+    await update(editExpense.id, data);
     setEditExpense(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Удалить этот расход?')) {
-      setExpenses(expenses.filter((e) => e.id !== id));
+      await remove(id);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500">Загрузка данных...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
