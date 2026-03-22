@@ -220,6 +220,47 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
               />
             </div>
           </div>
+
+          {form.status === 'preorder' && (
+            <div className="space-y-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-yellow-800">Детали предзаказа</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ожидаемая дата поступления
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white"
+                    value={form.expectedDate || ''}
+                    onChange={(e) => set('expectedDate', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Клиент предзаказа
+                  </label>
+                  <input
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white"
+                    placeholder="Имя клиента"
+                    value={form.preorderCustomer || ''}
+                    onChange={(e) => set('preorderCustomer', e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Заметки по предзаказу
+                  </label>
+                  <input
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white"
+                    placeholder="Доп. информация по предзаказу"
+                    value={form.preorderNotes || ''}
+                    onChange={(e) => set('preorderNotes', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex justify-end space-x-3 pt-2">
             <button
               type="button"
@@ -376,6 +417,20 @@ const Catalog: React.FC = () => {
                         >
                           {statusLabels[p.status]}
                         </span>
+                        {p.status === 'preorder' && (
+                          <div className="mt-1 space-y-0.5">
+                            {p.expectedDate && (
+                              <p className="text-xs text-yellow-700">
+                                Ожид: {new Date(p.expectedDate).toLocaleDateString('ru-RU')}
+                              </p>
+                            )}
+                            {p.preorderCustomer && (
+                              <p className="text-xs text-yellow-600 truncate max-w-[120px]" title={p.preorderCustomer}>
+                                {p.preorderCustomer}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center space-x-2">

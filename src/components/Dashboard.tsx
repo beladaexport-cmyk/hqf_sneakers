@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown, XCircle } from 'lucide-react';
+import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown, XCircle, Clock } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, Expense } from '../types';
 
@@ -93,6 +93,12 @@ const Dashboard: React.FC = () => {
 
   const recentSales = [...sales].reverse().slice(0, 10);
 
+  const preorderProducts = products.filter((p) => p.status === 'preorder');
+  const preorderSales = sales.filter(
+    (s) => (s.status ?? 'completed') === 'pending' && preorderProducts.some((p) => p.id === s.productId)
+  );
+  const preorderSalesTotal = preorderSales.reduce((sum, s) => sum + s.total, 0);
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -144,6 +150,82 @@ const Dashboard: React.FC = () => {
                   </ul>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pre-orders in Transit */}
+      {preorderProducts.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <Clock className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-900">
+                В предзаказе: {preorderProducts.length} товар(ов)
+                {preorderSales.length > 0 && (
+                  <span className="text-sm font-normal text-yellow-700 ml-2">
+                    ({preorderSales.length} продаж на {preorderSalesTotal.toLocaleString('ru-RU')} Br)
+                  </span>
+                )}
+              </h3>
+              <div className="mt-2 space-y-2">
+                {preorderProducts.map((p) => {
+                  const daysLeft = p.expectedDate
+                    ? Math.ceil((new Date(p.expectedDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                    : null;
+                  const isOverdue = daysLeft !== null && daysLeft < 0;
+                  const salesForProduct = preorderSales.filter((s) => s.productId === p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm p-2 rounded-lg ${
+                        isOverdue ? 'bg-red-100 border border-red-200' : 'bg-white border border-yellow-100'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <span className="font-medium text-gray-900">
+                          {p.brand} {p.model}
+                        </span>
+                        <span className="text-gray-500 ml-1">р.{p.size}</span>
+                        {p.preorderCustomer && (
+                          <span className="text-yellow-700 ml-2">— {p.preorderCustomer}</span>
+                        )}
+                        {salesForProduct.length > 0 && (
+                          <span className="text-blue-600 ml-2">
+                            ({salesForProduct.length} продаж)
+                          </span>
+                        )}
+                        {p.preorderNotes && (
+                          <p className="text-xs text-gray-400 mt-0.5">{p.preorderNotes}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {p.expectedDate ? (
+                          <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                              isOverdue
+                                ? 'bg-red-200 text-red-800'
+                                : daysLeft !== null && daysLeft <= 3
+                                ? 'bg-orange-100 text-orange-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }`}
+                          >
+                            {isOverdue
+                              ? `Просрочено на ${Math.abs(daysLeft!)} дн.`
+                              : daysLeft === 0
+                              ? 'Сегодня'
+                              : `Через ${daysLeft} дн. (${new Date(p.expectedDate).toLocaleDateString('ru-RU')})`}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">Дата не указана</span>
+                        )}
+                        <span className="text-xs font-mono text-gray-500">{p.retailPrice.toLocaleString('ru-RU')} Br</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

@@ -14,6 +14,9 @@ export interface Product {
   status: 'available' | 'preorder' | 'sold_out';
   location: string;
   minStock: number;
+  expectedDate?: string;
+  preorderCustomer?: string;
+  preorderNotes?: string;
 }
 
 export type DeliveryMethod = 'mail' | 'in_person';

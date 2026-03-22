@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock, Package } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
 
@@ -34,6 +34,7 @@ interface SaleFormProps {
 
 const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
   const available = products.filter((p) => p.quantity > 0 && p.status === 'available');
+  const preorderProducts = products.filter((p) => p.status === 'preorder');
   const [productId, setProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [customer, setCustomer] = useState('');
@@ -44,7 +45,9 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
   const [postalCode, setPostalCode] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
-  const selectedProduct = available.find((p) => p.id === productId);
+  const allSellable = [...available, ...preorderProducts];
+  const selectedProduct = allSellable.find((p) => p.id === productId);
+  const isPreorder = selectedProduct?.status === 'preorder';
 
   const total = selectedProduct ? selectedProduct.retailPrice * quantity : 0;
   const profit = selectedProduct
@@ -57,8 +60,12 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
       alert('Выберите товар');
       return;
     }
-    if (quantity < 1 || quantity > selectedProduct.quantity) {
+    if (!isPreorder && (quantity < 1 || quantity > selectedProduct.quantity)) {
       alert(`Количество должно быть от 1 до ${selectedProduct.quantity}`);
+      return;
+    }
+    if (isPreorder && quantity < 1) {
+      alert('Количество должно быть от 1');
       return;
     }
     if (deliveryMethod === 'mail') {
@@ -94,7 +101,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
         postalCode: postalCode.trim() || undefined,
         notes: deliveryNotes.trim() || undefined,
       } : undefined,
-      status: deliveryMethod === 'in_person' ? 'completed' : 'pending',
+      status: isPreorder ? 'pending' : (deliveryMethod === 'in_person' ? 'completed' : 'pending'),
     };
     onSave(sale);
   };
@@ -121,28 +128,57 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
               required
             >
               <option value="">— Выберите товар —</option>
-              {available.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
-                  (ост: {p.quantity})
-                </option>
-              ))}
+              {available.length > 0 && (
+                <optgroup label="В наличии">
+                  {available.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
+                      (ост: {p.quantity})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {preorderProducts.length > 0 && (
+                <optgroup label="Предзаказ">
+                  {preorderProducts.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
+                      {p.expectedDate ? ` (ожид: ${new Date(p.expectedDate).toLocaleDateString('ru-RU')})` : ' (предзаказ)'}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
-            {available.length === 0 && (
+            {available.length === 0 && preorderProducts.length === 0 && (
               <p className="text-xs text-red-500 mt-1">Нет доступных товаров для продажи</p>
             )}
           </div>
 
           {selectedProduct && (
             <>
+              {isPreorder && (
+                <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                  <Package className="w-4 h-4 flex-shrink-0" />
+                  <span>
+                    Товар в предзаказе
+                    {selectedProduct.expectedDate
+                      ? ` — ожидается ${new Date(selectedProduct.expectedDate).toLocaleDateString('ru-RU')}`
+                      : ''}
+                    {selectedProduct.preorderCustomer
+                      ? ` (клиент: ${selectedProduct.preorderCustomer})`
+                      : ''}
+                  </span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Количество (макс: {selectedProduct.quantity}) *
+                  Количество{!isPreorder ? ` (макс: ${selectedProduct.quantity})` : ''} *
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max={selectedProduct.quantity}
+                  max={isPreorder ? undefined : selectedProduct.quantity}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={quantity}
                   onChange={(e) => setQuantity(Number(e.target.value))}
@@ -271,10 +307,13 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                     {total.toLocaleString('ru-RU')} Br
                   </span>
                 </div>
-                {deliveryMethod === 'mail' && (
+                {isPreorder && (
+                  <p className="text-xs text-yellow-600 mt-2">📦 Статус: В процессе (предзаказ — ожидает поступления)</p>
+                )}
+                {!isPreorder && deliveryMethod === 'mail' && (
                   <p className="text-xs text-blue-600 mt-2">📮 Статус: В процессе (ожидает доставки)</p>
                 )}
-                {deliveryMethod === 'in_person' && (
+                {!isPreorder && deliveryMethod === 'in_person' && (
                   <p className="text-xs text-green-600 mt-2">🤝 Статус: Завершена</p>
                 )}
               </div>
@@ -412,7 +451,7 @@ const Sales: React.FC = () => {
     await addSale(data);
 
     const product = products.find((p) => p.id === data.productId);
-    if (product?.id) {
+    if (product?.id && product.status !== 'preorder') {
       const newQty = product.quantity - data.quantity;
       await updateProduct(product.id, {
         quantity: newQty,
