@@ -132,7 +132,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Закупочная цена (₽)
+                Закупочная цена (Br)
               </label>
               <input
                 type="number"
@@ -144,7 +144,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Розничная цена (₽)
+                Розничная цена (Br)
               </label>
               <input
                 type="number"
@@ -305,7 +305,7 @@ const Catalog: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Артикул', 'Бренд / Модель', 'Размер', 'Цвет', 'Кол-во', 'Цена', 'Категория', 'Статус', 'Действия'].map(
+                {['Артикул', 'Бренд / Модель', 'Размер', 'Цвет', 'Кол-во', 'Цена', 'Маржа', 'Маржа %', 'Категория', 'Статус', 'Действия'].map(
                   (h) => (
                     <th
                       key={h}
@@ -320,7 +320,7 @@ const Catalog: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={11} className="px-4 py-8 text-center text-gray-400">
                     {products.length === 0 ? 'Товаров нет. Добавьте первый!' : 'Ничего не найдено'}
                   </td>
                 </tr>
@@ -350,7 +350,15 @@ const Catalog: React.FC = () => {
                         {isLow && <span className="ml-1 text-xs font-normal text-red-500">⚠ мало</span>}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
-                        {p.retailPrice.toLocaleString('ru-RU')} ₽
+                        {p.retailPrice.toLocaleString('ru-RU')} Br
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-blue-600">
+                        {(p.retailPrice - p.purchasePrice).toLocaleString('ru-RU')} Br
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-blue-600">
+                        {p.purchasePrice > 0
+                          ? ((p.retailPrice - p.purchasePrice) / p.purchasePrice * 100).toFixed(1) + '%'
+                          : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {categoryLabels[p.category]}

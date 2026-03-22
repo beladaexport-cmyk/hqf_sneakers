@@ -1,13 +1,13 @@
 import React from 'react';
-import { TrendingUp, Package, AlertCircle, DollarSign } from 'lucide-react';
+import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Product, Sale } from '../types';
+import { Product, Sale, Expense } from '../types';
 
 interface StatCardProps {
   title: string;
   value: string;
   icon: React.FC<{ className?: string }>;
-  color: 'blue' | 'green' | 'purple' | 'red';
+  color: 'blue' | 'green' | 'purple' | 'red' | 'orange';
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) => {
@@ -16,6 +16,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) 
     green: 'bg-green-500',
     purple: 'bg-purple-500',
     red: 'bg-red-500',
+    orange: 'bg-orange-500',
   };
 
   return (
@@ -36,6 +37,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) 
 const Dashboard: React.FC = () => {
   const [products] = useLocalStorage<Product[]>('hqf_products', []);
   const [sales] = useLocalStorage<Sale[]>('hqf_sales', []);
+  const [expenses] = useLocalStorage<Expense[]>('hqf_expenses', []);
 
   const totalProducts = products.reduce((sum, p) => sum + p.quantity, 0);
   const lowStock = products.filter((p) => p.quantity <= p.minStock);
@@ -43,6 +45,26 @@ const Dashboard: React.FC = () => {
   const today = new Date().toISOString().split('T')[0];
   const todaySales = sales.filter((s) => s.date.startsWith(today));
   const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthSales = sales.filter((s) => s.date.startsWith(currentMonth));
+  const monthRevenue = monthSales.reduce((sum, s) => sum + s.total, 0);
+  const monthCogs = monthSales.reduce((sum, s) => sum + (s.purchasePrice ?? 0) * s.quantity, 0);
+  const grossProfit = monthSales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
+
+  const monthExpenses = expenses
+    .filter((e) => e.date.startsWith(currentMonth))
+    .reduce((sum, e) => sum + e.amount, 0);
+  const monthAdvertising = expenses
+    .filter((e) => e.date.startsWith(currentMonth) && e.type === 'advertising')
+    .reduce((sum, e) => sum + e.amount, 0);
+  const monthDelivery = expenses
+    .filter((e) => e.date.startsWith(currentMonth) && e.type === 'delivery')
+    .reduce((sum, e) => sum + e.amount, 0);
+  const monthOther = expenses
+    .filter((e) => e.date.startsWith(currentMonth) && e.type === 'other')
+    .reduce((sum, e) => sum + e.amount, 0);
+  const netProfit = grossProfit - monthExpenses;
 
   const recentSales = [...sales].reverse().slice(0, 10);
 
@@ -58,21 +80,21 @@ const Dashboard: React.FC = () => {
         />
         <StatCard
           title="Выручка сегодня"
-          value={`${todayRevenue.toLocaleString('ru-RU')} ₽`}
+          value={`${todayRevenue.toLocaleString('ru-RU')} Br`}
           icon={DollarSign}
           color="green"
         />
         <StatCard
-          title="Всего продаж"
-          value={sales.length.toString()}
-          icon={TrendingUp}
-          color="purple"
+          title="Расходы за месяц"
+          value={`${monthExpenses.toLocaleString('ru-RU')} Br`}
+          icon={TrendingDown}
+          color="orange"
         />
         <StatCard
-          title="Товары заканчиваются"
-          value={lowStock.length.toString()}
-          icon={AlertCircle}
-          color="red"
+          title="Чистая прибыль за месяц"
+          value={`${netProfit.toLocaleString('ru-RU')} Br`}
+          icon={TrendingUp}
+          color={netProfit >= 0 ? 'green' : 'red'}
         />
       </div>
 
@@ -95,6 +117,49 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Monthly Detail */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Детализация за месяц</h2>
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Выручка:</span>
+            <span className="font-medium">{monthRevenue.toLocaleString('ru-RU')} Br</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Себестоимость проданных товаров:</span>
+            <span className="font-medium text-red-600">{monthCogs.toLocaleString('ru-RU')} Br</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Валовая прибыль:</span>
+            <span className="font-medium text-green-600">{grossProfit.toLocaleString('ru-RU')} Br</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Расходы:</span>
+            <span className="font-medium text-orange-600">{monthExpenses.toLocaleString('ru-RU')} Br</span>
+          </div>
+          <div className="pl-4 space-y-1">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>📢 Реклама</span>
+              <span>{monthAdvertising.toLocaleString('ru-RU')} Br</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>🚚 Доставка</span>
+              <span>{monthDelivery.toLocaleString('ru-RU')} Br</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>📝 Другое</span>
+              <span>{monthOther.toLocaleString('ru-RU')} Br</span>
+            </div>
+          </div>
+          <div className="flex justify-between text-sm border-t pt-2 mt-2">
+            <span className="font-bold text-gray-900">Чистая прибыль:</span>
+            <span className={`font-bold text-lg ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {netProfit.toLocaleString('ru-RU')} Br
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Recent Sales */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -135,7 +200,7 @@ const Dashboard: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{sale.quantity}</td>
                     <td className="px-4 py-3 text-sm font-semibold text-green-600">
-                      {sale.total.toLocaleString('ru-RU')} ₽
+                      {sale.total.toLocaleString('ru-RU')} Br
                     </td>
                   </tr>
                 ))}
