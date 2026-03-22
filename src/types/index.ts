@@ -16,6 +16,17 @@ export interface Product {
   minStock: number;
 }
 
+export type DeliveryMethod = 'mail' | 'in_person';
+export type SaleStatus = 'completed' | 'pending' | 'cancelled';
+
+export interface DeliveryDetails {
+  recipientName?: string;
+  recipientPhone?: string;
+  address?: string;
+  postalCode?: string;
+  notes?: string;
+}
+
 export interface Sale {
   id: string;
   productId: string;
@@ -28,6 +39,11 @@ export interface Sale {
   profit: number;
   date: string;
   customer?: string;
+  deliveryMethod: DeliveryMethod;
+  deliveryDetails?: DeliveryDetails;
+  status: SaleStatus;
+  cancellationReason?: string;
+  cancelledAt?: string;
 }
 
 export interface Expense {
