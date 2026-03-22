@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
-import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
+import { ShoeModel, ModelSize, Sale, DeliveryMethod, SaleStatus } from '../types';
 
 type Period = 'all' | 'today' | 'week' | 'month';
 
@@ -26,15 +26,18 @@ function filterByPeriod(sales: Sale[], period: Period): Sale[] {
   return sales.filter((s) => new Date(s.date) >= cutoff);
 }
 
+// ── Sale Form ───────────────────────────────────────────────────────────────
+
 interface SaleFormProps {
-  products: Product[];
+  models: ShoeModel[];
+  allSizes: ModelSize[];
   onSave: (sale: Omit<Sale, 'id'>) => void;
   onCancel: () => void;
 }
 
-const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
-  const available = products.filter((p) => p.quantity > 0 && p.status === 'available');
-  const [productId, setProductId] = useState('');
+const SaleForm: React.FC<SaleFormProps> = ({ models, allSizes, onSave, onCancel }) => {
+  const [modelId, setModelId] = useState('');
+  const [sizeId, setSizeId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [customer, setCustomer] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('in_person');
@@ -44,44 +47,46 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
   const [postalCode, setPostalCode] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
-  const selectedProduct = available.find((p) => p.id === productId);
+  const selectedModel = models.find((m) => m.id === modelId);
+  const availableSizes = allSizes
+    .filter((s) => s.modelId === modelId && s.quantity > 0)
+    .sort((a, b) => parseFloat(a.sizeEU) - parseFloat(b.sizeEU));
+  const selectedSize = availableSizes.find((s) => s.id === sizeId);
 
-  const total = selectedProduct ? selectedProduct.retailPrice * quantity : 0;
-  const profit = selectedProduct
-    ? (selectedProduct.retailPrice - selectedProduct.purchasePrice) * quantity
+  // Models that have at least one size with quantity > 0
+  const availableModels = models.filter((m) =>
+    allSizes.some((s) => s.modelId === m.id && s.quantity > 0)
+  );
+
+  const total = selectedModel ? selectedModel.retailPrice * quantity : 0;
+  const profit = selectedModel
+    ? (selectedModel.retailPrice - selectedModel.purchasePrice) * quantity
     : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) {
-      alert('Выберите товар');
+    if (!selectedModel || !selectedSize) {
+      alert('Выберите модель и размер');
       return;
     }
-    if (quantity < 1 || quantity > selectedProduct.quantity) {
-      alert(`Количество должно быть от 1 до ${selectedProduct.quantity}`);
+    if (quantity < 1 || quantity > selectedSize.quantity) {
+      alert(`Количество должно быть от 1 до ${selectedSize.quantity}`);
       return;
     }
     if (deliveryMethod === 'mail') {
-      if (!recipientName.trim()) {
-        alert('Укажите ФИО получателя');
-        return;
-      }
-      if (!recipientPhone.trim()) {
-        alert('Укажите телефон получателя');
-        return;
-      }
-      if (!address.trim()) {
-        alert('Укажите адрес доставки');
-        return;
-      }
+      if (!recipientName.trim()) { alert('Укажите ФИО получателя'); return; }
+      if (!recipientPhone.trim()) { alert('Укажите телефон получателя'); return; }
+      if (!address.trim()) { alert('Укажите адрес доставки'); return; }
     }
     const sale: Omit<Sale, 'id'> = {
-      productId: selectedProduct.id,
-      productSku: selectedProduct.sku,
-      productName: `${selectedProduct.brand} ${selectedProduct.model} (${selectedProduct.size})`,
+      modelId: selectedModel.id,
+      sizeId: selectedSize.id,
+      productSku: selectedModel.sku,
+      productName: `${selectedModel.brand} ${selectedModel.model}${selectedModel.colorway ? ` "${selectedModel.colorway}"` : ''}`,
+      sizeInfo: `EU ${selectedSize.sizeEU} / ${selectedSize.sizeCM} см`,
       quantity,
-      price: selectedProduct.retailPrice,
-      purchasePrice: selectedProduct.purchasePrice,
+      price: selectedModel.retailPrice,
+      purchasePrice: selectedModel.purchasePrice,
       total,
       profit,
       date: new Date().toISOString(),
@@ -109,40 +114,65 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Model Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Товар *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Модель *</label>
             <select
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={productId}
+              value={modelId}
               onChange={(e) => {
-                setProductId(e.target.value);
+                setModelId(e.target.value);
+                setSizeId('');
                 setQuantity(1);
               }}
               required
             >
-              <option value="">— Выберите товар —</option>
-              {available.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
-                  (ост: {p.quantity})
+              <option value="">— Выберите модель —</option>
+              {availableModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.brand} {m.model}{m.colorway ? ` "${m.colorway}"` : ''} — {m.retailPrice.toLocaleString('ru-RU')} Br
                 </option>
               ))}
             </select>
-            {available.length === 0 && (
-              <p className="text-xs text-red-500 mt-1">Нет доступных товаров для продажи</p>
+            {availableModels.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">Нет доступных моделей для продажи</p>
             )}
           </div>
 
-          {selectedProduct && (
+          {/* Size Selector */}
+          {selectedModel && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Размер *</label>
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={sizeId}
+                onChange={(e) => {
+                  setSizeId(e.target.value);
+                  setQuantity(1);
+                }}
+                required
+              >
+                <option value="">— Выберите размер —</option>
+                {availableSizes.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    EU {s.sizeEU} / {s.sizeCM} см (ост: {s.quantity} шт.)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Quantity + Delivery + Customer */}
+          {selectedSize && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Количество (макс: {selectedProduct.quantity}) *
+                  Количество (макс: {selectedSize.quantity}) *
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max={selectedProduct.quantity}
+                  max={selectedSize.quantity}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={quantity}
                   onChange={(e) => setQuantity(Number(e.target.value))}
@@ -151,9 +181,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Способ доставки *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Способ доставки *</label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -201,9 +229,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                     Данные для доставки
                   </h3>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ФИО получателя *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ФИО получателя *</label>
                     <input
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="Иванов Иван Иванович"
@@ -212,9 +238,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Телефон получателя *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Телефон получателя *</label>
                     <input
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="+375 29 123-45-67"
@@ -223,9 +247,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Адрес доставки *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Адрес доставки *</label>
                     <input
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="г. Минск, ул. Ленина, д. 1, кв. 10"
@@ -234,9 +256,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Индекс (необязательно)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Индекс (необязательно)</label>
                     <input
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="220000"
@@ -245,9 +265,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Примечание к доставке (необязательно)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Примечание к доставке (необязательно)</label>
                     <input
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="Позвонить за час до доставки"
@@ -259,10 +277,14 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
               )}
 
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Размер:</span>
+                  <span className="font-medium">EU {selectedSize.sizeEU} / {selectedSize.sizeCM} см</span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
                   <span className="text-gray-600">Цена за шт:</span>
                   <span className="font-medium">
-                    {selectedProduct.retailPrice.toLocaleString('ru-RU')} Br
+                    {selectedModel!.retailPrice.toLocaleString('ru-RU')} Br
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-1">
@@ -272,10 +294,10 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                   </span>
                 </div>
                 {deliveryMethod === 'mail' && (
-                  <p className="text-xs text-blue-600 mt-2">📮 Статус: В процессе (ожидает доставки)</p>
+                  <p className="text-xs text-blue-600 mt-2">Статус: В процессе (ожидает доставки)</p>
                 )}
                 {deliveryMethod === 'in_person' && (
-                  <p className="text-xs text-green-600 mt-2">🤝 Статус: Завершена</p>
+                  <p className="text-xs text-green-600 mt-2">Статус: Завершена</p>
                 )}
               </div>
             </>
@@ -291,7 +313,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
             </button>
             <button
               type="submit"
-              disabled={!selectedProduct}
+              disabled={!selectedModel || !selectedSize}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Продать
@@ -302,6 +324,8 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
     </div>
   );
 };
+
+// ── Cancel Modal ────────────────────────────────────────────────────────────
 
 interface CancelModalProps {
   sale: Sale;
@@ -333,13 +357,12 @@ const CancelModal: React.FC<CancelModalProps> = ({ sale, onConfirm, onCancel }) 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="bg-gray-50 rounded-lg p-4 space-y-1 text-sm">
             <div><span className="text-gray-500">Товар:</span> <span className="font-medium">{sale.productName}</span></div>
+            {sale.sizeInfo && <div><span className="text-gray-500">Размер:</span> <span className="font-medium">{sale.sizeInfo}</span></div>}
             {sale.customer && <div><span className="text-gray-500">Клиент:</span> <span className="font-medium">{sale.customer}</span></div>}
             <div><span className="text-gray-500">Сумма:</span> <span className="font-semibold text-gray-900">{sale.total.toLocaleString('ru-RU')} Br</span></div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Причина отказа *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Причина отказа *</label>
             <input
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
               placeholder="Не подошел размер"
@@ -349,8 +372,7 @@ const CancelModal: React.FC<CancelModalProps> = ({ sale, onConfirm, onCancel }) 
             />
           </div>
           <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-            <span>⚠️</span>
-            <span>Товар будет автоматически возвращён на склад ({sale.quantity} шт.)</span>
+            <span>Товар будет автоматически возвращен на склад ({sale.quantity} шт.)</span>
           </div>
           <div className="flex justify-end space-x-3 pt-2">
             <button
@@ -373,6 +395,8 @@ const CancelModal: React.FC<CancelModalProps> = ({ sale, onConfirm, onCancel }) 
   );
 };
 
+// ── Status Config ───────────────────────────────────────────────────────────
+
 const statusConfig: Record<SaleStatus, { label: string; icon: React.FC<{ className?: string }>; badgeClass: string }> = {
   completed: { label: 'Завершена', icon: CheckCircle, badgeClass: 'bg-green-100 text-green-700' },
   pending: { label: 'В процессе', icon: Clock, badgeClass: 'bg-yellow-100 text-yellow-700' },
@@ -383,13 +407,16 @@ type StatusFilter = 'all' | SaleStatus;
 
 const statusFilterLabels: Record<StatusFilter, string> = {
   all: 'Все',
-  completed: 'Завершённые',
+  completed: 'Завершенные',
   pending: 'В процессе',
-  cancelled: 'Отменённые',
+  cancelled: 'Отмененные',
 };
 
+// ── Main Sales Component ────────────────────────────────────────────────────
+
 const Sales: React.FC = () => {
-  const { data: products, update: updateProduct } = useFirestore<Product>('products');
+  const { data: models } = useFirestore<ShoeModel>('models');
+  const { data: allSizes, update: updateSize } = useFirestore<ModelSize>('modelSizes');
   const { data: sales, add: addSale, update: updateSale } = useFirestore<Sale>('sales');
   const [showForm, setShowForm] = useState(false);
   const [period, setPeriod] = useState<Period>('all');
@@ -411,13 +438,16 @@ const Sales: React.FC = () => {
   const handleSale = async (data: Omit<Sale, 'id'>) => {
     await addSale(data);
 
-    const product = products.find((p) => p.id === data.productId);
-    if (product?.id) {
-      const newQty = product.quantity - data.quantity;
-      await updateProduct(product.id, {
-        quantity: newQty,
-        status: newQty <= 0 ? 'sold_out' : product.status,
-      });
+    // Decrement size stock
+    if (data.sizeId) {
+      const size = allSizes.find((s) => s.id === data.sizeId);
+      if (size) {
+        const newQty = size.quantity - data.quantity;
+        await updateSize(size.id, {
+          quantity: newQty,
+          status: newQty <= 0 ? 'sold_out' : size.status,
+        });
+      }
     }
     setShowForm(false);
   };
@@ -436,13 +466,16 @@ const Sales: React.FC = () => {
       cancelledAt: new Date().toISOString(),
     });
 
-    const product = products.find((p) => p.id === sale.productId);
-    if (product?.id) {
-      const newQty = product.quantity + sale.quantity;
-      await updateProduct(product.id, {
-        quantity: newQty,
-        status: newQty > 0 ? 'available' : product.status,
-      });
+    // Return stock
+    if (sale.sizeId) {
+      const size = allSizes.find((s) => s.id === sale.sizeId);
+      if (size) {
+        const newQty = size.quantity + sale.quantity;
+        await updateSize(size.id, {
+          quantity: newQty,
+          status: newQty > 0 ? 'available' : size.status,
+        });
+      }
     }
     setCancelSale(null);
   };
@@ -515,7 +548,7 @@ const Sales: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Дата', 'Товар', 'Артикул', 'Покупатель', 'Доставка', 'Кол-во', 'Цена', 'Прибыль', 'Итого', 'Статус', 'Действия'].map((h) => (
+                {['Дата', 'Товар', 'Размер', 'Покупатель', 'Доставка', 'Кол-во', 'Цена', 'Прибыль', 'Итого', 'Статус', 'Действия'].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -549,8 +582,8 @@ const Sales: React.FC = () => {
                       <td className={`px-4 py-3 text-sm text-gray-900 ${isCancelled ? 'line-through' : ''}`}>
                         {sale.productName}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-gray-600">
-                        {sale.productSku}
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {sale.sizeInfo || '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{sale.customer || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">
@@ -619,7 +652,12 @@ const Sales: React.FC = () => {
       </div>
 
       {showForm && (
-        <SaleForm products={products} onSave={handleSale} onCancel={() => setShowForm(false)} />
+        <SaleForm
+          models={models}
+          allSizes={allSizes}
+          onSave={handleSale}
+          onCancel={() => setShowForm(false)}
+        />
       )}
 
       {cancelSale && (
@@ -634,4 +672,3 @@ const Sales: React.FC = () => {
 };
 
 export default Sales;
-

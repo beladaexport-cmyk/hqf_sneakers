@@ -1,7 +1,7 @@
 import React from 'react';
 import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown, XCircle } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
-import { Product, Sale, Expense } from '../types';
+import { ShoeModel, ModelSize, Sale, Expense } from '../types';
 
 interface StatCardProps {
   title: string;
@@ -35,11 +35,12 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) 
 };
 
 const Dashboard: React.FC = () => {
-  const { data: products, loading: loadingProducts } = useFirestore<Product>('products');
+  const { data: models, loading: loadingModels } = useFirestore<ShoeModel>('models');
+  const { data: allSizes, loading: loadingSizes } = useFirestore<ModelSize>('modelSizes');
   const { data: sales, loading: loadingSales } = useFirestore<Sale>('sales');
   const { data: expenses, loading: loadingExpenses } = useFirestore<Expense>('expenses');
 
-  if (loadingProducts || loadingSales || loadingExpenses) {
+  if (loadingModels || loadingSizes || loadingSales || loadingExpenses) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-gray-500">Загрузка данных...</div>
@@ -47,8 +48,19 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const totalProducts = products.reduce((sum, p) => sum + p.quantity, 0);
-  const lowStock = products.filter((p) => p.quantity <= p.minStock);
+  // Total stock across all sizes
+  const totalStock = allSizes.reduce((sum, s) => sum + s.quantity, 0);
+
+  // Low stock: sizes with quantity > 0 but <= model.minStock
+  const lowStockItems: { model: ShoeModel; size: ModelSize }[] = [];
+  allSizes.forEach((size) => {
+    if (size.quantity > 0) {
+      const model = models.find((m) => m.id === size.modelId);
+      if (model && size.quantity <= model.minStock) {
+        lowStockItems.push({ model, size });
+      }
+    }
+  });
 
   const today = new Date().toISOString().split('T')[0];
   const todaySales = sales.filter((s) => s.date.startsWith(today) && (s.status ?? 'completed') === 'completed');
@@ -66,7 +78,6 @@ const Dashboard: React.FC = () => {
     ? Math.round((monthCancelledSales.length / monthAllSales.length) * 100)
     : 0;
 
-  // Top cancellation reasons
   const reasonCounts: Record<string, number> = {};
   monthCancelledSales.forEach((s) => {
     if (s.cancellationReason) {
@@ -99,7 +110,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Товаров на складе"
-          value={totalProducts.toString()}
+          value={totalStock.toString()}
           icon={Package}
           color="blue"
         />
@@ -130,7 +141,7 @@ const Dashboard: React.FC = () => {
             <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <h3 className="font-semibold text-red-900">
-                Отменённые продажи за месяц: {monthCancelledSales.length} ({cancellationRate}%)
+                Отмененные продажи за месяц: {monthCancelledSales.length} ({cancellationRate}%)
               </h3>
               {topReasons.length > 0 && (
                 <div className="mt-2">
@@ -138,7 +149,7 @@ const Dashboard: React.FC = () => {
                   <ul className="mt-1 space-y-0.5">
                     {topReasons.map(([reason, count]) => (
                       <li key={reason} className="text-sm text-red-600">
-                        {count}× — {reason}
+                        {count}x — {reason}
                       </li>
                     ))}
                   </ul>
@@ -150,17 +161,16 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Low Stock Alert */}
-      {lowStock.length > 0 && (
+      {lowStockItems.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-start">
             <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
             <div>
               <h3 className="font-semibold text-red-900">Товары с низким остатком!</h3>
               <ul className="mt-2 space-y-1">
-                {lowStock.map((p) => (
-                  <li key={p.id} className="text-sm text-red-700">
-                    {p.brand} {p.model} (размер {p.size}) — осталось {p.quantity} шт.
-                    (мин. {p.minStock})
+                {lowStockItems.map(({ model, size }) => (
+                  <li key={size.id} className="text-sm text-red-700">
+                    {model.brand} {model.model}{model.colorway ? ` "${model.colorway}"` : ''} (EU {size.sizeEU} / {size.sizeCM} см) — осталось {size.quantity} шт. (мин. {model.minStock})
                   </li>
                 ))}
               </ul>
@@ -191,15 +201,15 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="pl-4 space-y-1">
             <div className="flex justify-between text-xs text-gray-500">
-              <span>📢 Реклама</span>
+              <span>Реклама</span>
               <span>{monthAdvertising.toLocaleString('ru-RU')} Br</span>
             </div>
             <div className="flex justify-between text-xs text-gray-500">
-              <span>🚚 Доставка</span>
+              <span>Доставка</span>
               <span>{monthDelivery.toLocaleString('ru-RU')} Br</span>
             </div>
             <div className="flex justify-between text-xs text-gray-500">
-              <span>📝 Другое</span>
+              <span>Другое</span>
               <span>{monthOther.toLocaleString('ru-RU')} Br</span>
             </div>
           </div>
@@ -222,38 +232,30 @@ const Dashboard: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Дата
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Товар
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Покупатель
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Кол-во
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Сумма
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Статус
-                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Размер</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Покупатель</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кол-во</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сумма</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-               {recentSales.map((sale, idx) => {
-                    const isCancelled = sale.status === 'cancelled';
-                    return (
+                {recentSales.map((sale, idx) => {
+                  const isCancelled = sale.status === 'cancelled';
+                  return (
                     <tr key={sale.id} className={isCancelled ? 'bg-red-50 opacity-70' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')}>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {new Date(sale.date).toLocaleDateString('ru-RU')}
                       </td>
-                      <td className={`px-4 py-3 text-sm text-gray-900 ${isCancelled ? 'line-through' : ''}`}>{sale.productName}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {sale.customer || '—'}
+                      <td className={`px-4 py-3 text-sm text-gray-900 ${isCancelled ? 'line-through' : ''}`}>
+                        {sale.productName}
                       </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {sale.sizeInfo || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{sale.customer || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{sale.quantity}</td>
                       <td className={`px-4 py-3 text-sm font-semibold ${isCancelled ? 'text-gray-400 line-through' : 'text-green-600'}`}>
                         {sale.total.toLocaleString('ru-RU')} Br
@@ -268,8 +270,8 @@ const Dashboard: React.FC = () => {
                         )}
                       </td>
                     </tr>
-                    );
-                  })}
+                  );
+                })}
               </tbody>
             </table>
           </div>

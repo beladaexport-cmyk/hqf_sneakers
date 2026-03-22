@@ -1,3 +1,4 @@
+// Legacy product type (kept for migration and backward compatibility)
 export interface Product {
   id: string;
   sku: string;
@@ -16,6 +17,31 @@ export interface Product {
   minStock: number;
 }
 
+// New model-based architecture
+export interface ShoeModel {
+  id: string;
+  sku: string;
+  brand: string;
+  model: string;
+  colorway: string;
+  images: string[];
+  purchasePrice: number;
+  retailPrice: number;
+  supplier: string;
+  category: 'sport' | 'lifestyle' | 'limited';
+  dateAdded: string;
+  minStock: number;
+}
+
+export interface ModelSize {
+  id: string;
+  modelId: string;
+  sizeEU: string;
+  sizeCM: number;
+  quantity: number;
+  status: 'available' | 'preorder' | 'sold_out';
+}
+
 export type DeliveryMethod = 'mail' | 'in_person';
 export type SaleStatus = 'completed' | 'pending' | 'cancelled';
 
@@ -29,9 +55,12 @@ export interface DeliveryDetails {
 
 export interface Sale {
   id: string;
-  productId: string;
+  productId?: string;
+  modelId?: string;
+  sizeId?: string;
   productSku: string;
   productName: string;
+  sizeInfo?: string;
   quantity: number;
   price: number;
   purchasePrice: number;
