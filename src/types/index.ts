@@ -1,3 +1,17 @@
+export interface ShoeModel {
+  id: string;
+  brand: string;
+  model: string;
+  category: 'sport' | 'lifestyle' | 'limited';
+}
+
+export interface ModelSize {
+  id: string;
+  modelId: string;
+  size: string;
+  quantity: number;
+}
+
 export interface Product {
   id: string;
   sku: string;
