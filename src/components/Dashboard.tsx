@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, Expense } from '../types';
 
 interface StatCardProps {
@@ -35,9 +35,17 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) 
 };
 
 const Dashboard: React.FC = () => {
-  const [products] = useLocalStorage<Product[]>('hqf_products', []);
-  const [sales] = useLocalStorage<Sale[]>('hqf_sales', []);
-  const [expenses] = useLocalStorage<Expense[]>('hqf_expenses', []);
+  const { data: products, loading: loadingProducts } = useFirestore<Product>('products');
+  const { data: sales, loading: loadingSales } = useFirestore<Sale>('sales');
+  const { data: expenses, loading: loadingExpenses } = useFirestore<Expense>('expenses');
+
+  if (loadingProducts || loadingSales || loadingExpenses) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500">Загрузка данных...</div>
+      </div>
+    );
+  }
 
   const totalProducts = products.reduce((sum, p) => sum + p.quantity, 0);
   const lowStock = products.filter((p) => p.quantity <= p.minStock);

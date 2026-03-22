@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
 
 const emptyProduct: Omit<Product, 'id'> = {
@@ -242,7 +242,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
 };
 
 const Catalog: React.FC = () => {
-  const [products, setProducts] = useLocalStorage<Product[]>('hqf_products', []);
+  const { data: products, loading, add, update, remove } = useFirestore<Product>('products');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
@@ -256,23 +256,30 @@ const Catalog: React.FC = () => {
     );
   });
 
-  const handleAdd = (data: Omit<Product, 'id'>) => {
-    const newProduct: Product = { ...data, id: Date.now().toString() };
-    setProducts([...products, newProduct]);
+  const handleAdd = async (data: Omit<Product, 'id'>) => {
+    await add(data);
     setShowForm(false);
   };
 
-  const handleEdit = (data: Omit<Product, 'id'>) => {
-    if (!editProduct) return;
-    setProducts(products.map((p) => (p.id === editProduct.id ? { ...data, id: p.id } : p)));
+  const handleEdit = async (data: Omit<Product, 'id'>) => {
+    if (!editProduct?.id) return;
+    await update(editProduct.id, data);
     setEditProduct(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Удалить этот товар?')) {
-      setProducts(products.filter((p) => p.id !== id));
+      await remove(id);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500">Загрузка данных...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

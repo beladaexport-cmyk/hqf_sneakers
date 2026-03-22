@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, X, DollarSign } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale } from '../types';
 
 type Period = 'all' | 'today' | 'week' | 'month';
@@ -173,30 +173,26 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
 };
 
 const Sales: React.FC = () => {
-  const [products, setProducts] = useLocalStorage<Product[]>('hqf_products', []);
-  const [sales, setSales] = useLocalStorage<Sale[]>('hqf_sales', []);
+  const { data: products, update: updateProduct } = useFirestore<Product>('products');
+  const { data: sales, add: addSale } = useFirestore<Sale>('sales');
   const [showForm, setShowForm] = useState(false);
   const [period, setPeriod] = useState<Period>('all');
 
   const filteredSales = filterByPeriod([...sales].reverse(), period);
   const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
 
-  const handleSale = (data: Omit<Sale, 'id'>) => {
-    const newSale: Sale = { ...data, id: Date.now().toString() };
-    setSales([...sales, newSale]);
+  const handleSale = async (data: Omit<Sale, 'id'>) => {
+    await addSale(data);
 
     // Decrease product quantity
-    setProducts(
-      products.map((p) =>
-        p.id === data.productId
-          ? {
-              ...p,
-              quantity: p.quantity - data.quantity,
-              status: p.quantity - data.quantity <= 0 ? 'sold_out' : p.status,
-            }
-          : p
-      )
-    );
+    const product = products.find((p) => p.id === data.productId);
+    if (product?.id) {
+      const newQty = product.quantity - data.quantity;
+      await updateProduct(product.id, {
+        quantity: newQty,
+        status: newQty <= 0 ? 'sold_out' : product.status,
+      });
+    }
     setShowForm(false);
   };
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, X, Phone, Mail, MapPin, User } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useFirestore } from '../hooks/useFirestore';
 import { Supplier } from '../types';
 
 const emptySupplier: Omit<Supplier, 'id'> = {
@@ -123,29 +123,34 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ initial, onSave, onCancel, 
 };
 
 const Suppliers: React.FC = () => {
-  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>('hqf_suppliers', []);
+  const { data: suppliers, loading, add, update, remove } = useFirestore<Supplier>('suppliers');
   const [showForm, setShowForm] = useState(false);
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null);
 
-  const handleAdd = (data: Omit<Supplier, 'id'>) => {
-    const newSupplier: Supplier = { ...data, id: Date.now().toString() };
-    setSuppliers([...suppliers, newSupplier]);
+  const handleAdd = async (data: Omit<Supplier, 'id'>) => {
+    await add(data);
     setShowForm(false);
   };
 
-  const handleEdit = (data: Omit<Supplier, 'id'>) => {
-    if (!editSupplier) return;
-    setSuppliers(
-      suppliers.map((s) => (s.id === editSupplier.id ? { ...data, id: s.id } : s))
-    );
+  const handleEdit = async (data: Omit<Supplier, 'id'>) => {
+    if (!editSupplier?.id) return;
+    await update(editSupplier.id, data);
     setEditSupplier(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Удалить этого поставщика?')) {
-      setSuppliers(suppliers.filter((s) => s.id !== id));
+      await remove(id);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500">Загрузка данных...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
