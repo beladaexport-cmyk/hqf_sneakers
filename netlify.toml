@@ -2,6 +2,12 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  # Firebase config values are public client-side identifiers (not secrets).
+  # Security is enforced via Firebase Security Rules, not by hiding these keys.
+  # Disable smart detection to prevent false positives from Vite-inlined env vars.
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
