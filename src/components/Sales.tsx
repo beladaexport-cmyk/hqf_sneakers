@@ -33,7 +33,7 @@ interface SaleFormProps {
 }
 
 const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
-  const available = products.filter((p) => p.quantity > 0 && p.status === 'available');
+  const available = products.filter((p) => p.quantity > 0 && p.status !== 'sold_out');
   const [productId, setProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [customer, setCustomer] = useState('');
