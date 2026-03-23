@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, Layers, ChevronRight, ChevronDown } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
-import { SIZE_CHART, SIZE_OPTIONS } from '../utils/sizeChart';
+import { SIZE_OPTIONS } from '../utils/sizeChart';
 import ImageUpload from './ImageUpload';
 
 interface SizeEntry {
@@ -458,7 +458,6 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
                   />
                   <span className="text-sm text-gray-700 flex-1">
                     EU {s.eu}
-                    <span className="text-gray-400 ml-1">/ {SIZE_CHART[s.eu]} см</span>
                   </span>
                   {s.selected && (
                     <input
@@ -925,7 +924,7 @@ const Catalog: React.FC = () => {
                                 borderBottom: '1px solid #E2E8F0',
                                 fontSize: '12px',
                               }}>
-                                <span>Размер: {p.size}{p.sizeInCm ? ` (${p.sizeInCm} см)` : ''}</span>
+                                <span>Размер: {p.size}</span>
                                 <span style={{ color: isLow ? '#EF4444' : undefined }}>
                                   Кол-во: {p.quantity}{isLow ? ' ⚠' : ''}
                                 </span>
@@ -1110,7 +1109,6 @@ const Catalog: React.FC = () => {
                                 <td className="px-4 py-2 text-sm text-gray-500">{p.color}</td>
                                 <td className="px-4 py-2 text-sm font-medium text-gray-800">
                                   {p.size}
-                                  {p.sizeInCm && <span className="text-gray-400 text-xs ml-1">({p.sizeInCm} см)</span>}
                                   <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium ${statusColors[p.status]}`}>
                                     {statusLabels[p.status]}
                                   </span>

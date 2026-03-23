@@ -5,7 +5,6 @@ export interface Product {
   brand: string;
   model: string;
   size: string;
-  sizeInCm?: string;
   color: string;
   quantity: number;
   purchasePrice: number;
@@ -37,7 +36,6 @@ export interface SneakerSize {
   id: string;
   modelId: string;
   sizeEU: string;
-  sizeCM: number;
   quantity: number;
   status: 'available' | 'preorder' | 'sold_out';
   minStock: number;
