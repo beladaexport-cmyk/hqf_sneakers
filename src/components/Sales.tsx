@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, X, Mail, Users, Trash2, AlertTriangle } from 'lucide-react';
 import { doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -660,6 +660,99 @@ const Sales: React.FC = () => {
   const [deleteConfirmSale, setDeleteConfirmSale] = useState<Sale | null>(null);
   const [editSaleData, setEditSaleData] = useState<Sale | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const imageFixRanRef = useRef(false);
+
+  // Debug: log all sales and products data for diagnostics
+  useEffect(() => {
+    if (sales.length > 0) {
+      console.log('=== ALL SALES DATA ===');
+      sales.forEach(sale => {
+        console.log({
+          id: sale.id,
+          productName: sale.productName,
+          productId: sale.productId,
+          productImage: sale.productImage ? 'HAS productImage' : 'NO productImage',
+          allFields: Object.keys(sale)
+        });
+      });
+    }
+    if (products.length > 0) {
+      console.log('=== ALL PRODUCTS DATA ===');
+      products.forEach(p => {
+        console.log({
+          id: p.id,
+          brand: p.brand,
+          model: p.model,
+          images: p.images?.length ? `HAS ${p.images.length} images` : 'NO images',
+          allFields: Object.keys(p)
+        });
+      });
+    }
+  }, [sales, products]);
+
+  // One-time fix: patch sales missing productImage from catalog or sibling sales
+  useEffect(() => {
+    if (imageFixRanRef.current || sales.length === 0 || products.length === 0) return;
+    imageFixRanRef.current = true;
+
+    const fixMissingImages = async () => {
+      for (const sale of sales) {
+        // Skip if already has image
+        if (sale.productImage) continue;
+
+        let img: string | null = null;
+
+        // Try matching product by ID
+        let matched = products.find(p => p.id === sale.productId);
+        if (matched?.images?.[0]) {
+          img = matched.images[0];
+        }
+
+        // Try matching product by SKU
+        if (!img) {
+          matched = products.find(p => p.sku === sale.productSku);
+          if (matched?.images?.[0]) img = matched.images[0];
+        }
+
+        // Try matching by brand + model name
+        if (!img) {
+          const saleName = (sale.productName || '').toLowerCase();
+          matched = products.find(p => {
+            if (!p.brand || !p.model || !p.images?.[0]) return false;
+            return saleName.includes(p.model.toLowerCase()) &&
+              saleName.includes(p.brand.toLowerCase());
+          });
+          if (matched?.images?.[0]) img = matched.images[0];
+        }
+
+        // Try finding image from another sale of the same product
+        if (!img) {
+          const saleName = (sale.productName || '').toLowerCase().replace(/\(\d+\.?\d*\)/g, '').trim();
+          const siblingSale = sales.find(s => {
+            if (!s.productImage) return false;
+            if (s.id === sale.id) return false;
+            // Match by productId
+            if (sale.productId && s.productId === sale.productId) return true;
+            // Match by normalized name (strip size)
+            const otherName = (s.productName || '').toLowerCase().replace(/\(\d+\.?\d*\)/g, '').trim();
+            return otherName === saleName && saleName.length > 0;
+          });
+          if (siblingSale?.productImage) img = siblingSale.productImage;
+        }
+
+        if (!img) continue;
+
+        try {
+          await updateDoc(doc(db, 'sales', sale.id), { productImage: img });
+          console.log(`Fixed image for: ${sale.productName}`);
+        } catch (e) {
+          console.error(`Failed to fix image for: ${sale.id}`, e);
+        }
+      }
+    };
+
+    fixMissingImages();
+  }, [sales, products]);
 
   const periodFiltered = filterByPeriod([...sales].reverse(), period);
   const filteredSales = statusFilter === 'all'
@@ -719,6 +812,20 @@ const Sales: React.FC = () => {
       }
     }
 
+    // Try 6: find image from another sale of the same product (different size)
+    const saleNameNorm = saleName.replace(/\(\d+\.?\d*\)/g, '').trim();
+    if (saleNameNorm.length > 0) {
+      const siblingSale = sales.find(s => {
+        if (!s.productImage || s.id === sale.id) return false;
+        // Match by productId
+        if (sale.productId && s.productId === sale.productId) return true;
+        // Match by normalized name (strip size)
+        const otherName = (s.productName || '').toLowerCase().replace(/\(\d+\.?\d*\)/g, '').trim();
+        return otherName === saleNameNorm;
+      });
+      if (siblingSale?.productImage) return siblingSale.productImage;
+    }
+
     return null;
   };
 
@@ -726,7 +833,17 @@ const Sales: React.FC = () => {
     try {
       console.log('🛒 Starting sale creation:', data);
 
-      await addSale(data);
+      // Ensure productImage is saved from catalog if not already set
+      let saleData = { ...data };
+      if (!saleData.productImage) {
+        const selectedProduct = products.find(p => p.id === saleData.productId);
+        const catalogImage = selectedProduct?.images?.[0] || null;
+        if (catalogImage) {
+          saleData = { ...saleData, productImage: catalogImage };
+        }
+      }
+
+      await addSale(saleData);
       console.log('✅ Sale created successfully');
 
       const product = products.find((p) => p.id === data.productId);
@@ -952,7 +1069,15 @@ const Sales: React.FC = () => {
                       }}
                     />
                   ) : (
-                    <span style={{ fontSize: '48px' }}>👟</span>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '48px' }}>👟</span>
+                      <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '500' }}>Нет фото</span>
+                    </div>
                   )}
 
                   {/* Status badge top right */}
