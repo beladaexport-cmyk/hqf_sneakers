@@ -4,7 +4,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Preorder, PreorderStatus } from '../types';
-import { SIZE_CHART, SIZE_OPTIONS } from '../utils/sizeChart';
+import { SIZE_OPTIONS } from '../utils/sizeChart';
 
 const statusConfig: Record<PreorderStatus, { label: string; badgeClass: string }> = {
   pending: { label: 'Ожидается', badgeClass: 'bg-yellow-100 text-yellow-800' },
@@ -82,7 +82,7 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
                   <option value="">Выберите размер</option>
                   {SIZE_OPTIONS.map((eu) => (
                     <option key={eu} value={eu}>
-                      EU {eu} / {SIZE_CHART[eu]} см
+                      EU {eu}
                     </option>
                   ))}
                 </select>
@@ -312,9 +312,6 @@ const Preorders: React.FC = () => {
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{p.modelName}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         EU {p.sizeEU}
-                        {p.sizeEU && SIZE_CHART[p.sizeEU] && (
-                          <span className="text-gray-400 ml-1">/ {SIZE_CHART[p.sizeEU]} см</span>
-                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">{p.quantity} шт</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{p.purchasePrice.toLocaleString('ru-RU')} Br</td>
@@ -391,7 +388,7 @@ const Preorders: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-semibold text-gray-900">{p.modelName}</p>
-                    <p className="text-sm text-gray-500">EU {p.sizeEU}{p.sizeEU && SIZE_CHART[p.sizeEU] ? ` / ${SIZE_CHART[p.sizeEU]} см` : ''}</p>
+                    <p className="text-sm text-gray-500">EU {p.sizeEU}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${sc.badgeClass}`}>{sc.label}</span>
                 </div>

@@ -679,10 +679,48 @@ const Sales: React.FC = () => {
   const totalProfit = completedSales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
 
   const getSaleProductImage = (sale: Sale): string | null => {
-    const product = products.find(p =>
+    // Try 1: exact match by productId or SKU
+    let product = products.find(p =>
       p.id === sale.productId || p.sku === sale.productSku
     );
-    return product?.images?.[0] || null;
+    if (product?.images?.[0]) return product.images[0];
+
+    // Try 2: match by modelArticle
+    if (sale.productModelArticle) {
+      product = products.find(p =>
+        p.modelArticle === sale.productModelArticle && p.images?.[0]
+      );
+      if (product?.images?.[0]) return product.images[0];
+    }
+
+    // Try 3: match by brand + model name (ignore size — any variant of same model)
+    const saleName = (sale.productName || '').toLowerCase();
+    product = products.find(p => {
+      if (!p.brand || !p.model || !p.images?.[0]) return false;
+      return saleName.includes(p.model.toLowerCase()) &&
+        saleName.includes(p.brand.toLowerCase());
+    });
+    if (product?.images?.[0]) return product.images[0];
+
+    // Try 4: match by model name only
+    product = products.find(p => {
+      if (!p.model || !p.images?.[0]) return false;
+      return saleName.includes(p.model.toLowerCase());
+    });
+    if (product?.images?.[0]) return product.images[0];
+
+    // Try 5: match by base SKU prefix (without size suffix)
+    if (sale.productSku) {
+      const baseSku = sale.productSku.replace(/-\d+(\.\d+)?$/, '');
+      if (baseSku !== sale.productSku) {
+        product = products.find(p =>
+          p.sku.startsWith(baseSku) && p.images?.[0]
+        );
+        if (product?.images?.[0]) return product.images[0];
+      }
+    }
+
+    return null;
   };
 
   const handleSale = async (data: Omit<Sale, 'id'>) => {

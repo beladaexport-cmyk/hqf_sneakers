@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { Camera, Mic, Send, Sparkles, CheckCircle, XCircle } from 'lucide-react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { SIZE_CHART } from '../utils/sizeChart';
 
 interface AIResponse {
   brand: string;
@@ -136,15 +135,12 @@ const AIAssistant: React.FC = () => {
 
       // Для каждого размера создаём отдельный товар
       for (const size of aiResponse.sizes) {
-        const sizeInCm = SIZE_CHART[size] || '';
-
         const product = {
           sku: `${aiResponse.brand.substring(0, 3).toUpperCase()}-${aiResponse.model.substring(0, 3).toUpperCase()}-${size}`,
           modelArticle: aiResponse.modelArticle || '',
           brand: aiResponse.brand,
           model: aiResponse.model,
           size: size,
-          sizeInCm: sizeInCm,
           color: aiResponse.color || '',
           quantity: aiResponse.quantity || 1,
           purchasePrice: aiResponse.purchasePrice || 0,
@@ -167,15 +163,12 @@ const AIAssistant: React.FC = () => {
           new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
         for (const size of aiResponse.sizes) {
-          const sizeInCm = SIZE_CHART[size] || '';
-
           const preorder = {
             modelId: '',
             modelArticle: aiResponse.modelArticle || '',
             modelName: `${aiResponse.brand} ${aiResponse.model}${aiResponse.color ? ' "' + aiResponse.color + '"' : ''}`,
             sizeId: '',
             sizeEU: size,
-            sizeInCm: sizeInCm,
             quantity: aiResponse.quantity || 1,
             purchasePrice: aiResponse.purchasePrice || 0,
             retailPrice: aiResponse.retailPrice || 0,
@@ -345,12 +338,6 @@ const AIAssistant: React.FC = () => {
             <div>
               <span className="text-gray-500">Размеры EU:</span>
               <p className="font-medium">{aiResponse.sizes.join(', ')}</p>
-            </div>
-            <div>
-              <span className="text-gray-500">Размеры в см:</span>
-              <p className="font-medium">
-                {aiResponse.sizes.map(s => SIZE_CHART[s] ? `${SIZE_CHART[s]}` : '?').join(', ')}
-              </p>
             </div>
             {aiResponse.status === 'preorder' && (
               <div className="col-span-2">
