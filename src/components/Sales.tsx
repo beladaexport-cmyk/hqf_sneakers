@@ -86,20 +86,21 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
       }
     }
 
+    const trimmedCustomer = customer.trim();
     const sale: Omit<Sale, 'id'> = {
       productId: selectedProduct.id,
       productSku: selectedProduct.sku,
-      productModelArticle: selectedProduct.modelArticle,
       productName: `${selectedProduct.brand} ${selectedProduct.model} (${selectedProduct.size})`,
-      productColor: selectedProduct.color,
       quantity,
       price: selectedProduct.retailPrice,
       purchasePrice: selectedProduct.purchasePrice,
       total,
       profit,
       date: new Date().toISOString(),
-      customer: customer.trim() || undefined,
       deliveryMethod,
+      ...(selectedProduct.modelArticle ? { productModelArticle: selectedProduct.modelArticle } : {}),
+      ...(selectedProduct.color ? { productColor: selectedProduct.color } : {}),
+      ...(trimmedCustomer ? { customer: trimmedCustomer } : {}),
       ...(deliveryMethod === 'mail' ? {
         deliveryDetails: {
           recipientName: recipientName.trim(),
