@@ -10,8 +10,9 @@ import Suppliers from './components/Suppliers';
 import Preorders from './components/Preorders';
 import SettingsPage from './components/Settings';
 import AIAssistant from './components/AIAssistant';
+import AIAgent from './components/AIAgent';
 
-type Tab = 'dashboard' | 'catalog' | 'sales' | 'preorders' | 'expenses' | 'suppliers' | 'ai-assistant' | 'settings';
+type Tab = 'dashboard' | 'catalog' | 'sales' | 'preorders' | 'expenses' | 'suppliers' | 'ai-assistant' | 'ai-agent' | 'settings';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -28,6 +29,7 @@ function AppContent() {
     { id: 'sales' as Tab, label: '💰 Продажи', icon: DollarSign },
     { id: 'preorders' as Tab, label: '🛒 Предзаказы', icon: ShoppingCart },
     { id: 'ai-assistant' as Tab, label: '🤖 AI-Помощник', icon: Sparkles },
+    { id: 'ai-agent' as Tab, label: '🧠 AI-Агент', icon: Sparkles },
     { id: 'expenses' as Tab, label: '💸 Расходы', icon: TrendingDown },
     { id: 'suppliers' as Tab, label: '📦 Поставщики', icon: Package },
     { id: 'settings' as Tab, label: '⚙️ Настройки', icon: Settings },
@@ -45,6 +47,8 @@ function AppContent() {
         return <Preorders />;
       case 'ai-assistant':
         return <AIAssistant />;
+      case 'ai-agent':
+        return <AIAgent />;
       case 'expenses':
         return <Expenses />;
       case 'suppliers':
