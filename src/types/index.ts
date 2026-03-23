@@ -1,6 +1,7 @@
 export interface Product {
   id: string;
   sku: string;
+  modelArticle?: string;
   brand: string;
   model: string;
   size: string;
