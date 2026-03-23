@@ -45,6 +45,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
   const [address, setAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedProduct = available.find((p) => p.id === productId);
 
@@ -53,8 +54,15 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
     ? (selectedProduct.retailPrice - selectedProduct.purchasePrice) * quantity
     : 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Form submitted');
+
+    if (isSubmitting) {
+      console.log('⏳ Already submitting, ignoring...');
+      return;
+    }
+
     if (!selectedProduct) {
       alert('Выберите товар');
       return;
@@ -77,6 +85,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
         return;
       }
     }
+
     const sale: Omit<Sale, 'id'> = {
       productId: selectedProduct.id,
       productSku: selectedProduct.sku,
@@ -98,7 +107,16 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
       } : undefined,
       status: deliveryMethod === 'in_person' ? 'completed' : 'pending',
     };
-    onSave(sale);
+
+    setIsSubmitting(true);
+    try {
+      await onSave(sale);
+    } catch (error: any) {
+      console.error('Error in handleSubmit:', error);
+      alert(`Ошибка при оформлении продажи: ${error.message || 'Неизвестная ошибка'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -293,10 +311,10 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
             </button>
             <button
               type="submit"
-              disabled={!selectedProduct}
+              disabled={!selectedProduct || isSubmitting}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Продать
+              {isSubmitting ? 'Сохранение...' : 'Продать'}
             </button>
           </div>
         </form>
@@ -412,17 +430,28 @@ const Sales: React.FC = () => {
     : 0;
 
   const handleSale = async (data: Omit<Sale, 'id'>) => {
-    await addSale(data);
+    try {
+      console.log('🛒 Starting sale creation:', data);
 
-    const product = products.find((p) => p.id === data.productId);
-    if (product?.id) {
-      const remainingQty = product.quantity - data.quantity;
-      await updateDoc(doc(db, 'products', product.id), {
-        quantity: increment(-data.quantity),
-        ...(remainingQty <= 0 ? { status: 'sold_out' } : {}),
-      });
+      await addSale(data);
+      console.log('✅ Sale created successfully');
+
+      const product = products.find((p) => p.id === data.productId);
+      if (product?.id) {
+        console.log('📦 Updating product quantity:', product.id);
+        const remainingQty = product.quantity - data.quantity;
+        await updateDoc(doc(db, 'products', product.id), {
+          quantity: increment(-data.quantity),
+          ...(remainingQty <= 0 ? { status: 'sold_out' } : {}),
+        });
+        console.log('✅ Product updated successfully');
+      }
+
+      setShowForm(false);
+    } catch (error: any) {
+      console.error('❌ Error creating sale:', error);
+      alert(`Ошибка при оформлении продажи: ${error.message || 'Неизвестная ошибка'}`);
     }
-    setShowForm(false);
   };
 
   const handleCompleteSale = async (saleId: string) => {
