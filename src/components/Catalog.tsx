@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X, Layers } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, Layers, ChevronRight, ChevronDown } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
 import { SIZE_CHART, SIZE_OPTIONS } from '../utils/sizeChart';
@@ -488,6 +488,19 @@ const Catalog: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [showBulkForm, setShowBulkForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
+  };
 
   const suppliers = Array.from(new Set(products.filter((p) => p.supplier).map((p) => p.supplier!))).sort();
 
@@ -586,7 +599,7 @@ const Catalog: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Артикул', 'Бренд / Модель', 'Размер', 'Поставщик', 'Цвет', 'Кол-во', 'Цена', 'Маржа', 'Маржа %', 'Категория', 'Статус', 'Действия'].map(
+                {['Бренд / Модель', 'Цвет', 'Размеры', 'Поставщик', 'Кол-во', 'Цена', 'Категория', 'Действия'].map(
                   (h) => (
                     <th
                       key={h}
@@ -601,97 +614,111 @@ const Catalog: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                     {products.length === 0 ? 'Товаров нет. Добавьте первый!' : 'Ничего не найдено'}
                   </td>
                 </tr>
               ) : (
-                filtered.map((p, idx) => {
-                  const isLow = p.quantity <= p.minStock;
-                  return (
-                    <tr
-                      key={p.id}
-                      className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${
-                        isLow ? 'bg-red-50' : ''
-                      }`}
-                    >
-                      <td
-                        className="px-4 py-3 text-sm font-medium text-gray-900"
-                        title={p.modelArticle && p.modelArticle !== p.sku ? `Артикул: ${p.modelArticle}\nSKU: ${p.sku}` : p.sku}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium font-mono">
-                            {p.modelArticle || p.sku}
-                          </span>
-                          {p.modelArticle && p.modelArticle !== p.sku && (
-                            <span className="text-xs text-gray-400">
-                              SKU: {p.sku}
+                (() => {
+                  const groupMap: Record<string, Product[]> = {};
+                  for (const p of filtered) {
+                    const key = JSON.stringify([p.brand, p.model, p.color]);
+                    if (!groupMap[key]) groupMap[key] = [];
+                    groupMap[key].push(p);
+                  }
+                  return Object.entries(groupMap).map(([key, items]) => {
+                    const first = items[0];
+                    const isExpanded = expandedGroups.has(key);
+                    const totalQuantity = items.reduce((s, p) => s + p.quantity, 0);
+                    const sizes = items.map(p => p.size).join(', ');
+                    const prices = items.map(p => p.retailPrice);
+                    const minPrice = Math.min(...prices);
+                    const maxPrice = Math.max(...prices);
+                    const priceRange = minPrice === maxPrice
+                      ? `${minPrice.toLocaleString('ru-RU')} Br`
+                      : `${minPrice.toLocaleString('ru-RU')}–${maxPrice.toLocaleString('ru-RU')} Br`;
+                    return (
+                      <React.Fragment key={key}>
+                        <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => toggleGroup(key)}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 text-blue-700">
+                              {isExpanded ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
+                              <span className="font-medium">{first.brand} {first.model}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{first.color}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-sm font-medium text-blue-600">{sizes}</span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{first.supplier || '—'}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-sm font-semibold ${totalQuantity === 0 ? 'text-red-600' : 'text-green-700'}`}>
+                              {totalQuantity} шт.
                             </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        <div className="font-medium">{p.brand}</div>
-                        <div className="text-gray-500">{p.model}</div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {p.size}
-                        {p.sizeInCm && (
-                          <span className="text-gray-400 text-xs ml-1">({p.sizeInCm} см)</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{p.supplier || 'Не указан'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{p.color}</td>
-                      <td
-                        className={`px-4 py-3 text-sm font-semibold ${
-                          isLow ? 'text-red-600' : 'text-gray-900'
-                        }`}
-                      >
-                        {p.quantity}
-                        {isLow && <span className="ml-1 text-xs font-normal text-red-500">⚠ мало</span>}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {p.retailPrice.toLocaleString('ru-RU')} Br
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-blue-600">
-                        {(p.retailPrice - p.purchasePrice).toLocaleString('ru-RU')} Br
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-blue-600">
-                        {p.purchasePrice > 0
-                          ? ((p.retailPrice - p.purchasePrice) / p.purchasePrice * 100).toFixed(1) + '%'
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {categoryLabels[p.category]}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.status]}`}
-                        >
-                          {statusLabels[p.status]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => setEditProduct(p)}
-                            className="text-blue-500 hover:text-blue-700 transition-colors"
-                            title="Редактировать"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(p.id)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                            title="Удалить"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{priceRange}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{categoryLabels[first.category]}</td>
+                          <td className="px-4 py-3 text-xs text-gray-400">{items.length} вар.</td>
+                        </tr>
+                        {isExpanded && items.map((p) => {
+                          const isLow = p.quantity <= p.minStock;
+                          return (
+                            <tr key={p.id} className={`border-l-4 border-blue-300 ${isLow ? 'bg-red-50' : 'bg-white'}`}>
+                              <td className="px-4 py-2 pl-10 text-sm text-gray-700">
+                                <div className="flex flex-col">
+                                  <span className="font-mono text-xs">{p.modelArticle || p.sku}</span>
+                                  {p.modelArticle && p.modelArticle !== p.sku && (
+                                    <span className="text-xs text-gray-400">SKU: {p.sku}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">{p.color}</td>
+                              <td className="px-4 py-2 text-sm font-medium text-gray-800">
+                                {p.size}
+                                {p.sizeInCm && <span className="text-gray-400 text-xs ml-1">({p.sizeInCm} см)</span>}
+                                <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium ${statusColors[p.status]}`}>
+                                  {statusLabels[p.status]}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">{p.supplier || '—'}</td>
+                              <td className="px-4 py-2 text-sm font-semibold">
+                                <span className={isLow ? 'text-red-600' : 'text-gray-900'}>
+                                  {p.quantity}
+                                  {isLow && <span className="ml-1 text-xs font-normal text-red-500">⚠ мало</span>}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-700">
+                                {p.retailPrice.toLocaleString('ru-RU')} Br
+                                <span className="ml-1 text-xs text-blue-600">
+                                  (+{(p.retailPrice - p.purchasePrice).toLocaleString('ru-RU')})
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">{categoryLabels[p.category]}</td>
+                              <td className="px-4 py-2">
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setEditProduct(p); }}
+                                    className="text-blue-500 hover:text-blue-700 transition-colors"
+                                    title="Редактировать"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                                    className="text-red-500 hover:text-red-700 transition-colors"
+                                    title="Удалить"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </React.Fragment>
+                    );
+                  });
+                })()
               )}
             </tbody>
           </table>

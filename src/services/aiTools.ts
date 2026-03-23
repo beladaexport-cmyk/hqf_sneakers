@@ -451,14 +451,36 @@ export async function createSale(params: CreateSaleParams): Promise<ToolResult> 
       ...(d.data() as Omit<Product, 'id'>),
     }));
 
+    const matchesSku = (p: { sku: string; modelArticle?: string }, productSku: string) =>
+      p.sku === productSku ||
+      p.sku.includes(productSku) ||
+      (p.modelArticle != null && p.modelArticle === productSku);
+
     const product = products.find(
-      p => p.sku === params.productSku && p.size === params.size && p.status === 'available'
+      p =>
+        matchesSku(p, params.productSku) &&
+        p.size === params.size &&
+        p.status === 'available' &&
+        p.quantity > 0
     );
 
     if (!product) {
+      const anyMatch = products.find(p => matchesSku(p, params.productSku));
+      if (anyMatch) {
+        const availableSizes = products
+          .filter(p => matchesSku(p, params.productSku) && p.status === 'available' && p.quantity > 0)
+          .map(p => p.size);
+        return {
+          success: false,
+          message:
+            availableSizes.length > 0
+              ? `❌ Товар ${params.productSku} размер ${params.size} не найден.\n\nДоступные размеры: ${availableSizes.join(', ')}`
+              : `❌ Товар ${params.productSku} размер ${params.size} не найден или недоступен`,
+        };
+      }
       return {
         success: false,
-        message: `❌ Товар ${params.productSku} размер ${params.size} не найден или недоступен`,
+        message: `❌ Товар ${params.productSku} не найден в каталоге`,
       };
     }
 
