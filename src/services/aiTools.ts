@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Product, Sale } from '../types';
+import { sanitizeForFirestore } from '../utils/sanitizeFirestore';
 
 export interface ToolResult {
   success: boolean;
@@ -125,7 +126,7 @@ export async function updateProduct(productId: string, changes: ProductChanges):
     const oldData = productSnap.data();
     const updateData: Partial<DocumentData> = { ...changes };
     delete updateData.priceMultiplier;
-    await updateDoc(productRef, updateData);
+    await updateDoc(productRef, sanitizeForFirestore(updateData as Record<string, unknown>));
     return {
       success: true,
       message: '✅ Товар обновлён',
@@ -174,7 +175,7 @@ export async function bulkUpdateProducts(
       if (changes.quantity !== undefined) updateData.quantity = changes.quantity;
       if (changes.location !== undefined) updateData.location = changes.location;
 
-      await updateDoc(productRef, updateData as DocumentData);
+      await updateDoc(productRef, sanitizeForFirestore(updateData as Record<string, unknown>));
     }
 
     return {
@@ -463,7 +464,7 @@ export async function restoreDocument(
   docId: string,
   data: DocumentData
 ): Promise<void> {
-  await setDoc(doc(db, collectionName, docId), data);
+  await setDoc(doc(db, collectionName, docId), sanitizeForFirestore(data as Record<string, unknown>));
 }
 
 export interface CreateSaleParams {
@@ -733,7 +734,7 @@ export async function updateSale(params: {
     }
 
     if (customer !== undefined) {
-      updates.customer = customer.trim() || undefined;
+      updates.customer = customer.trim() || '';
     }
 
     if (deliveryMethod) {
@@ -751,7 +752,7 @@ export async function updateSale(params: {
       }
     }
 
-    await updateDoc(saleRef, updates);
+    await updateDoc(saleRef, sanitizeForFirestore(updates as Record<string, unknown>));
 
     return {
       success: true,

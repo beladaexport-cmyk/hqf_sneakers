@@ -10,6 +10,7 @@ import {
   DocumentData
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { sanitizeForFirestore } from '../utils/sanitizeFirestore';
 
 export function useFirestore<T extends { id?: string }>(collectionName: string) {
   const [data, setData] = useState<T[]>([]);
@@ -39,7 +40,8 @@ export function useFirestore<T extends { id?: string }>(collectionName: string) 
 
   const add = async (item: Omit<T, 'id'>) => {
     try {
-      await addDoc(collection(db, collectionName), item as DocumentData);
+      const sanitized = sanitizeForFirestore(item as Record<string, unknown>);
+      await addDoc(collection(db, collectionName), sanitized as DocumentData);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
@@ -49,8 +51,9 @@ export function useFirestore<T extends { id?: string }>(collectionName: string) 
 
   const update = async (id: string, item: Partial<T>) => {
     try {
+      const sanitized = sanitizeForFirestore(item as Record<string, unknown>);
       const docRef = doc(db, collectionName, id);
-      await updateDoc(docRef, item as DocumentData);
+      await updateDoc(docRef, sanitized as DocumentData);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);

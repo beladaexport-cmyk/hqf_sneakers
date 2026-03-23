@@ -69,7 +69,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
     }
     onSave({
       ...form,
-      images: productImages.length > 0 ? productImages : undefined,
+      images: productImages.length > 0 ? productImages : [],
     });
   };
 
@@ -318,7 +318,7 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
       status,
       location: '',
       minStock: 2,
-      images: bulkImages.length > 0 ? bulkImages : undefined,
+      images: bulkImages.length > 0 ? bulkImages : [],
     }));
     await onSave(items);
   };
