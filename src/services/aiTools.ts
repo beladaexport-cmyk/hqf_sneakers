@@ -562,6 +562,7 @@ export async function createSale(params: CreateSaleParams): Promise<ToolResult> 
       source: 'ai_agent',
       ...(product.modelArticle ? { productModelArticle: product.modelArticle } : {}),
       ...(product.color ? { productColor: product.color } : {}),
+      ...(product.images?.[0] ? { productImage: product.images[0] } : {}),
       ...(customer ? { customer } : {}),
     };
 
