@@ -496,7 +496,8 @@ const Catalog: React.FC = () => {
     const matchesSearch =
       p.brand.toLowerCase().includes(q) ||
       p.model.toLowerCase().includes(q) ||
-      p.sku.toLowerCase().includes(q);
+      p.sku.toLowerCase().includes(q) ||
+      (p.modelArticle?.toLowerCase().includes(q) ?? false);
     const matchesSupplier = !selectedSupplier || (p.supplier || '') === selectedSupplier;
     return matchesSearch && matchesSupplier;
   });
@@ -614,7 +615,21 @@ const Catalog: React.FC = () => {
                         isLow ? 'bg-red-50' : ''
                       }`}
                     >
-                      <td className="px-4 py-3 text-sm font-mono text-gray-700">{p.sku}</td>
+                      <td
+                        className="px-4 py-3 text-sm font-medium text-gray-900"
+                        title={p.modelArticle && p.modelArticle !== p.sku ? `Артикул: ${p.modelArticle}\nSKU: ${p.sku}` : p.sku}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium font-mono">
+                            {p.modelArticle || p.sku}
+                          </span>
+                          {p.modelArticle && p.modelArticle !== p.sku && (
+                            <span className="text-xs text-gray-400">
+                              SKU: {p.sku}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         <div className="font-medium">{p.brand}</div>
                         <div className="text-gray-500">{p.model}</div>
