@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { Bot, Send, Mic, AlertTriangle, CheckCircle, XCircle, Zap } from 'lucide-react';
 import {
   searchProducts,
@@ -13,6 +15,9 @@ import {
   updateSale,
   searchSales,
   addProductImage,
+  addSizeToProduct,
+  addMultipleSizes,
+  findProductByName,
   SearchFilters,
   ProductChanges,
   CreateProductParams,
@@ -54,11 +59,37 @@ const AIAgent: React.FC = () => {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState('');
   const [historyKey, setHistoryKey] = useState(0);
+  const [products, setProducts] = useState<Array<{ id: string; brand: string; model: string; color?: string; sizes?: string[]; sku?: string; [key: string]: unknown }>>([]);
+  const [preorders, setPreorders] = useState<Array<{ id: string; [key: string]: unknown }>>([]);
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation, pendingAction]);
+
+  // Load products and preorders from Firestore
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const loadedProducts = productsSnapshot.docs.map(d => ({
+          id: d.id,
+          ...(d.data() as { brand: string; model: string; color?: string; sizes?: string[]; sku?: string }),
+        }));
+        setProducts(loadedProducts);
+
+        const preordersSnapshot = await getDocs(collection(db, 'preorders'));
+        const loadedPreorders = preordersSnapshot.docs.map(d => ({
+          id: d.id,
+          ...d.data(),
+        }));
+        setPreorders(loadedPreorders);
+      } catch (err) {
+        console.error('Error loading data for AI agent:', err);
+      }
+    };
+    loadData();
+  }, []);
 
   const addMessage = (role: 'user' | 'assistant', content: string) => {
     setConversation(prev => [...prev, { role, content }]);
@@ -140,12 +171,117 @@ const AIAgent: React.FC = () => {
     addMessage('user', text);
 
     try {
+      // Detect "добавить размер" intent
+      const addSizePatterns = [
+        /добав[ьи]\s+размеры?\s+([\d\s.]+)\s+к\s+(.+)/i,
+        /добав[ьи]\s+([\d.]+)\s+размер\s+к\s+(.+)/i,
+        /размер\s+([\d.]+)\s+добав[ьи]\s+к\s+(.+)/i,
+      ];
+
+      let sizeActionDetected = false;
+
+      for (const pattern of addSizePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+          sizeActionDetected = true;
+
+          const sizesRaw = match[1].trim();
+          const productSearch = match[2]
+            .trim()
+            .replace(/,.*?(количество|закупка).*/gi, '')
+            .trim();
+
+          // Parse sizes (could be "42" or "41 42 43")
+          const sizes = sizesRaw.split(/\s+/).filter(s => s.match(/^\d+\.?\d*$/));
+
+          // Extract quantity if mentioned
+          const qtyMatch = text.match(/количество\s+(\d+)/i);
+          const quantity = qtyMatch ? Number(qtyMatch[1]) : 1;
+
+          // Extract purchase price if mentioned
+          const priceMatch = text.match(/закупка\s+(\d+)/i);
+          const purchasePrice = priceMatch ? Number(priceMatch[1]) : 0;
+
+          // Find product
+          const product = findProductByName(products, productSearch);
+
+          if (!product) {
+            addMessage('assistant',
+              `❌ Товар "${productSearch}" не найден в каталоге.\n\nДоступные товары:\n${products
+                .slice(0, 20)
+                .map(p => `• ${p.brand} ${p.model} ${p.color || ''}`)
+                .join('\n')}`
+            );
+            break;
+          }
+
+          let result;
+          if (sizes.length > 1) {
+            result = await addMultipleSizes(
+              product.id,
+              `${product.brand} ${product.model}`,
+              sizes,
+              quantity,
+              purchasePrice
+            );
+          } else {
+            result = await addSizeToProduct(
+              product.id,
+              `${product.brand} ${product.model}`,
+              sizes[0],
+              quantity,
+              purchasePrice
+            );
+          }
+
+          const currentSizes = (product.sizes as string[] | undefined) || [];
+          const newSizes = [...currentSizes, ...sizes.map(String)];
+          const uniqueSizes = [...new Set(newSizes)].sort((a, b) => Number(a) - Number(b));
+
+          addMessage('assistant',
+            result.message + `\n\n📦 Текущие размеры ${product.brand} ${product.model}:\n${uniqueSizes.join(', ')}`
+          );
+
+          // Reload products after update
+          const updatedSnapshot = await getDocs(collection(db, 'products'));
+          const updatedProducts = updatedSnapshot.docs.map(d => ({
+            id: d.id,
+            ...(d.data() as { brand: string; model: string; color?: string; sizes?: string[]; sku?: string }),
+          }));
+          setProducts(updatedProducts);
+
+          break;
+        }
+      }
+
+      if (sizeActionDetected) {
+        setIsProcessing(false);
+        return;
+      }
+
+      // Prepare preorders context for AI
+      const preordersContext = preorders.map(p => ({
+        id: p.id,
+        customerName: p.customerName || p.buyerName || p.client || '',
+        productName: p.productName || p.product || p.modelName || '',
+        size: p.size || p.sizeEU || '',
+        price: p.price || p.retailPrice || '',
+        status: p.status || '',
+        createdAt: p.createdAt || '',
+        instagram: p.instagram || p.customerContact || '',
+        prepayment: p.prepayment || p.deposit || p.advance || '',
+        notes: p.notes || p.comment || '',
+      }));
+
       const response = await fetch('/.netlify/functions/ai-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           command: text,
-          conversationHistory: conversation.slice(-10), // last 10 messages for context
+          conversationHistory: conversation.slice(-10),
+          preorders: preordersContext,
+          preordersCount: preorders.length,
+          productsCount: products.length,
         }),
       });
 

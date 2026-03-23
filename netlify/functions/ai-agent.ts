@@ -354,9 +354,12 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { command, conversationHistory = [] } = JSON.parse(event.body || '{}') as {
+    const { command, conversationHistory = [], preorders = [], preordersCount = 0, productsCount = 0 } = JSON.parse(event.body || '{}') as {
       command: string;
       conversationHistory: Array<{ role: string; content: string }>;
+      preorders: Array<Record<string, unknown>>;
+      preordersCount: number;
+      productsCount: number;
     };
 
     if (!command?.trim()) {
@@ -366,6 +369,31 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({ error: 'Команда не указана' }),
       };
     }
+
+    // Build preorders section for system prompt
+    const activePreorders = preorders.filter(
+      (p: Record<string, unknown>) =>
+        p.status !== 'cancelled' &&
+        p.status !== 'completed' &&
+        p.status !== 'отменён' &&
+        p.status !== 'завершён' &&
+        p.status !== 'выдан'
+    );
+
+    const preordersSection = preorders.length > 0
+      ? `\n\nПРЕДЗАКАЗЫ (${preorders.length} шт, активных: ${activePreorders.length}):\n${JSON.stringify(preorders.map((p: Record<string, unknown>) => ({
+          id: p.id,
+          customerName: p.customerName || p.buyerName || p.client || '',
+          productName: p.productName || p.product || p.modelName || '',
+          size: p.size || p.sizeEU || '',
+          price: p.price || p.retailPrice || '',
+          status: p.status || '',
+          createdAt: p.createdAt || '',
+          instagram: p.instagram || p.customerContact || '',
+          prepayment: p.prepayment || p.deposit || p.advance || '',
+          notes: p.notes || p.comment || '',
+        })))}`
+      : '\n\nПРЕДЗАКАЗЫ: нет данных';
 
     const systemPrompt = `Ты AI-агент для управления магазином кроссовок HQF Sneakers (Минск, Беларусь).
 
@@ -388,12 +416,36 @@ export const handler: Handler = async (event) => {
 - Обновить статус предзаказа (update_order)
 - Добавить фото товара по URL (add_product_image)
 
+Ты можешь выполнять действия с размерами:
+
+1. ДОБАВИТЬ РАЗМЕР к товару:
+   Пользователь: "Добавь размер 42 к Nike Dunk Low"
+   → Это обрабатывается на клиенте автоматически
+
+2. ДОБАВИТЬ НЕСКОЛЬКО РАЗМЕРОВ:
+   Пользователь: "Добавь размеры 41 42 43 к Air Jordan 1"
+   → Это обрабатывается на клиенте автоматически
+
+3. ПРОВЕРИТЬ РАЗМЕРЫ товара:
+   Пользователь: "Какие размеры есть у Nike Air Max?"
+   → Показываешь текущие размеры
+
+При добавлении размера можно указать:
+- размер (обязательно): 42
+- количество: "количество 2"
+- закупочная цена: "закупка 150"
+
+Пример полной команды:
+"Добавь размер 43 к Nike Dunk Low, количество 2, закупка 180"
+
 Контекст магазина:
 - Валюта: белорусские рубли (Br)
 - Бренды: Nike, Adidas, New Balance, Asics, Puma, Reebok
 - Размеры EU: 35–47
 - Статусы: available, preorder, sold_out
 - Категории: sport, lifestyle, limited
+- Всего товаров в каталоге: ${productsCount}
+${preordersSection}
 
 Если команда не требует инструмента (например, просто вопрос) — ответь текстом на русском языке с эмодзи.
 Всегда отвечай дружелюбно и кратко.`;
