@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, Layers } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
+import { SIZE_CHART, SIZE_OPTIONS } from '../utils/sizeChart';
+
+interface SizeEntry {
+  eu: string;
+  quantity: number;
+  selected: boolean;
+}
 
 const emptyProduct: Omit<Product, 'id'> = {
   sku: '',
@@ -241,10 +248,244 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
   );
 };
 
+// Form for adding one model with multiple sizes at once
+interface BulkAddFormProps {
+  onSave: (items: Omit<Product, 'id'>[]) => Promise<void>;
+  onCancel: () => void;
+}
+
+const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
+  const [color, setColor] = useState('');
+  const [sku, setSku] = useState('');
+  const [purchasePrice, setPurchasePrice] = useState(0);
+  const [retailPrice, setRetailPrice] = useState(0);
+  const [supplier, setSupplier] = useState('');
+  const [category, setCategory] = useState<Product['category']>('sport');
+  const [status, setStatus] = useState<Product['status']>('available');
+  const [dateAdded, setDateAdded] = useState(new Date().toISOString().split('T')[0]);
+  const [sizes, setSizes] = useState<SizeEntry[]>(
+    SIZE_OPTIONS.map((eu) => ({ eu, quantity: 1, selected: false }))
+  );
+
+  const toggleSize = (eu: string) => {
+    setSizes((prev) =>
+      prev.map((s) => (s.eu === eu ? { ...s, selected: !s.selected } : s))
+    );
+  };
+
+  const setQty = (eu: string, qty: number) => {
+    setSizes((prev) =>
+      prev.map((s) => (s.eu === eu ? { ...s, quantity: Math.max(0, qty) } : s))
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const selected = sizes.filter((s) => s.selected && s.quantity > 0);
+    if (!brand || !model) {
+      alert('Заполните обязательные поля: Бренд, Модель');
+      return;
+    }
+    if (selected.length === 0) {
+      alert('Отметьте хотя бы один размер');
+      return;
+    }
+    const items: Omit<Product, 'id'>[] = selected.map((s) => ({
+      sku: sku ? `${sku}-${s.eu}` : '',
+      brand,
+      model,
+      size: s.eu,
+      color,
+      quantity: s.quantity,
+      purchasePrice,
+      retailPrice,
+      dateAdded,
+      supplier,
+      category,
+      status,
+      location: '',
+      minStock: 2,
+    }));
+    await onSave(items);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-900">Добавить модель с размерной сеткой</h2>
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Бренд *</label>
+              <input
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Модель *</label>
+              <input
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Цвет / Colorway</label>
+              <input
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Базовый артикул (SKU)</label>
+              <input
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="DC0774"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Закупочная цена (Br)</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={purchasePrice}
+                onChange={(e) => setPurchasePrice(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Розничная цена (Br)</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={retailPrice}
+                onChange={(e) => setRetailPrice(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Поставщик</label>
+              <input
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={supplier}
+                onChange={(e) => setSupplier(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={category}
+                onChange={(e) => setCategory(e.target.value as Product['category'])}
+              >
+                <option value="sport">Спорт</option>
+                <option value="lifestyle">Лайфстайл</option>
+                <option value="limited">Лимитед</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as Product['status'])}
+              >
+                <option value="available">В наличии</option>
+                <option value="preorder">Предзаказ</option>
+                <option value="sold_out">Нет в наличии</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Дата поступления</label>
+              <input
+                type="date"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={dateAdded}
+                onChange={(e) => setDateAdded(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Size grid */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">Размерная сетка</h3>
+            <p className="text-xs text-gray-500 mb-3">Отметьте доступные размеры и укажите количество:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+              {sizes.map((s) => (
+                <div
+                  key={s.eu}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
+                    s.selected ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={s.selected}
+                    onChange={() => toggleSize(s.eu)}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                  <span className="text-sm text-gray-700 flex-1">
+                    EU {s.eu}
+                    <span className="text-gray-400 ml-1">/ {SIZE_CHART[s.eu]} см</span>
+                  </span>
+                  {s.selected && (
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={s.quantity}
+                      onChange={(e) => setQty(s.eu, Number(e.target.value))}
+                      placeholder="Кол-во"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Выбрано: {sizes.filter((s) => s.selected).length} размеров
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Добавить модель
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const Catalog: React.FC = () => {
   const { data: products, loading, add, update, remove } = useFirestore<Product>('products');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showBulkForm, setShowBulkForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
   const filtered = products.filter((p) => {
@@ -259,6 +500,13 @@ const Catalog: React.FC = () => {
   const handleAdd = async (data: Omit<Product, 'id'>) => {
     await add(data);
     setShowForm(false);
+  };
+
+  const handleBulkAdd = async (items: Omit<Product, 'id'>[]) => {
+    for (const item of items) {
+      await add(item);
+    }
+    setShowBulkForm(false);
   };
 
   const handleEdit = async (data: Omit<Product, 'id'>) => {
@@ -286,13 +534,22 @@ const Catalog: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl font-semibold text-gray-900">Каталог товаров</h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить товар
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setShowBulkForm(true)}
+            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            <Layers className="w-4 h-4 mr-2" />
+            Добавить модель (сетка размеров)
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Добавить товар
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -411,6 +668,14 @@ const Catalog: React.FC = () => {
           initial={emptyProduct}
           onSave={handleAdd}
           onCancel={() => setShowForm(false)}
+        />
+      )}
+
+      {/* Bulk Add Form */}
+      {showBulkForm && (
+        <BulkAddForm
+          onSave={handleBulkAdd}
+          onCancel={() => setShowBulkForm(false)}
         />
       )}
 

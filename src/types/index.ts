@@ -16,6 +16,50 @@ export interface Product {
   minStock: number;
 }
 
+// New model-based architecture
+export interface SneakerModel {
+  id: string;
+  sku: string;
+  brand: string;
+  model: string;
+  colorway: string;
+  purchasePrice: number;
+  retailPrice: number;
+  supplier: string;
+  category: 'sport' | 'lifestyle' | 'limited';
+  dateAdded: string;
+}
+
+export interface SneakerSize {
+  id: string;
+  modelId: string;
+  sizeEU: string;
+  sizeCM: number;
+  quantity: number;
+  status: 'available' | 'preorder' | 'sold_out';
+  minStock: number;
+  expectedDate?: string;
+}
+
+export type PreorderStatus = 'pending' | 'arrived' | 'cancelled';
+
+export interface Preorder {
+  id: string;
+  modelId: string;
+  modelName: string;
+  sizeId: string;
+  sizeEU: string;
+  quantity: number;
+  purchasePrice: number;
+  retailPrice: number;
+  supplier: string;
+  expectedDate: string;
+  status: PreorderStatus;
+  notes?: string;
+  createdAt: string;
+  arrivedAt?: string;
+}
+
 export type DeliveryMethod = 'mail' | 'in_person';
 export type SaleStatus = 'completed' | 'pending' | 'cancelled';
 

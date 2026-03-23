@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock, Trash2, AlertTriangle } from 'lucide-react';
+import { doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
 
@@ -389,12 +391,13 @@ const statusFilterLabels: Record<StatusFilter, string> = {
 };
 
 const Sales: React.FC = () => {
-  const { data: products, update: updateProduct } = useFirestore<Product>('products');
+  const { data: products } = useFirestore<Product>('products');
   const { data: sales, add: addSale, update: updateSale } = useFirestore<Sale>('sales');
   const [showForm, setShowForm] = useState(false);
   const [period, setPeriod] = useState<Period>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [cancelSale, setCancelSale] = useState<Sale | null>(null);
+  const [deleteConfirmSale, setDeleteConfirmSale] = useState<Sale | null>(null);
 
   const periodFiltered = filterByPeriod([...sales].reverse(), period);
   const filteredSales = statusFilter === 'all'
@@ -413,10 +416,10 @@ const Sales: React.FC = () => {
 
     const product = products.find((p) => p.id === data.productId);
     if (product?.id) {
-      const newQty = product.quantity - data.quantity;
-      await updateProduct(product.id, {
-        quantity: newQty,
-        status: newQty <= 0 ? 'sold_out' : product.status,
+      const remainingQty = product.quantity - data.quantity;
+      await updateDoc(doc(db, 'products', product.id), {
+        quantity: increment(-data.quantity),
+        ...(remainingQty <= 0 ? { status: 'sold_out' } : {}),
       });
     }
     setShowForm(false);
@@ -430,21 +433,26 @@ const Sales: React.FC = () => {
     const sale = sales.find((s) => s.id === saleId);
     if (!sale) return;
 
-    await updateSale(saleId, {
+    await updateDoc(doc(db, 'sales', saleId), {
       status: 'cancelled',
       cancellationReason: reason,
       cancelledAt: new Date().toISOString(),
     });
 
-    const product = products.find((p) => p.id === sale.productId);
-    if (product?.id) {
-      const newQty = product.quantity + sale.quantity;
-      await updateProduct(product.id, {
-        quantity: newQty,
-        status: newQty > 0 ? 'available' : product.status,
+    // Atomically return stock to product using increment
+    if (sale.productId) {
+      await updateDoc(doc(db, 'products', sale.productId), {
+        quantity: increment(sale.quantity),
+        status: 'available',
       });
     }
     setCancelSale(null);
+  };
+
+  const handleDeleteSale = async (sale: Sale) => {
+    if (sale.status !== 'cancelled') return;
+    await deleteDoc(doc(db, 'sales', sale.id));
+    setDeleteConfirmSale(null);
   };
 
   return (
@@ -607,6 +615,15 @@ const Sales: React.FC = () => {
                               <XCircle className="w-4 h-4" />
                             </button>
                           )}
+                          {status === 'cancelled' && (
+                            <button
+                              onClick={() => setDeleteConfirmSale(sale)}
+                              title="Удалить навсегда"
+                              className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -628,6 +645,52 @@ const Sales: React.FC = () => {
           onConfirm={(reason) => handleCancelSale(cancelSale.id, reason)}
           onCancel={() => setCancelSale(null)}
         />
+      )}
+
+      {deleteConfirmSale && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">Удалить отменённую продажу?</h2>
+              <button onClick={() => setDeleteConfirmSale(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg border border-red-200">
+                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-800">Внимание!</p>
+                  <p className="text-sm text-red-700 mt-1">
+                    Эта продажа уже отменена и товар вернулся на склад.<br />
+                    Удаление необратимо!
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                Продажа: <span className="font-medium">{deleteConfirmSale.productName}</span>
+                {deleteConfirmSale.cancellationReason && (
+                  <span className="block text-gray-400 mt-1">Причина отмены: {deleteConfirmSale.cancellationReason}</span>
+                )}
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setDeleteConfirmSale(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={() => handleDeleteSale(deleteConfirmSale)}
+                  className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Удалить навсегда
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
