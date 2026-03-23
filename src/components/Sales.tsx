@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock, Trash2, AlertTriangle, Pencil, Truck } from 'lucide-react';
+import { Plus, X, Mail, Users, CheckCircle, XCircle, Clock, Trash2, AlertTriangle, Pencil } from 'lucide-react';
 import { doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
@@ -676,6 +676,14 @@ const Sales: React.FC = () => {
   const cancellationRate = periodFiltered.length > 0
     ? Math.round((cancelledCount / periodFiltered.length) * 100)
     : 0;
+  const totalProfit = completedSales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
+
+  const getSaleProductImage = (sale: Sale): string | null => {
+    const product = products.find(p =>
+      p.id === sale.productId || p.sku === sale.productSku
+    );
+    return product?.images?.[0] || null;
+  };
 
   const handleSale = async (data: Omit<Sale, 'id'>) => {
     try {
@@ -768,22 +776,60 @@ const Sales: React.FC = () => {
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2 ml-auto items-center">
-          <div className="flex items-center text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-            <DollarSign className="w-4 h-4 mr-1" />
-            <span className="text-sm font-medium">
-              Выручка: {totalRevenue.toLocaleString('ru-RU')} Br
-            </span>
-          </div>
-          {cancelledCount > 0 && (
-            <div className="flex items-center text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
-              <XCircle className="w-4 h-4 mr-1" />
-              <span className="text-sm font-medium">
-                Отказов: {cancelledCount} ({cancellationRate}%)
-              </span>
+      </div>
+
+      {/* Stats Cards */}
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{
+          backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px',
+          border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          <span style={{ fontSize: '24px' }}>💰</span>
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: '#1E293B' }}>
+              {totalRevenue.toLocaleString('ru-RU')} Br
             </div>
-          )}
+            <div style={{ fontSize: '11px', color: '#94A3B8' }}>Выручка</div>
+          </div>
         </div>
+        <div style={{
+          backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px',
+          border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          <span style={{ fontSize: '24px' }}>📈</span>
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: '#10B981' }}>
+              +{totalProfit.toLocaleString('ru-RU')} Br
+            </div>
+            <div style={{ fontSize: '11px', color: '#94A3B8' }}>Прибыль</div>
+          </div>
+        </div>
+        <div style={{
+          backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px',
+          border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          <span style={{ fontSize: '24px' }}>🛍️</span>
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: '#3B82F6' }}>
+              {filteredSales.length}
+            </div>
+            <div style={{ fontSize: '11px', color: '#94A3B8' }}>Продаж</div>
+          </div>
+        </div>
+        {cancelledCount > 0 && (
+          <div style={{
+            backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px',
+            border: '1px solid #FEE2E2', display: 'flex', alignItems: 'center', gap: '10px'
+          }}>
+            <span style={{ fontSize: '24px' }}>❌</span>
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: '700', color: '#EF4444' }}>
+                {cancelledCount} ({cancellationRate}%)
+              </div>
+              <div style={{ fontSize: '11px', color: '#94A3B8' }}>Отказов</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Status Filter */}
@@ -801,149 +847,257 @@ const Sales: React.FC = () => {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {['Дата', 'Товар', 'Артикул', 'Цвет', 'Покупатель', 'Доставка', 'Кол-во', 'Цена', 'Прибыль', 'Итого', 'Статус', 'Действия'].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSales.length === 0 ? (
-                <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-gray-400">
-                    {sales.length === 0 ? 'Продаж пока нет' : 'Нет продаж за выбранный период'}
-                  </td>
-                </tr>
-              ) : (
-                filteredSales.map((sale, idx) => {
-                  const status: SaleStatus = sale.status ?? 'completed';
-                  const sc = statusConfig[status];
-                  const StatusIcon = sc.icon;
-                  const isCancelled = status === 'cancelled';
-                  const rowClass = isCancelled
-                    ? 'bg-red-50'
-                    : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50');
-                  return (
-                    <tr key={sale.id} className={`${rowClass} ${isCancelled ? 'opacity-70' : ''}`}>
-                      <td className={`px-4 py-3 text-sm text-gray-600 ${isCancelled ? 'line-through' : ''}`}>
-                        {new Date(sale.date).toLocaleDateString('ru-RU')}
-                      </td>
-                      <td className={`px-4 py-3 text-sm text-gray-900 ${isCancelled ? 'line-through' : ''}`}>
+      {/* Sales Cards */}
+      <div>
+        {filteredSales.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94A3B8' }}>
+            <div style={{ fontSize: '48px' }}>🛍️</div>
+            <p style={{ fontSize: '16px', fontWeight: '600', color: '#475569', marginTop: '12px' }}>
+              {sales.length === 0 ? 'Продаж пока нет' : 'Продаж не найдено'}
+            </p>
+            <p style={{ fontSize: '14px' }}>
+              {sales.length === 0 ? 'Оформите первую продажу' : 'Попробуйте изменить фильтр или оформите новую продажу'}
+            </p>
+          </div>
+        ) : (
+          filteredSales.map((sale) => {
+            const status: SaleStatus = sale.status ?? 'completed';
+            const sc = statusConfig[status];
+            const isCancelled = status === 'cancelled';
+            const productImage = getSaleProductImage(sale);
+            const dm = sale.deliveryMethod ?? 'in_person';
+
+            return (
+              <div
+                key={sale.id}
+                style={{
+                  backgroundColor: isCancelled ? '#FEF2F2' : 'white',
+                  borderRadius: '16px',
+                  border: `1px solid ${isCancelled ? '#FECACA' : '#E2E8F0'}`,
+                  padding: '16px',
+                  marginBottom: '12px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                  display: 'flex',
+                  gap: '16px',
+                  alignItems: 'flex-start',
+                  opacity: isCancelled ? 0.75 : 1,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                  e.currentTarget.style.borderColor = isCancelled ? '#FCA5A5' : '#CBD5E0';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04)';
+                  e.currentTarget.style.borderColor = isCancelled ? '#FECACA' : '#E2E8F0';
+                }}
+              >
+                {/* Product Photo */}
+                <div style={{ flexShrink: 0 }}>
+                  {productImage ? (
+                    <img
+                      src={productImage}
+                      alt={sale.productName}
+                      style={{
+                        width: '80px', height: '80px', objectFit: 'cover',
+                        borderRadius: '12px', border: '1px solid #E2E8F0'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '80px', height: '80px', backgroundColor: '#F1F5F9',
+                      borderRadius: '12px', border: '2px dashed #CBD5E0',
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center', fontSize: '28px'
+                    }}>
+                      👟
+                    </div>
+                  )}
+                </div>
+
+                {/* Main Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+
+                  {/* Top Row: Product + Date + Actions */}
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    alignItems: 'flex-start', marginBottom: '6px'
+                  }}>
+                    <div>
+                      <div style={{
+                        fontWeight: '700', fontSize: '15px', color: '#1E293B',
+                        textDecoration: isCancelled ? 'line-through' : 'none'
+                      }}>
                         {sale.productName}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-mono text-gray-600">
-                        <div className="font-semibold text-gray-900">
-                          {sale.productModelArticle || sale.productSku}
-                        </div>
-                        {sale.productModelArticle && (
-                          <div className="text-xs text-gray-400">
-                            SKU: {sale.productSku}
-                          </div>
+                      </div>
+                      <div style={{
+                        fontSize: '13px', color: '#64748B', marginTop: '2px',
+                        display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'
+                      }}>
+                        {sale.productColor && <span>{sale.productColor}</span>}
+                        {(sale.productModelArticle || sale.productSku) && (
+                          <>
+                            {sale.productColor && <span style={{ color: '#CBD5E0' }}>•</span>}
+                            <span style={{
+                              backgroundColor: '#F1F5F9', padding: '1px 6px',
+                              borderRadius: '4px', fontSize: '11px',
+                              fontFamily: 'monospace', color: '#475569'
+                            }}>
+                              {sale.productModelArticle || sale.productSku}
+                            </span>
+                          </>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {sale.productColor || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{sale.customer || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {(() => {
-                          const dm = sale.deliveryMethod ?? 'in_person';
-                          if (dm === 'mail') return (
-                            <span className="flex items-center gap-1">
-                              <Mail className="w-3.5 h-3.5 text-blue-500" />
-                              <span>Почта</span>
-                            </span>
-                          );
-                          if (dm === 'courier') return (
-                            <span className="flex items-center gap-1">
-                              <Truck className="w-3.5 h-3.5 text-purple-500" />
-                              <span>Курьер</span>
-                            </span>
-                          );
-                          return (
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3.5 h-3.5 text-gray-500" />
-                              <span>Лично</span>
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{sale.quantity}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {sale.price.toLocaleString('ru-RU')} Br
-                      </td>
-                      <td className={`px-4 py-3 text-sm font-semibold ${isCancelled ? 'text-gray-400' : 'text-green-600'}`}>
-                        {(sale.profit ?? 0).toLocaleString('ru-RU')} Br
-                      </td>
-                      <td className={`px-4 py-3 text-sm font-semibold ${isCancelled ? 'text-gray-400 line-through' : 'text-green-600'}`}>
-                        {sale.total.toLocaleString('ru-RU')} Br
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${sc.badgeClass}`}>
-                          <StatusIcon className="w-3 h-3" />
-                          {sc.label}
+                      </div>
+                    </div>
+
+                    {/* Date + Actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '12px', color: '#94A3B8' }}>
+                        {new Date(sale.date).toLocaleDateString('ru-RU')}
+                      </span>
+                      <button
+                        onClick={() => setEditSaleData(sale)}
+                        title="Редактировать"
+                        style={{
+                          padding: '4px 8px', backgroundColor: '#F8FAFC',
+                          border: '1px solid #E2E8F0', borderRadius: '8px',
+                          cursor: 'pointer', fontSize: '14px', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center'
+                        }}
+                      >
+                        <Pencil style={{ width: '14px', height: '14px', color: '#64748B' }} />
+                      </button>
+                      {status === 'pending' && (
+                        <button
+                          onClick={() => handleCompleteSale(sale.id)}
+                          title="Завершить"
+                          style={{
+                            padding: '4px 8px', backgroundColor: '#F0FDF4',
+                            border: '1px solid #BBF7D0', borderRadius: '8px',
+                            cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          <CheckCircle style={{ width: '14px', height: '14px', color: '#16A34A' }} />
+                        </button>
+                      )}
+                      {(status === 'pending' || status === 'completed') && (
+                        <button
+                          onClick={() => setCancelSale(sale)}
+                          title="Отменить"
+                          style={{
+                            padding: '4px 8px', backgroundColor: '#FEF2F2',
+                            border: '1px solid #FECACA', borderRadius: '8px',
+                            cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          <XCircle style={{ width: '14px', height: '14px', color: '#EF4444' }} />
+                        </button>
+                      )}
+                      {status === 'cancelled' && (
+                        <button
+                          onClick={() => setDeleteConfirmSale(sale)}
+                          title="Удалить навсегда"
+                          style={{
+                            padding: '4px 8px', backgroundColor: '#FEF2F2',
+                            border: '1px solid #FECACA', borderRadius: '8px',
+                            cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          <Trash2 style={{ width: '14px', height: '14px', color: '#EF4444' }} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Middle Row: Buyer + Delivery */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '16px',
+                    marginBottom: '10px', padding: '8px 12px',
+                    backgroundColor: '#F8FAFC', borderRadius: '8px', flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#475569' }}>
+                      <span>👤</span>
+                      <span style={{ fontWeight: '500' }}>{sale.customer || 'Покупатель'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#475569' }}>
+                      <span>{dm === 'mail' ? '✉️' : dm === 'courier' ? '🚚' : '🤝'}</span>
+                      <span>{dm === 'mail' ? 'Почта' : dm === 'courier' ? 'Курьер' : 'Лично'}</span>
+                    </div>
+                    {isCancelled && sale.cancellationReason && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#EF4444' }}>
+                        <span>💬</span>
+                        <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          title={sale.cancellationReason}
+                        >
+                          {sale.cancellationReason}
                         </span>
-                        {isCancelled && sale.cancellationReason && (
-                          <p className="text-xs text-gray-400 mt-1 max-w-[140px] truncate" title={sale.cancellationReason}>
-                            {sale.cancellationReason}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => setEditSaleData(sale)}
-                            title="Редактировать"
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          {status === 'pending' && (
-                            <button
-                              onClick={() => handleCompleteSale(sale.id)}
-                              title="Завершить"
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                          {(status === 'pending' || status === 'completed') && (
-                            <button
-                              onClick={() => setCancelSale(sale)}
-                              title="Отменить"
-                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                          {status === 'cancelled' && (
-                            <button
-                              onClick={() => setDeleteConfirmSale(sale)}
-                              title="Удалить навсегда"
-                              className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom Row: Price + Profit + Total + Status */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: '16px', fontWeight: '700',
+                        color: isCancelled ? '#94A3B8' : '#1E293B',
+                        textDecoration: isCancelled ? 'line-through' : 'none'
+                      }}>
+                        {sale.price.toLocaleString('ru-RU')} Br
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        цена
+                      </div>
+                    </div>
+
+                    <div style={{ width: '1px', height: '32px', backgroundColor: '#E2E8F0' }} />
+
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: '16px', fontWeight: '700',
+                        color: isCancelled ? '#94A3B8' : '#10B981'
+                      }}>
+                        +{(sale.profit ?? 0).toLocaleString('ru-RU')} Br
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        прибыль
+                      </div>
+                    </div>
+
+                    <div style={{ width: '1px', height: '32px', backgroundColor: '#E2E8F0' }} />
+
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: '16px', fontWeight: '700',
+                        color: isCancelled ? '#94A3B8' : '#3B82F6',
+                        textDecoration: isCancelled ? 'line-through' : 'none'
+                      }}>
+                        {sale.total.toLocaleString('ru-RU')} Br
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        итого
+                      </div>
+                    </div>
+
+                    {/* Status badge */}
+                    <div style={{ marginLeft: 'auto' }}>
+                      <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold ${sc.badgeClass}`}>
+                        {(() => {
+                          const StatusIcon = sc.icon;
+                          return <StatusIcon className="w-3 h-3" />;
+                        })()}
+                        {sc.label}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {showForm && (
