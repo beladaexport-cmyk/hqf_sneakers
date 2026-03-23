@@ -47,7 +47,7 @@ export async function migrateProducts() {
           color: p.color || '',
           purchasePrice: p.purchasePrice,
           retailPrice: p.retailPrice,
-          supplier: p.supplier,
+          supplier: p.supplier || '',
           category: p.category,
           dateAdded: p.dateAdded,
           sizes: [],

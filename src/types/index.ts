@@ -4,12 +4,13 @@ export interface Product {
   brand: string;
   model: string;
   size: string;
+  sizeInCm?: string;
   color: string;
   quantity: number;
   purchasePrice: number;
   retailPrice: number;
   dateAdded: string;
-  supplier: string;
+  supplier?: string;
   category: 'sport' | 'lifestyle' | 'limited';
   status: 'available' | 'preorder' | 'sold_out';
   location: string;
