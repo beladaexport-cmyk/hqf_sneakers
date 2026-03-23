@@ -91,6 +91,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
       productSku: selectedProduct.sku,
       productModelArticle: selectedProduct.modelArticle,
       productName: `${selectedProduct.brand} ${selectedProduct.model} (${selectedProduct.size})`,
+      productColor: selectedProduct.color,
       quantity,
       price: selectedProduct.retailPrice,
       purchasePrice: selectedProduct.purchasePrice,
@@ -555,7 +556,7 @@ const Sales: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Дата', 'Товар', 'Артикул', 'Покупатель', 'Доставка', 'Кол-во', 'Цена', 'Прибыль', 'Итого', 'Статус', 'Действия'].map((h) => (
+                {['Дата', 'Товар', 'Артикул', 'Цвет', 'Покупатель', 'Доставка', 'Кол-во', 'Цена', 'Прибыль', 'Итого', 'Статус', 'Действия'].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -568,7 +569,7 @@ const Sales: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={12} className="px-4 py-8 text-center text-gray-400">
                     {sales.length === 0 ? 'Продаж пока нет' : 'Нет продаж за выбранный период'}
                   </td>
                 </tr>
@@ -598,6 +599,9 @@ const Sales: React.FC = () => {
                             SKU: {sale.productSku}
                           </div>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {sale.productColor || '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{sale.customer || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">

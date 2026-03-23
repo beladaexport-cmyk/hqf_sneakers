@@ -10,6 +10,8 @@ import {
   createSale,
   createClientPreorder,
   getSalesStatistics,
+  updateSale,
+  searchSales,
   SearchFilters,
   ProductChanges,
   CreateProductParams,
@@ -37,6 +39,7 @@ const QUICK_COMMANDS = [
   { label: '⚠️ Низкие остатки', command: 'покажи товары с низким остатком' },
   { label: '🏆 Топ товары', command: 'покажи топ-10 популярных товаров' },
   { label: '📈 Статистика сегодня', command: 'статистика за сегодня' },
+  { label: '📊 Продажи сегодня', command: 'найди все продажи за сегодня' },
   { label: '🔍 Найти Nike', command: 'найди все найки' },
   { label: '🛒 Предзаказ клиента', command: 'создай предзаказ' },
 ];
@@ -111,6 +114,12 @@ const AIAgent: React.FC = () => {
         const { period } = params as { period: 'today' | 'week' | 'month' | 'all' };
         return getSalesStatistics(period);
       }
+
+      case 'update_sale':
+        return updateSale(params as Parameters<typeof updateSale>[0]);
+
+      case 'search_sales':
+        return searchSales(params as Parameters<typeof searchSales>[0]);
 
       default:
         return { success: false, message: `Неизвестный инструмент: ${tool}` };
