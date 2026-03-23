@@ -12,6 +12,7 @@ import {
   getSalesStatistics,
   updateSale,
   searchSales,
+  addProductImage,
   SearchFilters,
   ProductChanges,
   CreateProductParams,
@@ -120,6 +121,9 @@ const AIAgent: React.FC = () => {
 
       case 'search_sales':
         return searchSales(params as Parameters<typeof searchSales>[0]);
+
+      case 'add_product_image':
+        return addProductImage(params as { productSku: string; imageUrl: string });
 
       default:
         return { success: false, message: `Неизвестный инструмент: ${tool}` };

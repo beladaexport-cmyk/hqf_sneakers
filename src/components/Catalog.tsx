@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X, Layers, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, Layers, ChevronRight, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
 import { SIZE_CHART, SIZE_OPTIONS } from '../utils/sizeChart';
+import ImageUpload from './ImageUpload';
 
 interface SizeEntry {
   eu: string;
@@ -54,6 +55,7 @@ interface ProductFormProps {
 
 const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, title }) => {
   const [form, setForm] = useState<Omit<Product, 'id'>>(initial);
+  const [productImages, setProductImages] = useState<string[]>(initial.images || []);
 
   const set = (field: keyof Omit<Product, 'id'>, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -65,7 +67,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
       alert('Заполните обязательные поля: Артикул, Бренд, Модель, Размер');
       return;
     }
-    onSave(form);
+    onSave({
+      ...form,
+      images: productImages.length > 0 ? productImages : undefined,
+    });
   };
 
   return (
@@ -227,6 +232,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
               />
             </div>
           </div>
+          <ImageUpload
+            images={productImages}
+            onImagesChange={setProductImages}
+            productSku={form.sku || 'temp'}
+          />
           <div className="flex justify-end space-x-3 pt-2">
             <button
               type="button"
@@ -265,6 +275,7 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
   const [category, setCategory] = useState<Product['category']>('sport');
   const [status, setStatus] = useState<Product['status']>('available');
   const [dateAdded, setDateAdded] = useState(new Date().toISOString().split('T')[0]);
+  const [bulkImages, setBulkImages] = useState<string[]>([]);
   const [sizes, setSizes] = useState<SizeEntry[]>(
     SIZE_OPTIONS.map((eu) => ({ eu, quantity: 1, selected: false }))
   );
@@ -307,6 +318,7 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
       status,
       location: '',
       minStock: 2,
+      images: bulkImages.length > 0 ? bulkImages : undefined,
     }));
     await onSave(items);
   };
@@ -419,6 +431,12 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
               />
             </div>
           </div>
+
+          <ImageUpload
+            images={bulkImages}
+            onImagesChange={setBulkImages}
+            productSku={sku || 'temp'}
+          />
 
           {/* Size grid */}
           <div>
@@ -599,7 +617,7 @@ const Catalog: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Бренд / Модель', 'Цвет', 'Размеры', 'Поставщик', 'Кол-во', 'Цена', 'Категория', 'Действия'].map(
+                {['Фото', 'Бренд / Модель', 'Цвет', 'Размеры', 'Поставщик', 'Кол-во', 'Цена', 'Категория', 'Действия'].map(
                   (h) => (
                     <th
                       key={h}
@@ -614,7 +632,7 @@ const Catalog: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
                     {products.length === 0 ? 'Товаров нет. Добавьте первый!' : 'Ничего не найдено'}
                   </td>
                 </tr>
@@ -641,6 +659,19 @@ const Catalog: React.FC = () => {
                       <React.Fragment key={key}>
                         <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => toggleGroup(key)}>
                           <td className="px-4 py-3">
+                            {first.images && first.images.length > 0 ? (
+                              <img
+                                src={first.images[0]}
+                                alt={first.model}
+                                className="w-12 h-12 object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                                <ImageIcon className="w-6 h-6 text-gray-400" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
                             <div className="flex items-center gap-2 text-blue-700">
                               {isExpanded ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
                               <span className="font-medium">{first.brand} {first.model}</span>
@@ -664,6 +695,7 @@ const Catalog: React.FC = () => {
                           const isLow = p.quantity <= p.minStock;
                           return (
                             <tr key={p.id} className={`border-l-4 border-blue-300 ${isLow ? 'bg-red-50' : 'bg-white'}`}>
+                              <td className="px-4 py-2"></td>
                               <td className="px-4 py-2 pl-10 text-sm text-gray-700">
                                 <div className="flex flex-col">
                                   <span className="font-mono text-xs">{p.modelArticle || p.sku}</span>
