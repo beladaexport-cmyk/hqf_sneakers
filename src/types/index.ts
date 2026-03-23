@@ -67,6 +67,7 @@ export interface Preorder {
   expectedDate: string;
   status: PreorderStatus;
   notes?: string;
+  image?: string;
   createdAt: string;
   arrivedAt?: string;
 }
