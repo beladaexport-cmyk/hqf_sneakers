@@ -533,22 +533,22 @@ export async function createSale(params: CreateSaleParams): Promise<ToolResult> 
       customer = params.customerContact;
     }
 
-    const sale = {
+    const sale: Omit<Sale, 'id'> & { source: string } = {
       productId: product.id,
       productSku: product.sku,
-      productModelArticle: product.modelArticle,
       productName: `${product.brand} ${product.model} (${product.size})`,
-      productColor: product.color,
       quantity: qty,
       price: product.retailPrice,
       purchasePrice: product.purchasePrice,
       total: product.retailPrice * qty,
       profit: (product.retailPrice - product.purchasePrice) * qty,
       date: new Date().toISOString(),
-      customer,
       deliveryMethod: 'in_person' as const,
       status: 'completed' as const,
       source: 'ai_agent',
+      ...(product.modelArticle ? { productModelArticle: product.modelArticle } : {}),
+      ...(product.color ? { productColor: product.color } : {}),
+      ...(customer ? { customer } : {}),
     };
 
     const saleRef = await addDoc(collection(db, 'sales'), sale);
