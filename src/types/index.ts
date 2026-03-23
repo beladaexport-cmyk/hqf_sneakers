@@ -1,3 +1,11 @@
+export interface ProductVariant {
+  id: string;
+  size: string;
+  quantity: number;
+  purchasePrice: number;
+  createdAt?: Date;
+}
+
 export interface Product {
   id: string;
   sku: string;
@@ -16,6 +24,8 @@ export interface Product {
   location: string;
   minStock: number;
   images?: string[];
+  sizes?: string[];
+  variants?: ProductVariant[];
 }
 
 // New model-based architecture
