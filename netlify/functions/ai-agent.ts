@@ -205,9 +205,81 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'update_sale',
+      description: 'Обновить информацию о продаже (артикул товара, клиент, статус доставки)',
+      parameters: {
+        type: 'object',
+        properties: {
+          saleId: {
+            type: 'string',
+            description: 'ID продажи (получить через search_sales)',
+          },
+          productModelArticle: {
+            type: 'string',
+            description: 'Новый артикул товара (если нужно изменить товар)',
+          },
+          customer: {
+            type: 'string',
+            description: 'Имя клиента',
+          },
+          deliveryMethod: {
+            type: 'string',
+            enum: ['in_person', 'mail'],
+            description: 'Способ доставки',
+          },
+          status: {
+            type: 'string',
+            enum: ['pending', 'completed', 'cancelled'],
+            description: 'Статус продажи',
+          },
+          cancellationReason: {
+            type: 'string',
+            description: 'Причина отмены (если status = cancelled)',
+          },
+        },
+        required: ['saleId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_sales',
+      description: 'Найти продажи по фильтрам (дата, клиент, статус)',
+      parameters: {
+        type: 'object',
+        properties: {
+          startDate: {
+            type: 'string',
+            description: 'Начальная дата (YYYY-MM-DD)',
+          },
+          endDate: {
+            type: 'string',
+            description: 'Конечная дата (YYYY-MM-DD)',
+          },
+          customer: {
+            type: 'string',
+            description: 'Имя клиента (частичное совпадение)',
+          },
+          status: {
+            type: 'string',
+            enum: ['pending', 'completed', 'cancelled'],
+            description: 'Статус продажи',
+          },
+          limit: {
+            type: 'number',
+            description: 'Максимум результатов (по умолчанию 10)',
+          },
+        },
+      },
+    },
+  },
 ];
 
-const CONFIRMATION_REQUIRED = new Set(['delete_product', 'bulk_update_products']);
+const CONFIRMATION_REQUIRED = new Set(['delete_product', 'bulk_update_products', 'update_sale']);
 
 function previewMessage(toolName: string, params: Record<string, unknown>): string {
   switch (toolName) {
@@ -233,6 +305,14 @@ function previewMessage(toolName: string, params: Record<string, unknown>): stri
     }
     case 'delete_product':
       return `Удалить товар: "${params.productName}"`;
+    case 'update_sale': {
+      const parts: string[] = [`ID: ${params.saleId}`];
+      if (params.productModelArticle) parts.push(`артикул → ${params.productModelArticle}`);
+      if (params.customer) parts.push(`клиент → ${params.customer}`);
+      if (params.status) parts.push(`статус → ${params.status}`);
+      if (params.deliveryMethod) parts.push(`доставка → ${params.deliveryMethod}`);
+      return `Обновить продажу: ${parts.join(', ')}`;
+    }
     default:
       return `Выполнить: ${toolName}`;
   }
@@ -275,6 +355,8 @@ export const handler: Handler = async (event) => {
 
 Доступные действия:
 - Создать продажу (create_sale) — нужен артикул и размер
+- Найти продажи (search_sales) — по дате, клиенту, статусу
+- Обновить продажу (update_sale) — изменить артикул, клиента, статус (требует подтверждения)
 - Создать предзаказ клиента (create_preorder) — нужны бренд, модель, размеры, имя и контакт клиента
 - Получить статистику продаж (get_statistics) — за сегодня, неделю, месяц или всё время
 - Найти товары (search_products) — по бренду, цене, размеру и т.д.

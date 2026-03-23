@@ -515,6 +515,7 @@ export async function createSale(params: CreateSaleParams): Promise<ToolResult> 
       productSku: product.sku,
       productModelArticle: product.modelArticle,
       productName: `${product.brand} ${product.model} (${product.size})`,
+      productColor: product.color,
       quantity: qty,
       price: product.retailPrice,
       purchasePrice: product.purchasePrice,
@@ -653,5 +654,160 @@ export async function getSalesStatistics(period: 'today' | 'week' | 'month' | 'a
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, message: `Ошибка получения статистики: ${msg}` };
+  }
+}
+
+// Update an existing sale
+export async function updateSale(params: {
+  saleId: string;
+  productModelArticle?: string;
+  customer?: string;
+  deliveryMethod?: 'in_person' | 'mail';
+  status?: 'pending' | 'completed' | 'cancelled';
+  cancellationReason?: string;
+}): Promise<ToolResult> {
+  try {
+    const { saleId, productModelArticle, customer, deliveryMethod, status, cancellationReason } = params;
+
+    const saleRef = doc(db, 'sales', saleId);
+    const saleSnap = await getDoc(saleRef);
+
+    if (!saleSnap.exists()) {
+      return {
+        success: false,
+        message: `❌ Продажа с ID ${saleId} не найдена`,
+      };
+    }
+
+    const existingSale = saleSnap.data();
+    const updates: Record<string, unknown> = {};
+
+    // Update product article if provided
+    if (productModelArticle) {
+      const snapshot = await getDocs(collection(db, 'products'));
+      const productDoc = snapshot.docs.find(d => {
+        const data = d.data();
+        return data.modelArticle === productModelArticle;
+      });
+
+      if (!productDoc) {
+        return {
+          success: false,
+          message: `❌ Товар с артикулом ${productModelArticle} не найден`,
+        };
+      }
+
+      const productData = productDoc.data();
+      updates.productId = productDoc.id;
+      updates.productSku = productData.sku;
+      updates.productModelArticle = productData.modelArticle;
+      updates.productName = `${productData.brand} ${productData.model} (${productData.size})`;
+      updates.productColor = productData.color;
+      updates.price = productData.retailPrice;
+      updates.purchasePrice = productData.purchasePrice;
+      updates.total = productData.retailPrice * (existingSale.quantity || 1);
+      updates.profit = (productData.retailPrice - productData.purchasePrice) * (existingSale.quantity || 1);
+    }
+
+    if (customer !== undefined) {
+      updates.customer = customer.trim() || undefined;
+    }
+
+    if (deliveryMethod) {
+      updates.deliveryMethod = deliveryMethod;
+      if (deliveryMethod === 'in_person') {
+        updates.status = 'completed';
+      }
+    }
+
+    if (status) {
+      updates.status = status;
+      if (status === 'cancelled' && cancellationReason) {
+        updates.cancellationReason = cancellationReason;
+        updates.cancelledAt = new Date().toISOString();
+      }
+    }
+
+    await updateDoc(saleRef, updates);
+
+    return {
+      success: true,
+      message: `✅ Продажа обновлена!\n\nID: ${saleId}\nОбновлённые поля: ${Object.keys(updates).join(', ')}`,
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, message: `Ошибка при обновлении продажи: ${msg}` };
+  }
+}
+
+// Search sales by filters
+export async function searchSales(params: {
+  startDate?: string;
+  endDate?: string;
+  customer?: string;
+  status?: 'pending' | 'completed' | 'cancelled';
+  limit?: number;
+}): Promise<ToolResult> {
+  try {
+    const { startDate, endDate, customer, status, limit = 10 } = params;
+
+    const snapshot = await getDocs(collection(db, 'sales'));
+    let sales = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Array<Sale & { [key: string]: unknown }>;
+
+    if (status) {
+      sales = sales.filter(s => s.status === status);
+    }
+
+    if (startDate || endDate) {
+      sales = sales.filter(s => {
+        const saleDate = new Date(s.date);
+        if (startDate && saleDate < new Date(startDate)) return false;
+        if (endDate && saleDate > new Date(endDate)) return false;
+        return true;
+      });
+    }
+
+    if (customer) {
+      const customerLower = customer.toLowerCase();
+      sales = sales.filter(s =>
+        s.customer?.toLowerCase().includes(customerLower)
+      );
+    }
+
+    sales = sales.slice(0, limit);
+
+    if (sales.length === 0) {
+      return {
+        success: true,
+        message: 'Продажи не найдены по указанным фильтрам',
+        data: [],
+      };
+    }
+
+    const result = sales.map(s => ({
+      id: s.id,
+      date: new Date(s.date).toLocaleDateString('ru-RU'),
+      product: s.productName,
+      article: s.productModelArticle || s.productSku,
+      color: s.productColor,
+      quantity: s.quantity,
+      total: s.total,
+      customer: s.customer || 'Не указан',
+      status: s.status || 'completed',
+    }));
+
+    return {
+      success: true,
+      message: `Найдено продаж: ${sales.length}\n\n${result
+        .map(
+          (s, i) =>
+            `${i + 1}. ${s.date} | ${s.product} (${s.article}) | ${s.color || ''} | ${s.quantity} шт. | ${s.total} Br | ${s.customer} | ${s.status}\n   ID: ${s.id}`
+        )
+        .join('\n\n')}`,
+      data: result,
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, message: `Ошибка поиска продаж: ${msg}` };
   }
 }

@@ -79,6 +79,7 @@ export interface Sale {
   productSku: string;
   productModelArticle?: string;
   productName: string;
+  productColor?: string;
   quantity: number;
   price: number;
   purchasePrice: number;
