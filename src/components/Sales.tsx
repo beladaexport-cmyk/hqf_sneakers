@@ -98,13 +98,15 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
       date: new Date().toISOString(),
       customer: customer.trim() || undefined,
       deliveryMethod,
-      deliveryDetails: deliveryMethod === 'mail' ? {
-        recipientName: recipientName.trim(),
-        recipientPhone: recipientPhone.trim(),
-        address: address.trim(),
-        postalCode: postalCode.trim() || undefined,
-        notes: deliveryNotes.trim() || undefined,
-      } : undefined,
+      ...(deliveryMethod === 'mail' ? {
+        deliveryDetails: {
+          recipientName: recipientName.trim(),
+          recipientPhone: recipientPhone.trim(),
+          address: address.trim(),
+          ...(postalCode.trim() ? { postalCode: postalCode.trim() } : {}),
+          ...(deliveryNotes.trim() ? { notes: deliveryNotes.trim() } : {}),
+        },
+      } : {}),
       status: deliveryMethod === 'in_person' ? 'completed' : 'pending',
     };
 
