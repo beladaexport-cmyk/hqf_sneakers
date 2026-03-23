@@ -77,6 +77,7 @@ export interface Sale {
   id: string;
   productId: string;
   productSku: string;
+  productModelArticle?: string;
   productName: string;
   quantity: number;
   price: number;

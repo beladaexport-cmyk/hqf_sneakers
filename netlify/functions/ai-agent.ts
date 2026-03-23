@@ -73,6 +73,7 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
         properties: {
           brand: { type: 'string', description: 'Бренд' },
           model: { type: 'string', description: 'Модель' },
+          modelArticle: { type: 'string', description: 'Артикул производителя с коробки (например "DD1503-120", "DC0774-200")' },
           sizes: {
             type: 'array',
             items: { type: 'string' },
@@ -87,7 +88,7 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
           expectedDate: { type: 'string', description: 'Дата ожидания для предзаказа (YYYY-MM-DD)' },
           notes: { type: 'string', description: 'Заметки' },
         },
-        required: ['brand', 'model', 'sizes'],
+        required: ['brand', 'model', 'modelArticle', 'sizes'],
       },
     },
   },

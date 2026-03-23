@@ -46,6 +46,7 @@ export interface ProductChanges {
 export interface CreateProductParams {
   brand: string;
   model: string;
+  modelArticle?: string;
   sizes: string[];
   purchasePrice?: number;
   retailPrice?: number;
@@ -192,13 +193,21 @@ export async function bulkUpdateProducts(
 // Create new product(s) from params
 export async function createProduct(params: CreateProductParams): Promise<ToolResult> {
   try {
+    if (!params.modelArticle || params.modelArticle.trim() === '') {
+      return {
+        success: false,
+        message: '❌ Укажите артикул модели (modelArticle)!\n\nПример: "DC0774-200" или "DD1503-120"\n\nЭто реальный артикул производителя с коробки.',
+      };
+    }
+
     const today = new Date().toISOString().split('T')[0];
     const createdIds: string[] = [];
 
     for (const size of params.sizes) {
-      const sku = `${params.brand.slice(0, 3).toUpperCase()}-${params.model.slice(0, 3).toUpperCase()}-${size}`;
+      const sku = `${params.brand.slice(0, 3).toUpperCase()}-${params.modelArticle}-${size}`;
       const product = {
         sku,
+        modelArticle: params.modelArticle,
         brand: params.brand,
         model: params.model,
         size,
@@ -504,6 +513,7 @@ export async function createSale(params: CreateSaleParams): Promise<ToolResult> 
     const sale = {
       productId: product.id,
       productSku: product.sku,
+      productModelArticle: product.modelArticle,
       productName: `${product.brand} ${product.model} (${product.size})`,
       quantity: qty,
       price: product.retailPrice,
