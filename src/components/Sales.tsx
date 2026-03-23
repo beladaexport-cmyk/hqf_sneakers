@@ -100,6 +100,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
       deliveryMethod,
       ...(selectedProduct.modelArticle ? { productModelArticle: selectedProduct.modelArticle } : {}),
       ...(selectedProduct.color ? { productColor: selectedProduct.color } : {}),
+      ...(selectedProduct.images?.[0] ? { productImage: selectedProduct.images[0] } : {}),
       ...(trimmedCustomer ? { customer: trimmedCustomer } : {}),
       ...(deliveryMethod === 'mail' ? {
         deliveryDetails: {
@@ -674,6 +675,9 @@ const Sales: React.FC = () => {
   const totalProfit = completedSales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
 
   const getSaleProductImage = (sale: Sale): string | null => {
+    // Try 0: direct image stored on the sale record
+    if (sale.productImage) return sale.productImage;
+
     // Try 1: exact match by productId or SKU
     let product = products.find(p =>
       p.id === sale.productId || p.sku === sale.productSku

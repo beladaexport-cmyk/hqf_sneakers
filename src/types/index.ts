@@ -90,6 +90,7 @@ export interface Sale {
   productModelArticle?: string;
   productName: string;
   productColor?: string;
+  productImage?: string;
   quantity: number;
   price: number;
   purchasePrice: number;
