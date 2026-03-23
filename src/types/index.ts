@@ -64,3 +64,21 @@ export interface Supplier {
   address: string;
   notes?: string;
 }
+
+export type PreorderStatus = 'pending' | 'fulfilled' | 'cancelled';
+
+export interface Preorder {
+  id: string;
+  customer: string;
+  customerPhone?: string;
+  productName: string;
+  productSku: string;
+  size: string;
+  quantity: number;
+  deposit?: number;
+  status: PreorderStatus;
+  date: string;
+  notes?: string;
+  fulfilledAt?: string;
+  cancelledAt?: string;
+}

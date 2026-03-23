@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
 
@@ -390,7 +390,7 @@ const statusFilterLabels: Record<StatusFilter, string> = {
 
 const Sales: React.FC = () => {
   const { data: products, update: updateProduct } = useFirestore<Product>('products');
-  const { data: sales, add: addSale, update: updateSale } = useFirestore<Sale>('sales');
+  const { data: sales, add: addSale, update: updateSale, remove: removeSale } = useFirestore<Sale>('sales');
   const [showForm, setShowForm] = useState(false);
   const [period, setPeriod] = useState<Period>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -445,6 +445,12 @@ const Sales: React.FC = () => {
       });
     }
     setCancelSale(null);
+  };
+
+  const handleDeleteSale = async (saleId: string) => {
+    if (window.confirm('Удалить эту отменённую продажу?')) {
+      await removeSale(saleId);
+    }
   };
 
   return (
@@ -605,6 +611,15 @@ const Sales: React.FC = () => {
                               className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <XCircle className="w-4 h-4" />
+                            </button>
+                          )}
+                          {status === 'cancelled' && (
+                            <button
+                              onClick={() => handleDeleteSale(sale.id)}
+                              title="Удалить"
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           )}
                         </div>

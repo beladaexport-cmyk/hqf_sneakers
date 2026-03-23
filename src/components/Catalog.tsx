@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, Grid3X3 } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
 
@@ -241,10 +241,224 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
   );
 };
 
+interface SizeEntry {
+  size: string;
+  quantity: number;
+}
+
+interface SizeGridFormProps {
+  onSave: (products: Omit<Product, 'id'>[]) => void;
+  onCancel: () => void;
+}
+
+const SizeGridForm: React.FC<SizeGridFormProps> = ({ onSave, onCancel }) => {
+  const [sku, setSku] = useState('');
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
+  const [color, setColor] = useState('');
+  const [purchasePrice, setPurchasePrice] = useState(0);
+  const [retailPrice, setRetailPrice] = useState(0);
+  const [supplier, setSupplier] = useState('');
+  const [location, setLocation] = useState('');
+  const [category, setCategory] = useState<Product['category']>('sport');
+  const [status, setStatus] = useState<Product['status']>('available');
+  const [minStock, setMinStock] = useState(2);
+  const [dateAdded, setDateAdded] = useState(new Date().toISOString().split('T')[0]);
+  const [sizes, setSizes] = useState<SizeEntry[]>([{ size: '', quantity: 1 }]);
+
+  const addSizeRow = () => {
+    setSizes([...sizes, { size: '', quantity: 1 }]);
+  };
+
+  const removeSizeRow = (index: number) => {
+    if (sizes.length === 1) return;
+    setSizes(sizes.filter((_, i) => i !== index));
+  };
+
+  const updateSize = (index: number, field: keyof SizeEntry, value: string | number) => {
+    setSizes(sizes.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sku || !brand || !model) {
+      alert('Заполните обязательные поля: Артикул, Бренд, Модель');
+      return;
+    }
+    const validSizes = sizes.filter((s) => s.size.trim());
+    if (validSizes.length === 0) {
+      alert('Добавьте хотя бы один размер');
+      return;
+    }
+    const products: Omit<Product, 'id'>[] = validSizes.map((s) => ({
+      sku,
+      brand,
+      model,
+      size: s.size.trim(),
+      color,
+      quantity: s.quantity,
+      purchasePrice,
+      retailPrice,
+      dateAdded,
+      supplier,
+      category,
+      status,
+      location,
+      minStock,
+    }));
+    onSave(products);
+  };
+
+  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500';
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-900">Добавить размерную сетку</h2>
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Common fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Артикул (SKU) *</label>
+              <input className={inputClass} value={sku} onChange={(e) => setSku(e.target.value)} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Бренд *</label>
+              <input className={inputClass} value={brand} onChange={(e) => setBrand(e.target.value)} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Модель *</label>
+              <input className={inputClass} value={model} onChange={(e) => setModel(e.target.value)} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Цвет</label>
+              <input className={inputClass} value={color} onChange={(e) => setColor(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Закупочная цена (Br)</label>
+              <input type="number" min="0" className={inputClass} value={purchasePrice} onChange={(e) => setPurchasePrice(Number(e.target.value))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Розничная цена (Br)</label>
+              <input type="number" min="0" className={inputClass} value={retailPrice} onChange={(e) => setRetailPrice(Number(e.target.value))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Поставщик</label>
+              <input className={inputClass} value={supplier} onChange={(e) => setSupplier(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Местоположение</label>
+              <input className={inputClass} value={location} onChange={(e) => setLocation(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+              <select className={inputClass} value={category} onChange={(e) => setCategory(e.target.value as Product['category'])}>
+                <option value="sport">Спорт</option>
+                <option value="lifestyle">Лайфстайл</option>
+                <option value="limited">Лимитед</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+              <select className={inputClass} value={status} onChange={(e) => setStatus(e.target.value as Product['status'])}>
+                <option value="available">В наличии</option>
+                <option value="preorder">Предзаказ</option>
+                <option value="sold_out">Нет в наличии</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Мин. остаток</label>
+              <input type="number" min="0" className={inputClass} value={minStock} onChange={(e) => setMinStock(Number(e.target.value))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Дата поступления</label>
+              <input type="date" className={inputClass} value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} />
+            </div>
+          </div>
+
+          {/* Size grid */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-800">Размеры и количество</h3>
+              <button
+                type="button"
+                onClick={addSizeRow}
+                className="flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Добавить размер
+              </button>
+            </div>
+            <div className="space-y-2">
+              {sizes.map((entry, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <input
+                      className={inputClass}
+                      placeholder="Размер (напр. EU 42 - CM 27)"
+                      value={entry.size}
+                      onChange={(e) => updateSize(idx, 'size', e.target.value)}
+                    />
+                  </div>
+                  <div className="w-24">
+                    <input
+                      type="number"
+                      min="0"
+                      className={inputClass}
+                      placeholder="Кол-во"
+                      value={entry.quantity}
+                      onChange={(e) => updateSize(idx, 'quantity', Number(e.target.value))}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeSizeRow(idx)}
+                    disabled={sizes.length === 1}
+                    className="p-2 text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {sizes.filter((s) => s.size.trim()).length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                Будет создано позиций: {sizes.filter((s) => s.size.trim()).length}
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Сохранить все размеры
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const Catalog: React.FC = () => {
   const { data: products, loading, add, update, remove } = useFirestore<Product>('products');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showSizeGrid, setShowSizeGrid] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
   const filtered = products.filter((p) => {
@@ -259,6 +473,13 @@ const Catalog: React.FC = () => {
   const handleAdd = async (data: Omit<Product, 'id'>) => {
     await add(data);
     setShowForm(false);
+  };
+
+  const handleAddSizeGrid = async (products: Omit<Product, 'id'>[]) => {
+    for (const product of products) {
+      await add(product);
+    }
+    setShowSizeGrid(false);
   };
 
   const handleEdit = async (data: Omit<Product, 'id'>) => {
@@ -286,13 +507,22 @@ const Catalog: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl font-semibold text-gray-900">Каталог товаров</h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить товар
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowSizeGrid(true)}
+            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            <Grid3X3 className="w-4 h-4 mr-2" />
+            Размерная сетка
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Добавить товар
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -421,6 +651,14 @@ const Catalog: React.FC = () => {
           initial={editProduct}
           onSave={handleEdit}
           onCancel={() => setEditProduct(null)}
+        />
+      )}
+
+      {/* Size Grid Form */}
+      {showSizeGrid && (
+        <SizeGridForm
+          onSave={handleAddSizeGrid}
+          onCancel={() => setShowSizeGrid(false)}
         />
       )}
     </div>
