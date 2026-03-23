@@ -14,6 +14,8 @@ export interface Product {
   status: 'available' | 'preorder' | 'sold_out';
   location: string;
   minStock: number;
+  photoUrl?: string;
+  description?: string;
 }
 
 export type DeliveryMethod = 'mail' | 'in_person';
@@ -24,6 +26,7 @@ export interface DeliveryDetails {
   recipientPhone?: string;
   address?: string;
   postalCode?: string;
+  trackingNumber?: string;
   notes?: string;
 }
 
@@ -34,6 +37,7 @@ export interface Sale {
   productName: string;
   quantity: number;
   price: number;
+  salePrice: number;
   purchasePrice: number;
   total: number;
   profit: number;
@@ -44,11 +48,12 @@ export interface Sale {
   status: SaleStatus;
   cancellationReason?: string;
   cancelledAt?: string;
+  notes?: string;
 }
 
 export interface Expense {
   id: string;
-  type: 'advertising' | 'delivery' | 'other';
+  type: 'advertising' | 'delivery' | 'packaging' | 'rent' | 'salary' | 'other';
   amount: number;
   description: string;
   date: string;
