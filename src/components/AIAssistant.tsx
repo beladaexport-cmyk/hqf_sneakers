@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { Camera, Mic, Send, Sparkles, CheckCircle, XCircle } from 'lucide-react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { SIZE_CHART } from '../utils/sizeChart';
 
 interface AIResponse {
   brand: string;
   model: string;
+  modelArticle?: string;
   color?: string;
   sizes: string[];
   quantity?: number;
@@ -14,6 +16,7 @@ interface AIResponse {
   supplier?: string;
   category?: 'sport' | 'lifestyle' | 'limited';
   status?: 'available' | 'preorder';
+  expectedDate?: string;
   notes?: string;
 }
 
@@ -133,11 +136,15 @@ const AIAssistant: React.FC = () => {
 
       // Для каждого размера создаём отдельный товар
       for (const size of aiResponse.sizes) {
+        const sizeInCm = SIZE_CHART[size] || '';
+
         const product = {
           sku: `${aiResponse.brand.substring(0, 3).toUpperCase()}-${aiResponse.model.substring(0, 3).toUpperCase()}-${size}`,
+          modelArticle: aiResponse.modelArticle || '',
           brand: aiResponse.brand,
           model: aiResponse.model,
           size: size,
+          sizeInCm: sizeInCm,
           color: aiResponse.color || '',
           quantity: aiResponse.quantity || 1,
           purchasePrice: aiResponse.purchasePrice || 0,
@@ -156,18 +163,24 @@ const AIAssistant: React.FC = () => {
       // Если это предзаказ - добавить в коллекцию preorders
       if (aiResponse.status === 'preorder') {
         const preordersRef = collection(db, 'preorders');
+        const expectedDate = aiResponse.expectedDate ||
+          new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
         for (const size of aiResponse.sizes) {
+          const sizeInCm = SIZE_CHART[size] || '';
+
           const preorder = {
             modelId: '',
+            modelArticle: aiResponse.modelArticle || '',
             modelName: `${aiResponse.brand} ${aiResponse.model}${aiResponse.color ? ' "' + aiResponse.color + '"' : ''}`,
             sizeId: '',
             sizeEU: size,
+            sizeInCm: sizeInCm,
             quantity: aiResponse.quantity || 1,
             purchasePrice: aiResponse.purchasePrice || 0,
             retailPrice: aiResponse.retailPrice || 0,
             supplier: aiResponse.supplier || 'AI Import',
-            expectedDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            expectedDate: expectedDate,
             status: 'pending',
             notes: aiResponse.notes || 'Добавлено через AI-помощника',
             createdAt: new Date().toISOString(),
@@ -317,6 +330,12 @@ const AIAssistant: React.FC = () => {
               <span className="text-gray-500">Модель:</span>
               <p className="font-medium">{aiResponse.model}</p>
             </div>
+            {aiResponse.modelArticle && (
+              <div>
+                <span className="text-gray-500">Артикул:</span>
+                <p className="font-medium">{aiResponse.modelArticle}</p>
+              </div>
+            )}
             {aiResponse.color && (
               <div>
                 <span className="text-gray-500">Цвет:</span>
@@ -324,9 +343,27 @@ const AIAssistant: React.FC = () => {
               </div>
             )}
             <div>
-              <span className="text-gray-500">Размеры:</span>
+              <span className="text-gray-500">Размеры EU:</span>
               <p className="font-medium">{aiResponse.sizes.join(', ')}</p>
             </div>
+            <div>
+              <span className="text-gray-500">Размеры в см:</span>
+              <p className="font-medium">
+                {aiResponse.sizes.map(s => SIZE_CHART[s] ? `${SIZE_CHART[s]}` : '?').join(', ')}
+              </p>
+            </div>
+            {aiResponse.status === 'preorder' && (
+              <div className="col-span-2">
+                <span className="text-gray-500">Статус:</span>
+                <p className="font-medium text-orange-600">🛒 Предзаказ</p>
+              </div>
+            )}
+            {aiResponse.expectedDate && (
+              <div className="col-span-2">
+                <span className="text-gray-500">Ожидается:</span>
+                <p className="font-medium">{aiResponse.expectedDate}</p>
+              </div>
+            )}
             {aiResponse.purchasePrice && (
               <div>
                 <span className="text-gray-500">Закупка:</span>
@@ -355,19 +392,23 @@ const AIAssistant: React.FC = () => {
                 ? 'bg-green-600 text-white cursor-default'
                 : saving
                 ? 'bg-gray-400 text-white cursor-wait'
+                : aiResponse.status === 'preorder'
+                ? 'bg-orange-600 text-white hover:bg-orange-700'
                 : 'bg-green-600 text-white hover:bg-green-700'
             }`}
           >
             {saveSuccess ? (
               <span className="flex items-center justify-center gap-2">
                 <CheckCircle className="w-5 h-5" />
-                ✅ Товар добавлен в каталог!
+                ✅ Товар добавлен!
               </span>
             ) : saving ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
                 Сохранение...
               </span>
+            ) : aiResponse.status === 'preorder' ? (
+              '🛒 Добавить в предзаказы'
             ) : (
               '✅ Добавить в каталог'
             )}
