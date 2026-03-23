@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Mic, Send, Sparkles, CheckCircle, XCircle } from 'lucide-react';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 interface AIResponse {
   brand: string;
@@ -23,6 +25,8 @@ const AIAssistant: React.FC = () => {
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
   const [aiMessage, setAiMessage] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Обработка загрузки фото
@@ -119,9 +123,77 @@ const AIAssistant: React.FC = () => {
   const handleAddProduct = async () => {
     if (!aiResponse) return;
 
-    // TODO: Интеграция с Catalog - автозаполнение формы
-    // или прямое добавление через useFirestore
-    alert('Функция добавления будет реализована в следующем этапе');
+    setSaving(true);
+    setSaveSuccess(false);
+    setError('');
+
+    try {
+      const productsRef = collection(db, 'products');
+      const today = new Date().toISOString().split('T')[0];
+
+      // Для каждого размера создаём отдельный товар
+      for (const size of aiResponse.sizes) {
+        const product = {
+          sku: `${aiResponse.brand.substring(0, 3).toUpperCase()}-${aiResponse.model.substring(0, 3).toUpperCase()}-${size}`,
+          brand: aiResponse.brand,
+          model: aiResponse.model,
+          size: size,
+          color: aiResponse.color || '',
+          quantity: aiResponse.quantity || 1,
+          purchasePrice: aiResponse.purchasePrice || 0,
+          retailPrice: aiResponse.retailPrice || 0,
+          dateAdded: today,
+          supplier: aiResponse.supplier || 'AI Import',
+          category: aiResponse.category || 'lifestyle',
+          status: aiResponse.status || 'available',
+          location: '',
+          minStock: 2,
+        };
+
+        await addDoc(productsRef, product);
+      }
+
+      // Если это предзаказ - добавить в коллекцию preorders
+      if (aiResponse.status === 'preorder') {
+        const preordersRef = collection(db, 'preorders');
+
+        for (const size of aiResponse.sizes) {
+          const preorder = {
+            modelId: '',
+            modelName: `${aiResponse.brand} ${aiResponse.model}${aiResponse.color ? ' "' + aiResponse.color + '"' : ''}`,
+            sizeId: '',
+            sizeEU: size,
+            quantity: aiResponse.quantity || 1,
+            purchasePrice: aiResponse.purchasePrice || 0,
+            retailPrice: aiResponse.retailPrice || 0,
+            supplier: aiResponse.supplier || 'AI Import',
+            expectedDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'pending',
+            notes: aiResponse.notes || 'Добавлено через AI-помощника',
+            createdAt: new Date().toISOString(),
+          };
+
+          await addDoc(preordersRef, preorder);
+        }
+      }
+
+      setSaveSuccess(true);
+
+      // Очистить форму через 2 секунды
+      setTimeout(() => {
+        setImage(null);
+        setCommand('');
+        setAiResponse(null);
+        setAiMessage('');
+        setSaveSuccess(false);
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Ошибка сохранения:', err);
+      setError('Ошибка сохранения товара: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -277,10 +349,37 @@ const AIAssistant: React.FC = () => {
 
           <button
             onClick={handleAddProduct}
-            className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            disabled={saving || saveSuccess}
+            className={`w-full px-4 py-3 rounded-lg transition-colors font-medium ${
+              saveSuccess
+                ? 'bg-green-600 text-white cursor-default'
+                : saving
+                ? 'bg-gray-400 text-white cursor-wait'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
           >
-            ✅ Добавить в каталог
+            {saveSuccess ? (
+              <span className="flex items-center justify-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                ✅ Товар добавлен в каталог!
+              </span>
+            ) : saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                Сохранение...
+              </span>
+            ) : (
+              '✅ Добавить в каталог'
+            )}
           </button>
+
+          {saveSuccess && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-800 font-medium text-center">
+                ✅ Товар успешно добавлен! Можете добавить следующий.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
