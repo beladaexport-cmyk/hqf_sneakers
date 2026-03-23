@@ -7,9 +7,14 @@ import {
   deleteProduct,
   generateReport,
   updateOrder,
+  createSale,
+  createClientPreorder,
+  getSalesStatistics,
   SearchFilters,
   ProductChanges,
   CreateProductParams,
+  CreateSaleParams,
+  CreateClientPreorderParams,
 } from '../services/aiTools';
 import { logAction } from '../services/aiHistory';
 import AIHistoryLog from './AIHistoryLog';
@@ -31,6 +36,9 @@ const QUICK_COMMANDS = [
   { label: '📦 Состояние склада', command: 'покажи состояние склада' },
   { label: '⚠️ Низкие остатки', command: 'покажи товары с низким остатком' },
   { label: '🏆 Топ товары', command: 'покажи топ-10 популярных товаров' },
+  { label: '📈 Статистика сегодня', command: 'статистика за сегодня' },
+  { label: '🔍 Найти Nike', command: 'найди все найки' },
+  { label: '🛒 Предзаказ клиента', command: 'создай предзаказ' },
 ];
 
 const AIAgent: React.FC = () => {
@@ -91,6 +99,17 @@ const AIAgent: React.FC = () => {
           notes?: string;
         };
         return updateOrder(orderId, status, notes);
+      }
+
+      case 'create_sale':
+        return createSale(params as unknown as CreateSaleParams);
+
+      case 'create_preorder':
+        return createClientPreorder(params as unknown as CreateClientPreorderParams);
+
+      case 'get_statistics': {
+        const { period } = params as { period: 'today' | 'week' | 'month' | 'all' };
+        return getSalesStatistics(period);
       }
 
       default:

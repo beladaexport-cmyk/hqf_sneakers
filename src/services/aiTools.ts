@@ -433,3 +433,193 @@ export async function restoreDocument(
 ): Promise<void> {
   await setDoc(doc(db, collectionName, docId), data);
 }
+
+export interface CreateSaleParams {
+  productSku: string;
+  size: string;
+  quantity?: number;
+  customerName?: string;
+  customerContact?: string;
+}
+
+// Create a sale and update product inventory
+export async function createSale(params: CreateSaleParams): Promise<ToolResult> {
+  try {
+    const snapshot = await getDocs(collection(db, 'products'));
+    const products = snapshot.docs.map(d => ({
+      id: d.id,
+      ...(d.data() as Omit<Product, 'id'>),
+    }));
+
+    const product = products.find(
+      p => p.sku === params.productSku && p.size === params.size && p.status === 'available'
+    );
+
+    if (!product) {
+      return {
+        success: false,
+        message: `❌ Товар ${params.productSku} размер ${params.size} не найден или недоступен`,
+      };
+    }
+
+    const qty = params.quantity ?? 1;
+    if (product.quantity < qty) {
+      return {
+        success: false,
+        message: `❌ Недостаточно товара. В наличии: ${product.quantity} шт.`,
+      };
+    }
+
+    let customer: string | undefined;
+    if (params.customerName && params.customerContact) {
+      customer = `${params.customerName} (${params.customerContact})`;
+    } else if (params.customerName) {
+      customer = params.customerName;
+    } else if (params.customerContact) {
+      customer = params.customerContact;
+    }
+
+    const sale = {
+      productId: product.id,
+      productSku: product.sku,
+      productName: `${product.brand} ${product.model} (${product.size})`,
+      quantity: qty,
+      price: product.retailPrice,
+      purchasePrice: product.purchasePrice,
+      total: product.retailPrice * qty,
+      profit: (product.retailPrice - product.purchasePrice) * qty,
+      date: new Date().toISOString(),
+      customer,
+      deliveryMethod: 'in_person' as const,
+      status: 'completed' as const,
+      source: 'ai_agent',
+    };
+
+    const saleRef = await addDoc(collection(db, 'sales'), sale);
+
+    const newQuantity = product.quantity - qty;
+    const productRef = doc(db, 'products', product.id);
+    await updateDoc(productRef, {
+      quantity: newQuantity,
+      ...(newQuantity <= 0 ? { status: 'sold_out' } : {}),
+    });
+
+    return {
+      success: true,
+      message:
+        `✅ Продажа создана!\n\n` +
+        `${sale.productName}\n` +
+        `Цена: ${sale.total} Br\n` +
+        (customer ? `Покупатель: ${customer}` : ''),
+      data: { id: saleRef.id, ...sale },
+      canUndo: true,
+      undoData: { saleId: saleRef.id, productId: product.id, previousQuantity: product.quantity, previousStatus: product.status },
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, message: `Ошибка создания продажи: ${msg}` };
+  }
+}
+
+export interface CreateClientPreorderParams {
+  brand: string;
+  model: string;
+  sizes: string[];
+  color?: string;
+  customerName: string;
+  customerContact: string;
+}
+
+// Create customer preorder(s)
+export async function createClientPreorder(params: CreateClientPreorderParams): Promise<ToolResult> {
+  const DEFAULT_PREORDER_DAYS = 14;
+  try {
+    const createdIds: string[] = [];
+    const colorNote = params.color ? ` ${params.color}` : '';
+    const expectedDate = new Date(Date.now() + DEFAULT_PREORDER_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    for (const size of params.sizes) {
+      const preorder = {
+        modelId: '',
+        modelName: `${params.brand} ${params.model}${colorNote}`,
+        sizeId: '',
+        sizeEU: size,
+        quantity: 1,
+        purchasePrice: 0,
+        retailPrice: 0,
+        supplier: '',
+        expectedDate,
+        status: 'pending',
+        notes: `Клиент: ${params.customerName} (${params.customerContact})`,
+        createdAt: new Date().toISOString(),
+        customerName: params.customerName,
+        customerContact: params.customerContact,
+        source: 'ai_agent',
+      };
+
+      const docRef = await addDoc(collection(db, 'preorders'), preorder);
+      createdIds.push(docRef.id);
+    }
+
+    return {
+      success: true,
+      message:
+        `✅ Предзаказ создан!\n\n` +
+        `${params.brand} ${params.model}${colorNote}\n` +
+        `Размеры: ${params.sizes.join(', ')}\n` +
+        `Клиент: ${params.customerName} (${params.customerContact})\n` +
+        `Создано предзаказов: ${params.sizes.length}`,
+      data: { createdIds },
+      affectedCount: params.sizes.length,
+      canUndo: true,
+      undoData: { preorderIds: createdIds },
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, message: `Ошибка создания предзаказа: ${msg}` };
+  }
+}
+
+// Get sales statistics for a period
+export async function getSalesStatistics(period: 'today' | 'week' | 'month' | 'all'): Promise<ToolResult> {
+  try {
+    const now = new Date();
+    let cutoff = new Date(0);
+
+    if (period === 'today') {
+      cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (period === 'week') {
+      cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'month') {
+      cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const snapshot = await getDocs(collection(db, 'sales'));
+    const sales = snapshot.docs
+      .map(d => d.data() as Sale)
+      .filter(s => s.status === 'completed' && new Date(s.date) >= cutoff);
+
+    const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+    const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
+
+    const periodLabels: Record<string, string> = {
+      today: 'Сегодня',
+      week: 'За неделю',
+      month: 'За месяц',
+      all: 'Всё время',
+    };
+
+    return {
+      success: true,
+      message:
+        `📊 Статистика: ${periodLabels[period]}\n\n` +
+        `Продаж: ${sales.length}\n` +
+        `Выручка: ${totalRevenue.toLocaleString('ru-RU')} Br\n` +
+        `Прибыль: ${totalProfit.toLocaleString('ru-RU')} Br`,
+      data: { count: sales.length, totalRevenue, totalProfit },
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, message: `Ошибка получения статистики: ${msg}` };
+  }
+}

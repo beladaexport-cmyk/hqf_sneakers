@@ -145,6 +145,65 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'create_sale',
+      description: 'Создать продажу товара. Используй когда пользователь хочет продать товар.',
+      parameters: {
+        type: 'object',
+        properties: {
+          productSku: { type: 'string', description: 'Артикул товара (например: DD1503-120)' },
+          size: { type: 'string', description: 'Размер обуви (например: 43)' },
+          quantity: { type: 'number', description: 'Количество (по умолчанию 1)' },
+          customerName: { type: 'string', description: 'Имя покупателя (необязательно)' },
+          customerContact: { type: 'string', description: 'Контакт покупателя — Instagram или телефон (необязательно)' },
+        },
+        required: ['productSku', 'size'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_preorder',
+      description: 'Создать предзаказ клиента. Используй когда товара нет в наличии или клиент хочет сделать предзаказ.',
+      parameters: {
+        type: 'object',
+        properties: {
+          brand: { type: 'string', description: 'Бренд (Nike, Adidas и т.д.)' },
+          model: { type: 'string', description: 'Модель кроссовок' },
+          sizes: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Размеры (например: ["42", "43", "44"])',
+          },
+          color: { type: 'string', description: 'Цвет/колорвей (необязательно)' },
+          customerName: { type: 'string', description: 'Имя клиента' },
+          customerContact: { type: 'string', description: 'Контакт клиента — Instagram или телефон' },
+        },
+        required: ['brand', 'model', 'sizes', 'customerName', 'customerContact'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_statistics',
+      description: 'Получить статистику продаж за период',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: {
+            type: 'string',
+            enum: ['today', 'week', 'month', 'all'],
+            description: 'Период для статистики',
+          },
+        },
+        required: ['period'],
+      },
+    },
+  },
 ];
 
 const CONFIRMATION_REQUIRED = new Set(['delete_product', 'bulk_update_products']);
@@ -212,6 +271,17 @@ export const handler: Handler = async (event) => {
 1. Понять что хочет пользователь на русском языке
 2. Выбрать правильный инструмент (tool) с нужными параметрами
 3. Для массовых изменений или удаления — инструмент будет помечен как требующий подтверждения
+
+Доступные действия:
+- Создать продажу (create_sale) — нужен артикул и размер
+- Создать предзаказ клиента (create_preorder) — нужны бренд, модель, размеры, имя и контакт клиента
+- Получить статистику продаж (get_statistics) — за сегодня, неделю, месяц или всё время
+- Найти товары (search_products) — по бренду, цене, размеру и т.д.
+- Создать товар в каталоге (create_product)
+- Массово обновить товары (bulk_update_products) — требует подтверждения
+- Удалить товар (delete_product) — требует подтверждения
+- Сформировать отчёт (generate_report)
+- Обновить статус предзаказа (update_order)
 
 Контекст магазина:
 - Валюта: белорусские рубли (Br)
