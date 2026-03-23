@@ -7,6 +7,7 @@ import {
   deleteDoc,
   getDoc,
   setDoc,
+  arrayUnion,
   DocumentData,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -342,17 +343,29 @@ export async function generateReport(reportType: string, period?: string): Promi
         const byBrand: Record<string, number> = {};
         products.forEach(p => { byBrand[p.brand] = (byBrand[p.brand] || 0) + 1; });
 
+        // Load active preorders from preorders collection
+        const preordersSnapshot = await getDocs(collection(db, 'preorders'));
+        const allPreorders = preordersSnapshot.docs.map(d => d.data());
+        const activePreorders = allPreorders.filter(
+          p => p.status !== 'cancelled' &&
+               p.status !== 'completed' &&
+               p.status !== 'отменён' &&
+               p.status !== 'завершён' &&
+               p.status !== 'выдан'
+        ).length;
+
         return {
           success: true,
           message: `📦 Склад:\n\n` +
             `• Всего позиций: ${products.length}\n` +
             `• В наличии: ${available}\n` +
-            `• Предзаказы: ${preorder}\n` +
+            `• Предзаказы (товары): ${preorder}\n` +
+            `• Активные предзаказы клиентов: ${activePreorders}\n` +
             `• Нет в наличии: ${soldOut}\n\n` +
             `По брендам:\n` +
             Object.entries(byBrand).sort(([, a], [, b]) => b - a)
               .map(([brand, count]) => `• ${brand}: ${count} шт.`).join('\n'),
-          data: { total: products.length, available, preorder, soldOut, byBrand },
+          data: { total: products.length, available, preorder, soldOut, activePreorders, byBrand },
         };
       }
 
@@ -874,4 +887,131 @@ export async function addProductImage(params: {
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, message: `Ошибка добавления фото: ${msg}` };
   }
+}
+
+// Find product by name (searches brand, model, color)
+export function findProductByName(
+  products: Array<{ id: string; brand: string; model: string; color?: string; [key: string]: unknown }>,
+  searchName: string
+): { id: string; brand: string; model: string; color?: string; [key: string]: unknown } | null {
+  const search = searchName.toLowerCase().trim();
+
+  // Exact match first
+  let found = products.find(p => {
+    const fullName = `${p.brand} ${p.model} ${p.color || ''}`.toLowerCase();
+    return fullName.includes(search);
+  });
+
+  // Try brand or model only
+  if (!found) {
+    found = products.find(p =>
+      p.brand?.toLowerCase().includes(search) ||
+      p.model?.toLowerCase().includes(search)
+    );
+  }
+
+  return found || null;
+}
+
+// Add a single size to an existing product
+export async function addSizeToProduct(
+  productId: string,
+  productName: string,
+  size: string | number,
+  quantity: number = 1,
+  purchasePrice: number = 0,
+  sku: string = ''
+): Promise<ToolResult> {
+  try {
+    const productRef = doc(db, 'products', productId);
+    const productSnap = await getDoc(productRef);
+
+    if (!productSnap.exists()) {
+      return { success: false, message: `Товар не найден` };
+    }
+
+    const product = productSnap.data();
+
+    // Check if size already exists
+    const existingSizes: string[] = product.sizes || [];
+    if (existingSizes.includes(String(size))) {
+      return {
+        success: false,
+        message: `Размер ${size} уже существует у ${productName}`,
+      };
+    }
+
+    // Create new variant
+    const newVariant = {
+      id: Date.now().toString(),
+      size: String(size),
+      quantity: Number(quantity),
+      purchasePrice: Number(purchasePrice),
+      sku: sku || (product.sku ? product.sku + '-' + size : ''),
+      createdAt: new Date(),
+    };
+
+    // Update Firestore
+    await updateDoc(productRef, {
+      sizes: arrayUnion(String(size)),
+      variants: arrayUnion(newVariant),
+      quantity: (product.quantity || 0) + Number(quantity),
+      updatedAt: new Date(),
+    });
+
+    return {
+      success: true,
+      message: `✅ Размер ${size} добавлен к ${productName}!\nКоличество: ${quantity} шт.\nЗакупка: ${purchasePrice} Br`,
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, message: `Ошибка: ${msg}` };
+  }
+}
+
+// Add multiple sizes at once to a product
+export async function addMultipleSizes(
+  productId: string,
+  productName: string,
+  sizes: (string | number)[],
+  quantity: number = 1,
+  purchasePrice: number = 0
+): Promise<ToolResult> {
+  const results: ToolResult[] = [];
+
+  for (const size of sizes) {
+    const result = await addSizeToProduct(
+      productId,
+      productName,
+      size,
+      quantity,
+      purchasePrice
+    );
+    results.push(result);
+  }
+
+  const successCount = results.filter(r => r.success).length;
+
+  return {
+    success: successCount > 0,
+    message: `✅ Добавлено ${successCount} из ${sizes.length} размеров к ${productName}`,
+  };
+}
+
+// Load all preorders from Firestore
+export async function loadPreorders(): Promise<Array<{ id: string; [key: string]: unknown }>> {
+  const preordersSnapshot = await getDocs(collection(db, 'preorders'));
+  return preordersSnapshot.docs.map(d => ({
+    id: d.id,
+    ...d.data(),
+  }));
+}
+
+// Load all products from Firestore
+export async function loadProducts(): Promise<Array<{ id: string; brand: string; model: string; color?: string; sizes?: string[]; sku?: string; [key: string]: unknown }>> {
+  const snapshot = await getDocs(collection(db, 'products'));
+  return snapshot.docs.map(d => ({
+    id: d.id,
+    ...(d.data() as { brand: string; model: string; color?: string; sizes?: string[]; sku?: string }),
+  }));
 }
