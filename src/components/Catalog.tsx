@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, Layers, ChevronRight, ChevronDown } from 'lucide-react';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
 import { SIZE_OPTIONS } from '../utils/sizeChart';
@@ -508,6 +510,13 @@ const Catalog: React.FC = () => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [showAddSizeModal, setShowAddSizeModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [newSize, setNewSize] = useState({
+    size: '',
+    quantity: 1,
+    purchasePrice: '' as string | number,
+  });
 
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups(prev => {
@@ -555,6 +564,81 @@ const Catalog: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Удалить этот товар?')) {
       await remove(id);
+    }
+  };
+
+  const openAddSizeModal = (product: Product) => {
+    setSelectedProduct(product);
+    setNewSize({
+      size: '',
+      quantity: 1,
+      purchasePrice: product.purchasePrice || '',
+    });
+    setShowAddSizeModal(true);
+  };
+
+  const handleAddSize = async () => {
+    if (!newSize.size || !selectedProduct) return;
+
+    if (selectedProduct.sizes?.includes(String(newSize.size))) {
+      alert(`Размер ${newSize.size} уже существует!`);
+      return;
+    }
+
+    try {
+      const productRef = doc(db, 'products', selectedProduct.id);
+
+      const newVariant = {
+        id: Date.now().toString(),
+        size: String(newSize.size),
+        quantity: Number(newSize.quantity),
+        purchasePrice: Number(newSize.purchasePrice),
+        createdAt: new Date(),
+      };
+
+      await updateDoc(productRef, {
+        sizes: arrayUnion(String(newSize.size)),
+        variants: arrayUnion(newVariant),
+        quantity: (selectedProduct.quantity || 0) + Number(newSize.quantity),
+        updatedAt: new Date(),
+      });
+
+      setShowAddSizeModal(false);
+      setNewSize({ size: '', quantity: 1, purchasePrice: '' });
+      alert(`Размер ${newSize.size} добавлен!`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`Ошибка: ${message}`);
+    }
+  };
+
+  const handleDeleteSize = async (product: Product, size: string) => {
+    const confirmed = window.confirm(
+      `Удалить размер ${size} из ${product.brand} ${product.model}?`
+    );
+    if (!confirmed) return;
+
+    try {
+      const productRef = doc(db, 'products', product.id);
+
+      const updatedSizes = (product.sizes || []).filter(s => s !== String(size));
+      const updatedVariants = (product.variants || []).filter(v => v.size !== String(size));
+      const newQuantity = updatedVariants.reduce(
+        (sum, v) => sum + (Number(v.quantity) || 0),
+        0
+      );
+
+      await updateDoc(productRef, {
+        sizes: updatedSizes,
+        variants: updatedVariants,
+        quantity: newQuantity,
+        updatedAt: new Date(),
+      });
+
+      alert(`Размер ${size} удалён!`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`Ошибка: ${message}`);
     }
   };
 
@@ -797,24 +881,77 @@ const Catalog: React.FC = () => {
                           <div style={{
                             display: 'flex',
                             flexWrap: 'wrap',
-                            gap: '4px',
+                            gap: '6px',
                             marginBottom: '8px',
                           }}>
-                            {sizes.map(size => (
-                              <span
+                            {(first.sizes || sizes)
+                              ?.sort((a: string, b: string) => Number(a) - Number(b))
+                              .map((size: string) => (
+                              <div
                                 key={size}
                                 style={{
-                                  backgroundColor: '#F1F5F9',
-                                  color: '#475569',
-                                  fontSize: '11px',
-                                  padding: '2px 6px',
-                                  borderRadius: '6px',
-                                  fontWeight: '500',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  backgroundColor: '#EFF6FF',
+                                  border: '1px solid #BFDBFE',
+                                  borderRadius: '8px',
+                                  padding: '3px 8px',
                                 }}
                               >
-                                {size}
-                              </span>
+                                <span style={{
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#1D4ED8',
+                                }}>
+                                  {size}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteSize(first, size);
+                                  }}
+                                  style={{
+                                    width: '14px',
+                                    height: '14px',
+                                    borderRadius: '50%',
+                                    border: 'none',
+                                    backgroundColor: '#FEE2E2',
+                                    color: '#EF4444',
+                                    fontSize: '10px',
+                                    fontWeight: '900',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0',
+                                    marginLeft: '2px',
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
                             ))}
+
+                            {/* Add size button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openAddSizeModal(first);
+                              }}
+                              style={{
+                                padding: '3px 10px',
+                                backgroundColor: '#10B981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              + EUR
+                            </button>
                           </div>
 
                           {/* Price + Supplier row */}
@@ -1236,6 +1373,265 @@ const Catalog: React.FC = () => {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Add Size Modal */}
+      {showAddSizeModal && (
+        <div style={{
+          position: 'fixed',
+          inset: '0',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '380px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+            }}>
+              <h3 style={{
+                margin: '0',
+                fontSize: '18px',
+                fontWeight: '700',
+                color: '#1E293B',
+              }}>
+                Добавить размер
+              </h3>
+              <button
+                onClick={() => setShowAddSizeModal(false)}
+                style={{
+                  border: 'none',
+                  background: '#F1F5F9',
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  color: '#64748B',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Product name */}
+            <div style={{
+              backgroundColor: '#F8FAFC',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#374151',
+            }}>
+              {selectedProduct?.brand}{' '}
+              {selectedProduct?.model}{' '}
+              {selectedProduct?.color}
+            </div>
+
+            {/* Size input */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#374151',
+                display: 'block',
+                marginBottom: '6px',
+              }}>
+                Размер EUR *
+              </label>
+              <input
+                type="number"
+                placeholder="42"
+                value={newSize.size}
+                onChange={e => setNewSize(prev => ({ ...prev, size: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: newSize.size ? '2px solid #10B981' : '2px solid #E2E8F0',
+                  borderRadius: '10px',
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  textAlign: 'center',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+
+              {/* Quick size buttons */}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '4px',
+                marginTop: '8px',
+              }}>
+                {[35, 35.5, 36, 36.5, 37, 37.5, 38, 38.5, 39, 39.5, 40, 40.5,
+                  41, 41.5, 42, 42.5, 43, 43.5, 44, 44.5, 45, 45.5, 46, 47, 48]
+                  .filter(s => !selectedProduct?.sizes?.includes(String(s)))
+                  .map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setNewSize(prev => ({ ...prev, size: String(s) }))}
+                      style={{
+                        padding: '5px 8px',
+                        backgroundColor: newSize.size === String(s) ? '#10B981' : '#F1F5F9',
+                        color: newSize.size === String(s) ? 'white' : '#475569',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))
+                }
+              </div>
+            </div>
+
+            {/* Quantity */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#374151',
+                display: 'block',
+                marginBottom: '6px',
+              }}>
+                Количество
+              </label>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}>
+                <button
+                  onClick={() => setNewSize(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    border: '2px solid #E2E8F0',
+                    backgroundColor: 'white',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                  }}
+                >
+                  −
+                </button>
+                <span style={{
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  minWidth: '40px',
+                  textAlign: 'center',
+                }}>
+                  {newSize.quantity}
+                </span>
+                <button
+                  onClick={() => setNewSize(prev => ({ ...prev, quantity: prev.quantity + 1 }))}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    border: '2px solid #E2E8F0',
+                    backgroundColor: 'white',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Purchase price */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#374151',
+                display: 'block',
+                marginBottom: '6px',
+              }}>
+                Закупочная цена (Br)
+              </label>
+              <input
+                type="number"
+                placeholder="150"
+                value={newSize.purchasePrice}
+                onChange={e => setNewSize(prev => ({ ...prev, purchasePrice: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: '2px solid #E2E8F0',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+            }}>
+              <button
+                onClick={() => setShowAddSizeModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: '2px solid #E2E8F0',
+                  borderRadius: '10px',
+                  backgroundColor: 'white',
+                  color: '#64748B',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleAddSize}
+                disabled={!newSize.size}
+                style={{
+                  flex: 2,
+                  padding: '12px',
+                  border: 'none',
+                  borderRadius: '10px',
+                  backgroundColor: newSize.size ? '#10B981' : '#E2E8F0',
+                  color: newSize.size ? 'white' : '#94A3B8',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: newSize.size ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Добавить размер
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
