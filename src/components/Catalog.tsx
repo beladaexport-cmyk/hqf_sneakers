@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X, Layers, ChevronRight, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, Layers, ChevronRight, ChevronDown } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
 import { SIZE_CHART, SIZE_OPTIONS } from '../utils/sizeChart';
@@ -507,6 +507,7 @@ const Catalog: React.FC = () => {
   const [showBulkForm, setShowBulkForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups(prev => {
@@ -622,6 +623,7 @@ const Catalog: React.FC = () => {
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      style={h === 'Фото' ? { width: '90px', minWidth: '90px' } : undefined}
                     >
                       {h}
                     </th>
@@ -657,17 +659,59 @@ const Catalog: React.FC = () => {
                       : `${minPrice.toLocaleString('ru-RU')}–${maxPrice.toLocaleString('ru-RU')} Br`;
                     return (
                       <React.Fragment key={key}>
-                        <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => toggleGroup(key)}>
-                          <td className="px-4 py-3">
+                        <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer" style={{ height: '88px', verticalAlign: 'middle' }} onClick={() => toggleGroup(key)}>
+                          <td className="px-4 py-3" style={{ width: '90px', minWidth: '90px', padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
                             {first.images && first.images.length > 0 ? (
-                              <img
-                                src={first.images[0]}
-                                alt={first.model}
-                                className="w-12 h-12 object-cover rounded"
-                              />
+                              <div style={{ position: 'relative', display: 'inline-block' }}>
+                                <img
+                                  src={first.images[0]}
+                                  alt={first.model}
+                                  style={{
+                                    width: '72px',
+                                    height: '72px',
+                                    objectFit: 'cover',
+                                    borderRadius: '10px',
+                                    border: '1px solid #E2E8F0',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+                                    display: 'block',
+                                    transition: 'transform 0.2s',
+                                    cursor: 'pointer',
+                                  }}
+                                  onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1.05)'; }}
+                                  onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1)'; }}
+                                  onClick={(e) => { e.stopPropagation(); setZoomedImage(first.images![0]); }}
+                                />
+                                {first.images.length > 1 && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    bottom: '3px',
+                                    right: '3px',
+                                    backgroundColor: 'rgba(0,0,0,0.6)',
+                                    color: 'white',
+                                    fontSize: '9px',
+                                    padding: '1px 4px',
+                                    borderRadius: '4px',
+                                  }}>
+                                    +{first.images.length - 1}
+                                  </div>
+                                )}
+                              </div>
                             ) : (
-                              <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-                                <ImageIcon className="w-6 h-6 text-gray-400" />
+                              <div style={{
+                                width: '72px',
+                                height: '72px',
+                                backgroundColor: '#F3F4F6',
+                                borderRadius: '10px',
+                                border: '2px dashed #D1D5DB',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                fontSize: '24px',
+                              }}>
+                                <span role="img" aria-label="sneaker">👟</span>
+                                <span style={{ fontSize: '9px', color: '#9CA3AF', marginTop: '2px' }}>нет фото</span>
                               </div>
                             )}
                           </td>
@@ -783,6 +827,58 @@ const Catalog: React.FC = () => {
           onSave={handleEdit}
           onCancel={() => setEditProduct(null)}
         />
+      )}
+
+      {/* Photo Zoom Modal */}
+      {zoomedImage && (
+        <div
+          onClick={() => setZoomedImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={zoomedImage}
+            alt="Zoomed product"
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              objectFit: 'contain',
+              borderRadius: '12px',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+            }}
+          />
+          <button
+            onClick={() => setZoomedImage(null)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              backgroundColor: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              fontSize: '18px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ✕
+          </button>
+        </div>
       )}
     </div>
   );
