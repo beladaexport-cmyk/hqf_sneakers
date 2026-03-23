@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, X, DollarSign, Mail, Users, CheckCircle, XCircle, Clock, Trash2, AlertTriangle, Pencil, Truck } from 'lucide-react';
 import { doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
@@ -398,6 +398,247 @@ const CancelModal: React.FC<CancelModalProps> = ({ sale, onConfirm, onCancel }) 
   );
 };
 
+interface EditSaleModalProps {
+  sale: Sale;
+  products: Product[];
+  onSave: (saleId: string, updates: Partial<Sale>) => Promise<void>;
+  onCancel: () => void;
+}
+
+const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, onCancel }) => {
+  const [date, setDate] = useState(sale.date ? sale.date.split('T')[0] : '');
+  const [productId, setProductId] = useState(sale.productId);
+  const [customer, setCustomer] = useState(sale.customer || '');
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(sale.deliveryMethod ?? 'in_person');
+  const [quantity, setQuantity] = useState(sale.quantity);
+  const [price, setPrice] = useState(sale.price);
+  const [status, setStatus] = useState<SaleStatus>(sale.status ?? 'completed');
+  const [comment, setComment] = useState((sale as any).comment || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const selectedProduct = products.find((p) => p.id === productId);
+  const purchasePrice = selectedProduct ? selectedProduct.purchasePrice : sale.purchasePrice;
+  const calculatedProfit = (price - purchasePrice) * quantity;
+  const calculatedTotal = price * quantity;
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!date) newErrors.date = 'Дата обязательна';
+    if (!customer.trim()) newErrors.customer = 'Укажите покупателя';
+    if (!price || price <= 0) newErrors.price = 'Цена должна быть больше 0';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const updates: Record<string, any> = {
+        date: new Date(date).toISOString(),
+        productId,
+        customer: customer.trim(),
+        deliveryMethod,
+        quantity,
+        price,
+        purchasePrice,
+        profit: calculatedProfit,
+        total: calculatedTotal,
+        status,
+        comment: comment.trim(),
+      };
+
+      if (selectedProduct) {
+        updates.productSku = selectedProduct.sku;
+        updates.productModelArticle = selectedProduct.modelArticle || '';
+        updates.productName = `${selectedProduct.brand} ${selectedProduct.model} (${selectedProduct.size})`;
+        updates.productColor = selectedProduct.color || '';
+      }
+
+      await onSave(sale.id, updates);
+    } catch (error: any) {
+      alert(`Ошибка при обновлении: ${error.message || 'Неизвестная ошибка'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ borderRadius: 12 }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-900">Редактировать продажу</h2>
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Дата *</label>
+            <input
+              type="date"
+              className={`w-full border ${errors.date ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              value={date}
+              onChange={(e) => { setDate(e.target.value); setErrors((prev) => ({ ...prev, date: '' })); }}
+            />
+            {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Товар</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={productId}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setProductId(newId);
+                const p = products.find((pr) => pr.id === newId);
+                if (p) setPrice(p.retailPrice);
+              }}
+            >
+              {!selectedProduct && (
+                <option value={sale.productId}>{sale.productName}</option>
+              )}
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Артикул</label>
+            <input
+              type="text"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-600"
+              value={selectedProduct ? (selectedProduct.modelArticle || selectedProduct.sku) : (sale.productModelArticle || sale.productSku)}
+              readOnly
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Цвет</label>
+            <input
+              type="text"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-600"
+              value={selectedProduct ? selectedProduct.color : (sale.productColor || '')}
+              readOnly
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Покупатель *</label>
+            <input
+              type="text"
+              className={`w-full border ${errors.customer ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              placeholder="Имя покупателя"
+              value={customer}
+              onChange={(e) => { setCustomer(e.target.value); setErrors((prev) => ({ ...prev, customer: '' })); }}
+            />
+            {errors.customer && <p className="text-xs text-red-500 mt-1">{errors.customer}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Доставка</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={deliveryMethod}
+              onChange={(e) => setDeliveryMethod(e.target.value as DeliveryMethod)}
+            >
+              <option value="mail">Почта</option>
+              <option value="in_person">Лично</option>
+              <option value="courier">Курьер</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Количество</label>
+            <input
+              type="number"
+              min="1"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Цена продажи *</label>
+            <input
+              type="number"
+              min="0"
+              className={`w-full border ${errors.price ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              value={price}
+              onChange={(e) => { setPrice(Number(e.target.value)); setErrors((prev) => ({ ...prev, price: '' })); }}
+            />
+            {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as SaleStatus)}
+            >
+              <option value="pending">В процессе</option>
+              <option value="completed">Завершена</option>
+              <option value="cancelled">Отменена</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
+            <textarea
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              rows={3}
+              placeholder="Необязательный комментарий"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Прибыль:</span>
+              <span className={`font-semibold ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {calculatedProfit.toLocaleString('ru-RU')} Br
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Итого:</span>
+              <span className="text-xl font-bold text-green-600">
+                {calculatedTotal.toLocaleString('ru-RU')} Br
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const statusConfig: Record<SaleStatus, { label: string; icon: React.FC<{ className?: string }>; badgeClass: string }> = {
   completed: { label: 'Завершена', icon: CheckCircle, badgeClass: 'bg-green-100 text-green-700' },
   pending: { label: 'В процессе', icon: Clock, badgeClass: 'bg-yellow-100 text-yellow-700' },
@@ -421,6 +662,8 @@ const Sales: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [cancelSale, setCancelSale] = useState<Sale | null>(null);
   const [deleteConfirmSale, setDeleteConfirmSale] = useState<Sale | null>(null);
+  const [editSaleData, setEditSaleData] = useState<Sale | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const periodFiltered = filterByPeriod([...sales].reverse(), period);
   const filteredSales = statusFilter === 'all'
@@ -487,6 +730,13 @@ const Sales: React.FC = () => {
     if (sale.status !== 'cancelled') return;
     await deleteDoc(doc(db, 'sales', sale.id));
     setDeleteConfirmSale(null);
+  };
+
+  const handleEditSave = async (saleId: string, updates: Partial<Sale>) => {
+    await updateSale(saleId, updates);
+    setEditSaleData(null);
+    setToast('Продажа обновлена ✅');
+    setTimeout(() => setToast(null), 3000);
   };
 
   return (
@@ -606,17 +856,27 @@ const Sales: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{sale.customer || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">
-                        {(sale.deliveryMethod ?? 'in_person') === 'mail' ? (
-                          <span className="flex items-center gap-1">
-                            <Mail className="w-3.5 h-3.5 text-blue-500" />
-                            <span>Почта</span>
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5 text-gray-500" />
-                            <span>Лично</span>
-                          </span>
-                        )}
+                        {(() => {
+                          const dm = sale.deliveryMethod ?? 'in_person';
+                          if (dm === 'mail') return (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3.5 h-3.5 text-blue-500" />
+                              <span>Почта</span>
+                            </span>
+                          );
+                          if (dm === 'courier') return (
+                            <span className="flex items-center gap-1">
+                              <Truck className="w-3.5 h-3.5 text-purple-500" />
+                              <span>Курьер</span>
+                            </span>
+                          );
+                          return (
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3.5 h-3.5 text-gray-500" />
+                              <span>Лично</span>
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">{sale.quantity}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">
@@ -641,6 +901,13 @@ const Sales: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
+                          <button
+                            onClick={() => setEditSaleData(sale)}
+                            title="Редактировать"
+                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
                           {status === 'pending' && (
                             <button
                               onClick={() => handleCompleteSale(sale.id)}
@@ -734,6 +1001,21 @@ const Sales: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {editSaleData && (
+        <EditSaleModal
+          sale={editSaleData}
+          products={products}
+          onSave={handleEditSave}
+          onCancel={() => setEditSaleData(null)}
+        />
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg text-sm font-medium">
+          {toast}
         </div>
       )}
     </div>

@@ -63,7 +63,7 @@ export interface Preorder {
   arrivedAt?: string;
 }
 
-export type DeliveryMethod = 'mail' | 'in_person';
+export type DeliveryMethod = 'mail' | 'in_person' | 'courier';
 export type SaleStatus = 'completed' | 'pending' | 'cancelled';
 
 export interface DeliveryDetails {
@@ -93,6 +93,7 @@ export interface Sale {
   status: SaleStatus;
   cancellationReason?: string;
   cancelledAt?: string;
+  comment?: string;
 }
 
 export interface Expense {
