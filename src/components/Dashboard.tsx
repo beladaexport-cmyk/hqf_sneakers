@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown, XCircle } from 'lucide-react';
+import { TrendingUp, Package, DollarSign, TrendingDown, XCircle } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, Expense } from '../types';
 
@@ -48,7 +48,6 @@ const Dashboard: React.FC = () => {
   }
 
   const totalProducts = products.reduce((sum, p) => sum + p.quantity, 0);
-  const lowStock = products.filter((p) => p.quantity <= p.minStock);
 
   const today = new Date().toISOString().split('T')[0];
   const todaySales = sales.filter((s) => s.date.startsWith(today) && (s.status ?? 'completed') === 'completed');
@@ -144,26 +143,6 @@ const Dashboard: React.FC = () => {
                   </ul>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Low Stock Alert */}
-      {lowStock.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
-            <div>
-              <h3 className="font-semibold text-red-900">Товары с низким остатком!</h3>
-              <ul className="mt-2 space-y-1">
-                {lowStock.map((p) => (
-                  <li key={p.id} className="text-sm text-red-700">
-                    {p.brand} {p.model} (размер {p.size}) — осталось {p.quantity} шт.
-                    (мин. {p.minStock})
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </div>
