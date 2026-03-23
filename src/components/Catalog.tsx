@@ -508,6 +508,7 @@ const Catalog: React.FC = () => {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups(prev => {
@@ -612,194 +613,553 @@ const Catalog: React.FC = () => {
         </select>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {['Фото', 'Бренд / Модель', 'Цвет', 'Размеры', 'Поставщик', 'Кол-во', 'Цена', 'Категория', 'Действия'].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      style={h === 'Фото' ? { width: '90px', minWidth: '90px' } : undefined}
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
-                    {products.length === 0 ? 'Товаров нет. Добавьте первый!' : 'Ничего не найдено'}
-                  </td>
-                </tr>
-              ) : (
-                (() => {
-                  const groupMap: Record<string, Product[]> = {};
-                  for (const p of filtered) {
-                    const key = JSON.stringify([p.brand, p.model, p.color]);
-                    if (!groupMap[key]) groupMap[key] = [];
-                    groupMap[key].push(p);
-                  }
-                  return Object.entries(groupMap).map(([key, items]) => {
-                    const first = items[0];
-                    const isExpanded = expandedGroups.has(key);
-                    const totalQuantity = items.reduce((s, p) => s + p.quantity, 0);
-                    const sizes = items.map(p => p.size).join(', ');
-                    const prices = items.map(p => p.retailPrice);
-                    const minPrice = Math.min(...prices);
-                    const maxPrice = Math.max(...prices);
-                    const priceRange = minPrice === maxPrice
-                      ? `${minPrice.toLocaleString('ru-RU')} Br`
-                      : `${minPrice.toLocaleString('ru-RU')}–${maxPrice.toLocaleString('ru-RU')} Br`;
-                    return (
-                      <React.Fragment key={key}>
-                        <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer" style={{ height: '88px', verticalAlign: 'middle' }} onClick={() => toggleGroup(key)}>
-                          <td className="px-4 py-3" style={{ width: '90px', minWidth: '90px', padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
-                            {first.images && first.images.length > 0 ? (
-                              <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <img
-                                  src={first.images[0]}
-                                  alt={first.model}
-                                  style={{
-                                    width: '72px',
-                                    height: '72px',
-                                    objectFit: 'cover',
-                                    borderRadius: '10px',
-                                    border: '1px solid #E2E8F0',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-                                    display: 'block',
-                                    transition: 'transform 0.2s',
-                                    cursor: 'pointer',
-                                  }}
-                                  onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1.05)'; }}
-                                  onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1)'; }}
-                                  onClick={(e) => { e.stopPropagation(); setZoomedImage(first.images![0]); }}
-                                />
-                                {first.images.length > 1 && (
-                                  <div style={{
-                                    position: 'absolute',
-                                    bottom: '3px',
-                                    right: '3px',
-                                    backgroundColor: 'rgba(0,0,0,0.6)',
-                                    color: 'white',
-                                    fontSize: '9px',
-                                    padding: '1px 4px',
-                                    borderRadius: '4px',
-                                  }}>
-                                    +{first.images.length - 1}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div style={{
-                                width: '72px',
-                                height: '72px',
-                                backgroundColor: '#F3F4F6',
-                                borderRadius: '10px',
-                                border: '2px dashed #D1D5DB',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                fontSize: '24px',
-                              }}>
-                                <span role="img" aria-label="sneaker">👟</span>
-                                <span style={{ fontSize: '9px', color: '#9CA3AF', marginTop: '2px' }}>нет фото</span>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2 text-blue-700">
-                              {isExpanded ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
-                              <span className="font-medium">{first.brand} {first.model}</span>
+      {/* View toggle */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button
+          onClick={() => setViewMode('cards')}
+          style={{
+            padding: '6px 14px',
+            backgroundColor: viewMode === 'cards' ? '#3B82F6' : '#F1F5F9',
+            color: viewMode === 'cards' ? 'white' : '#475569',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '500',
+          }}
+        >
+          ⊞ Карточки
+        </button>
+        <button
+          onClick={() => setViewMode('table')}
+          style={{
+            padding: '6px 14px',
+            backgroundColor: viewMode === 'table' ? '#3B82F6' : '#F1F5F9',
+            color: viewMode === 'table' ? 'white' : '#475569',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '500',
+          }}
+        >
+          ☰ Таблица
+        </button>
+      </div>
+
+      {viewMode === 'cards' ? (
+        /* Card Grid View */
+        filtered.length === 0 ? (
+          <div style={{ padding: '32px', textAlign: 'center', color: '#9CA3AF' }}>
+            {products.length === 0 ? 'Товаров нет. Добавьте первый!' : 'Ничего не найдено'}
+          </div>
+        ) : (
+          (() => {
+            const groupMap: Record<string, Product[]> = {};
+            for (const p of filtered) {
+              const key = JSON.stringify([p.brand, p.model, p.color]);
+              if (!groupMap[key]) groupMap[key] = [];
+              groupMap[key].push(p);
+            }
+            return (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: '16px',
+                padding: '16px 0',
+              }}>
+                {Object.entries(groupMap).map(([key, items]) => {
+                  const first = items[0];
+                  const isExpanded = expandedGroups.has(key);
+                  const totalQuantity = items.reduce((s, p) => s + p.quantity, 0);
+                  const sizes = items.map(p => p.size);
+                  const prices = items.map(p => p.retailPrice);
+                  const minPrice = Math.min(...prices);
+                  const maxPrice = Math.max(...prices);
+                  const priceRange = minPrice === maxPrice
+                    ? `${minPrice.toLocaleString('ru-RU')} Br`
+                    : `${minPrice.toLocaleString('ru-RU')}–${maxPrice.toLocaleString('ru-RU')} Br`;
+                  return (
+                    <div key={key}>
+                      <div
+                        style={{
+                          backgroundColor: 'white',
+                          borderRadius: '16px',
+                          border: '1px solid #E2E8F0',
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        {/* Photo section */}
+                        <div style={{
+                          width: '100%',
+                          height: '220px',
+                          backgroundColor: '#F8FAFC',
+                          position: 'relative',
+                          overflow: 'hidden',
+                        }}>
+                          {first.images && first.images.length > 0 ? (
+                            <>
+                              <img
+                                src={first.images[0]}
+                                alt={first.model}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                }}
+                                onClick={() => setZoomedImage(first.images![0])}
+                              />
+                              {first.images.length > 1 && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '8px',
+                                  right: '8px',
+                                  backgroundColor: 'rgba(0,0,0,0.6)',
+                                  color: 'white',
+                                  fontSize: '11px',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                }}>
+                                  📷 {first.images.length}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div style={{
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#F1F5F9',
+                            }}>
+                              <span style={{ fontSize: '48px' }}>👟</span>
+                              <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '8px' }}>
+                                Нет фото
+                              </span>
                             </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{first.color}</td>
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-blue-600">{sizes}</span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{first.supplier || '—'}</td>
-                          <td className="px-4 py-3">
-                            <span className={`text-sm font-semibold ${totalQuantity === 0 ? 'text-red-600' : 'text-green-700'}`}>
-                              {totalQuantity} шт.
+                          )}
+                          {/* Stock badge */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '8px',
+                            backgroundColor: totalQuantity === 0 ? '#FEE2E2' : '#DCFCE7',
+                            color: totalQuantity === 0 ? '#EF4444' : '#16A34A',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                          }}>
+                            {totalQuantity === 0 ? '0 шт.' : `${totalQuantity} шт.`}
+                          </div>
+                        </div>
+
+                        {/* Info section */}
+                        <div style={{ padding: '12px' }}>
+                          {/* Brand + Model */}
+                          <div style={{
+                            fontSize: '13px',
+                            fontWeight: '700',
+                            color: '#1E293B',
+                            marginBottom: '4px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}>
+                            {first.brand} {first.model}
+                          </div>
+
+                          {/* Color */}
+                          <div style={{
+                            fontSize: '12px',
+                            color: '#64748B',
+                            marginBottom: '8px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}>
+                            {first.color}
+                          </div>
+
+                          {/* Sizes */}
+                          <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '4px',
+                            marginBottom: '8px',
+                          }}>
+                            {sizes.map(size => (
+                              <span
+                                key={size}
+                                style={{
+                                  backgroundColor: '#F1F5F9',
+                                  color: '#475569',
+                                  fontSize: '11px',
+                                  padding: '2px 6px',
+                                  borderRadius: '6px',
+                                  fontWeight: '500',
+                                }}
+                              >
+                                {size}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Price + Supplier row */}
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '10px',
+                          }}>
+                            <span style={{
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              color: '#1E293B',
+                            }}>
+                              {priceRange}
                             </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700">{priceRange}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{categoryLabels[first.category]}</td>
-                          <td className="px-4 py-3 text-xs text-gray-400">{items.length} вар.</td>
-                        </tr>
-                        {isExpanded && items.map((p) => {
-                          const isLow = p.quantity <= p.minStock;
-                          return (
-                            <tr key={p.id} className={`border-l-4 border-blue-300 ${isLow ? 'bg-red-50' : 'bg-white'}`}>
-                              <td className="px-4 py-2"></td>
-                              <td className="px-4 py-2 pl-10 text-sm text-gray-700">
-                                <div className="flex flex-col">
-                                  <span className="font-mono text-xs">{p.modelArticle || p.sku}</span>
-                                  {p.modelArticle && p.modelArticle !== p.sku && (
-                                    <span className="text-xs text-gray-400">SKU: {p.sku}</span>
+                            <span style={{
+                              fontSize: '11px',
+                              color: '#94A3B8',
+                              backgroundColor: '#F8FAFC',
+                              padding: '2px 8px',
+                              borderRadius: '8px',
+                              border: '1px solid #E2E8F0',
+                            }}>
+                              {first.supplier || '—'}
+                            </span>
+                          </div>
+
+                          {/* Category */}
+                          <div style={{
+                            fontSize: '11px',
+                            color: '#94A3B8',
+                            marginBottom: '10px',
+                          }}>
+                            {categoryLabels[first.category]}
+                          </div>
+
+                          {/* Action buttons */}
+                          <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            borderTop: '1px solid #F1F5F9',
+                            paddingTop: '10px',
+                          }}>
+                            <button
+                              onClick={() => toggleGroup(key)}
+                              style={{
+                                flex: 1,
+                                padding: '6px',
+                                backgroundColor: '#F8FAFC',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                color: '#475569',
+                              }}
+                            >
+                              📋 Варианты
+                            </button>
+                            <button
+                              onClick={() => setEditProduct(first)}
+                              style={{
+                                padding: '6px 10px',
+                                backgroundColor: '#EFF6FF',
+                                border: '1px solid #BFDBFE',
+                                borderRadius: '8px',
+                                fontSize: '16px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDelete(first.id)}
+                              style={{
+                                padding: '6px 10px',
+                                backgroundColor: '#FEF2F2',
+                                border: '1px solid #FECACA',
+                                borderRadius: '8px',
+                                fontSize: '16px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded variants */}
+                      {isExpanded && (
+                        <div style={{
+                          marginTop: '8px',
+                          padding: '12px',
+                          backgroundColor: '#F8FAFC',
+                          borderRadius: '12px',
+                          border: '1px solid #E2E8F0',
+                        }}>
+                          {items.map(p => {
+                            const isLow = p.quantity <= p.minStock;
+                            return (
+                              <div key={p.id} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '6px 0',
+                                borderBottom: '1px solid #E2E8F0',
+                                fontSize: '12px',
+                              }}>
+                                <span>Размер: {p.size}{p.sizeInCm ? ` (${p.sizeInCm} см)` : ''}</span>
+                                <span style={{ color: isLow ? '#EF4444' : undefined }}>
+                                  Кол-во: {p.quantity}{isLow ? ' ⚠' : ''}
+                                </span>
+                                <span>{p.retailPrice.toLocaleString('ru-RU')} Br</span>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                  <button
+                                    onClick={() => setEditProduct(p)}
+                                    style={{
+                                      padding: '2px 6px',
+                                      backgroundColor: '#EFF6FF',
+                                      border: '1px solid #BFDBFE',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(p.id)}
+                                    style={{
+                                      padding: '2px 6px',
+                                      backgroundColor: '#FEF2F2',
+                                      border: '1px solid #FECACA',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()
+        )
+      ) : (
+        /* Table View */
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['Фото', 'Бренд / Модель', 'Цвет', 'Размеры', 'Поставщик', 'Кол-во', 'Цена', 'Категория', 'Действия'].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        style={h === 'Фото' ? { width: '90px', minWidth: '90px' } : undefined}
+                      >
+                        {h}
+                      </th>
+                    )
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                      {products.length === 0 ? 'Товаров нет. Добавьте первый!' : 'Ничего не найдено'}
+                    </td>
+                  </tr>
+                ) : (
+                  (() => {
+                    const groupMap: Record<string, Product[]> = {};
+                    for (const p of filtered) {
+                      const key = JSON.stringify([p.brand, p.model, p.color]);
+                      if (!groupMap[key]) groupMap[key] = [];
+                      groupMap[key].push(p);
+                    }
+                    return Object.entries(groupMap).map(([key, items]) => {
+                      const first = items[0];
+                      const isExpanded = expandedGroups.has(key);
+                      const totalQuantity = items.reduce((s, p) => s + p.quantity, 0);
+                      const sizes = items.map(p => p.size).join(', ');
+                      const prices = items.map(p => p.retailPrice);
+                      const minPrice = Math.min(...prices);
+                      const maxPrice = Math.max(...prices);
+                      const priceRange = minPrice === maxPrice
+                        ? `${minPrice.toLocaleString('ru-RU')} Br`
+                        : `${minPrice.toLocaleString('ru-RU')}–${maxPrice.toLocaleString('ru-RU')} Br`;
+                      return (
+                        <React.Fragment key={key}>
+                          <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer" style={{ height: '88px', verticalAlign: 'middle' }} onClick={() => toggleGroup(key)}>
+                            <td className="px-4 py-3" style={{ width: '90px', minWidth: '90px', padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                              {first.images && first.images.length > 0 ? (
+                                <div style={{ position: 'relative', display: 'inline-block' }}>
+                                  <img
+                                    src={first.images[0]}
+                                    alt={first.model}
+                                    style={{
+                                      width: '72px',
+                                      height: '72px',
+                                      objectFit: 'cover',
+                                      borderRadius: '10px',
+                                      border: '1px solid #E2E8F0',
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+                                      display: 'block',
+                                      transition: 'transform 0.2s',
+                                      cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1.05)'; }}
+                                    onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1)'; }}
+                                    onClick={(e) => { e.stopPropagation(); setZoomedImage(first.images![0]); }}
+                                  />
+                                  {first.images.length > 1 && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      bottom: '3px',
+                                      right: '3px',
+                                      backgroundColor: 'rgba(0,0,0,0.6)',
+                                      color: 'white',
+                                      fontSize: '9px',
+                                      padding: '1px 4px',
+                                      borderRadius: '4px',
+                                    }}>
+                                      +{first.images.length - 1}
+                                    </div>
                                   )}
                                 </div>
-                              </td>
-                              <td className="px-4 py-2 text-sm text-gray-500">{p.color}</td>
-                              <td className="px-4 py-2 text-sm font-medium text-gray-800">
-                                {p.size}
-                                {p.sizeInCm && <span className="text-gray-400 text-xs ml-1">({p.sizeInCm} см)</span>}
-                                <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium ${statusColors[p.status]}`}>
-                                  {statusLabels[p.status]}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2 text-sm text-gray-500">{p.supplier || '—'}</td>
-                              <td className="px-4 py-2 text-sm font-semibold">
-                                <span className={isLow ? 'text-red-600' : 'text-gray-900'}>
-                                  {p.quantity}
-                                  {isLow && <span className="ml-1 text-xs font-normal text-red-500">⚠ мало</span>}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2 text-sm text-gray-700">
-                                {p.retailPrice.toLocaleString('ru-RU')} Br
-                                <span className="ml-1 text-xs text-blue-600">
-                                  (+{(p.retailPrice - p.purchasePrice).toLocaleString('ru-RU')})
-                                </span>
-                              </td>
-                              <td className="px-4 py-2 text-sm text-gray-600">{categoryLabels[p.category]}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center space-x-2">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setEditProduct(p); }}
-                                    className="text-blue-500 hover:text-blue-700 transition-colors"
-                                    title="Редактировать"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
-                                    className="text-red-500 hover:text-red-700 transition-colors"
-                                    title="Удалить"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                              ) : (
+                                <div style={{
+                                  width: '72px',
+                                  height: '72px',
+                                  backgroundColor: '#F3F4F6',
+                                  borderRadius: '10px',
+                                  border: '2px dashed #D1D5DB',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  fontSize: '24px',
+                                }}>
+                                  <span role="img" aria-label="sneaker">👟</span>
+                                  <span style={{ fontSize: '9px', color: '#9CA3AF', marginTop: '2px' }}>нет фото</span>
                                 </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </React.Fragment>
-                    );
-                  });
-                })()
-              )}
-            </tbody>
-          </table>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2 text-blue-700">
+                                {isExpanded ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
+                                <span className="font-medium">{first.brand} {first.model}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{first.color}</td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-medium text-blue-600">{sizes}</span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{first.supplier || '—'}</td>
+                            <td className="px-4 py-3">
+                              <span className={`text-sm font-semibold ${totalQuantity === 0 ? 'text-red-600' : 'text-green-700'}`}>
+                                {totalQuantity} шт.
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">{priceRange}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{categoryLabels[first.category]}</td>
+                            <td className="px-4 py-3 text-xs text-gray-400">{items.length} вар.</td>
+                          </tr>
+                          {isExpanded && items.map((p) => {
+                            const isLow = p.quantity <= p.minStock;
+                            return (
+                              <tr key={p.id} className={`border-l-4 border-blue-300 ${isLow ? 'bg-red-50' : 'bg-white'}`}>
+                                <td className="px-4 py-2"></td>
+                                <td className="px-4 py-2 pl-10 text-sm text-gray-700">
+                                  <div className="flex flex-col">
+                                    <span className="font-mono text-xs">{p.modelArticle || p.sku}</span>
+                                    {p.modelArticle && p.modelArticle !== p.sku && (
+                                      <span className="text-xs text-gray-400">SKU: {p.sku}</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2 text-sm text-gray-500">{p.color}</td>
+                                <td className="px-4 py-2 text-sm font-medium text-gray-800">
+                                  {p.size}
+                                  {p.sizeInCm && <span className="text-gray-400 text-xs ml-1">({p.sizeInCm} см)</span>}
+                                  <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium ${statusColors[p.status]}`}>
+                                    {statusLabels[p.status]}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2 text-sm text-gray-500">{p.supplier || '—'}</td>
+                                <td className="px-4 py-2 text-sm font-semibold">
+                                  <span className={isLow ? 'text-red-600' : 'text-gray-900'}>
+                                    {p.quantity}
+                                    {isLow && <span className="ml-1 text-xs font-normal text-red-500">⚠ мало</span>}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2 text-sm text-gray-700">
+                                  {p.retailPrice.toLocaleString('ru-RU')} Br
+                                  <span className="ml-1 text-xs text-blue-600">
+                                    (+{(p.retailPrice - p.purchasePrice).toLocaleString('ru-RU')})
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2 text-sm text-gray-600">{categoryLabels[p.category]}</td>
+                                <td className="px-4 py-2">
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setEditProduct(p); }}
+                                      className="text-blue-500 hover:text-blue-700 transition-colors"
+                                      title="Редактировать"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                                      className="text-red-500 hover:text-red-700 transition-colors"
+                                      title="Удалить"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    });
+                  })()
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Add Form */}
       {showForm && (
