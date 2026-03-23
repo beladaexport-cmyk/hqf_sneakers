@@ -89,6 +89,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
     const sale: Omit<Sale, 'id'> = {
       productId: selectedProduct.id,
       productSku: selectedProduct.sku,
+      productModelArticle: selectedProduct.modelArticle,
       productName: `${selectedProduct.brand} ${selectedProduct.model} (${selectedProduct.size})`,
       quantity,
       price: selectedProduct.retailPrice,
@@ -589,7 +590,14 @@ const Sales: React.FC = () => {
                         {sale.productName}
                       </td>
                       <td className="px-4 py-3 text-sm font-mono text-gray-600">
-                        {sale.productSku}
+                        <div className="font-semibold text-gray-900">
+                          {sale.productModelArticle || sale.productSku}
+                        </div>
+                        {sale.productModelArticle && (
+                          <div className="text-xs text-gray-400">
+                            SKU: {sale.productSku}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{sale.customer || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">
