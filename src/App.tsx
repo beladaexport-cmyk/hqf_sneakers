@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, ShoppingBag, DollarSign, Package, Settings, TrendingDown, LogOut, ShoppingCart, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, DollarSign, Package, Settings, TrendingDown, LogOut, ShoppingCart, Menu, X, Sparkles } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -9,8 +9,9 @@ import Expenses from './components/Expenses';
 import Suppliers from './components/Suppliers';
 import Preorders from './components/Preorders';
 import SettingsPage from './components/Settings';
+import AIAssistant from './components/AIAssistant';
 
-type Tab = 'dashboard' | 'catalog' | 'sales' | 'preorders' | 'expenses' | 'suppliers' | 'settings';
+type Tab = 'dashboard' | 'catalog' | 'sales' | 'preorders' | 'expenses' | 'suppliers' | 'ai-assistant' | 'settings';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -26,6 +27,7 @@ function AppContent() {
     { id: 'catalog' as Tab, label: '👟 Каталог', icon: ShoppingBag },
     { id: 'sales' as Tab, label: '💰 Продажи', icon: DollarSign },
     { id: 'preorders' as Tab, label: '🛒 Предзаказы', icon: ShoppingCart },
+    { id: 'ai-assistant' as Tab, label: '🤖 AI-Помощник', icon: Sparkles },
     { id: 'expenses' as Tab, label: '💸 Расходы', icon: TrendingDown },
     { id: 'suppliers' as Tab, label: '📦 Поставщики', icon: Package },
     { id: 'settings' as Tab, label: '⚙️ Настройки', icon: Settings },
@@ -41,6 +43,8 @@ function AppContent() {
         return <Sales />;
       case 'preorders':
         return <Preorders />;
+      case 'ai-assistant':
+        return <AIAssistant />;
       case 'expenses':
         return <Expenses />;
       case 'suppliers':
