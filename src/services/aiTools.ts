@@ -394,11 +394,34 @@ export async function generateReport(reportType: string, period?: string): Promi
         };
       }
 
-      case 'no_photo':
+      case 'no_photo': {
+        const snapshot = await getDocs(collection(db, 'products'));
+        const products = snapshot.docs.map(d => ({
+          id: d.id,
+          ...(d.data() as Omit<Product, 'id'>),
+        }));
+        const noPhoto = products.filter(p => !p.images || p.images.length === 0);
+        if (noPhoto.length === 0) {
+          return { success: true, message: '✅ У всех товаров есть фотографии!' };
+        }
+
+        const grouped: Record<string, number> = {};
+        noPhoto.forEach(p => {
+          const key = `${p.brand} ${p.model}`;
+          grouped[key] = (grouped[key] || 0) + 1;
+        });
+
         return {
           success: true,
-          message: 'ℹ️ Отслеживание фото товаров не реализовано. Управляйте фото через раздел Каталог.',
+          message: `📷 Товары без фото (${noPhoto.length} позиций):\n\n` +
+            Object.entries(grouped)
+              .slice(0, 10)
+              .map(([name, count]) => `• ${name} — ${count} размеров`)
+              .join('\n'),
+          data: noPhoto,
+          affectedCount: noPhoto.length,
         };
+      }
 
       default:
         return { success: false, message: `Неизвестный тип отчёта: ${reportType}` };
@@ -809,5 +832,45 @@ export async function searchSales(params: {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, message: `Ошибка поиска продаж: ${msg}` };
+  }
+}
+
+// Add image URL to a product
+export async function addProductImage(params: {
+  productSku: string;
+  imageUrl: string;
+}): Promise<ToolResult> {
+  try {
+    const { productSku, imageUrl } = params;
+
+    const snapshot = await getDocs(collection(db, 'products'));
+    const productDoc = snapshot.docs.find(d => {
+      const data = d.data();
+      return data.sku === productSku ||
+             data.modelArticle === productSku ||
+             data.sku.includes(productSku);
+    });
+
+    if (!productDoc) {
+      return {
+        success: false,
+        message: `❌ Товар ${productSku} не найден`,
+      };
+    }
+
+    const product = productDoc.data();
+    const currentImages: string[] = product.images || [];
+
+    await updateDoc(doc(db, 'products', productDoc.id), {
+      images: [...currentImages, imageUrl],
+    });
+
+    return {
+      success: true,
+      message: `✅ Фото добавлено для ${product.brand} ${product.model}\n\nВсего фото: ${currentImages.length + 1}`,
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, message: `Ошибка добавления фото: ${msg}` };
   }
 }

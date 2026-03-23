@@ -277,6 +277,27 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'add_product_image',
+      description: 'Добавить фото товара по URL. Используй когда пользователь хочет добавить фото/изображение к товару.',
+      parameters: {
+        type: 'object',
+        properties: {
+          productSku: {
+            type: 'string',
+            description: 'SKU или артикул товара (например: DD1503-120)',
+          },
+          imageUrl: {
+            type: 'string',
+            description: 'Прямая ссылка на изображение (URL)',
+          },
+        },
+        required: ['productSku', 'imageUrl'],
+      },
+    },
+  },
 ];
 
 const CONFIRMATION_REQUIRED = new Set(['delete_product', 'bulk_update_products', 'update_sale']);
@@ -365,6 +386,7 @@ export const handler: Handler = async (event) => {
 - Удалить товар (delete_product) — требует подтверждения
 - Сформировать отчёт (generate_report)
 - Обновить статус предзаказа (update_order)
+- Добавить фото товара по URL (add_product_image)
 
 Контекст магазина:
 - Валюта: белорусские рубли (Br)

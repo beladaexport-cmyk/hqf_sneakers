@@ -16,6 +16,7 @@ export interface Product {
   status: 'available' | 'preorder' | 'sold_out';
   location: string;
   minStock: number;
+  images?: string[];
 }
 
 // New model-based architecture
