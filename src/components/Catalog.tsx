@@ -484,17 +484,21 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
 const Catalog: React.FC = () => {
   const { data: products, loading, add, update, remove } = useFirestore<Product>('products');
   const [search, setSearch] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showBulkForm, setShowBulkForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
+  const suppliers = Array.from(new Set(products.filter((p) => p.supplier).map((p) => p.supplier!))).sort();
+
   const filtered = products.filter((p) => {
     const q = search.toLowerCase();
-    return (
+    const matchesSearch =
       p.brand.toLowerCase().includes(q) ||
       p.model.toLowerCase().includes(q) ||
-      p.sku.toLowerCase().includes(q)
-    );
+      p.sku.toLowerCase().includes(q);
+    const matchesSupplier = !selectedSupplier || (p.supplier || '') === selectedSupplier;
+    return matchesSearch && matchesSupplier;
   });
 
   const handleAdd = async (data: Omit<Product, 'id'>) => {
@@ -552,15 +556,27 @@ const Catalog: React.FC = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Поиск по бренду, модели, артикулу..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* Search and filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Поиск по бренду, модели, артикулу..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <select
+          value={selectedSupplier}
+          onChange={(e) => setSelectedSupplier(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">Все поставщики</option>
+          {suppliers.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
       </div>
 
       {/* Table */}
@@ -569,7 +585,7 @@ const Catalog: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Артикул', 'Бренд / Модель', 'Размер', 'Цвет', 'Кол-во', 'Цена', 'Маржа', 'Маржа %', 'Категория', 'Статус', 'Действия'].map(
+                {['Артикул', 'Бренд / Модель', 'Размер', 'Поставщик', 'Цвет', 'Кол-во', 'Цена', 'Маржа', 'Маржа %', 'Категория', 'Статус', 'Действия'].map(
                   (h) => (
                     <th
                       key={h}
@@ -584,7 +600,7 @@ const Catalog: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={12} className="px-4 py-8 text-center text-gray-400">
                     {products.length === 0 ? 'Товаров нет. Добавьте первый!' : 'Ничего не найдено'}
                   </td>
                 </tr>
@@ -603,7 +619,13 @@ const Catalog: React.FC = () => {
                         <div className="font-medium">{p.brand}</div>
                         <div className="text-gray-500">{p.model}</div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{p.size}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {p.size}
+                        {p.sizeInCm && (
+                          <span className="text-gray-400 text-xs ml-1">({p.sizeInCm} см)</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{p.supplier || 'Не указан'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{p.color}</td>
                       <td
                         className={`px-4 py-3 text-sm font-semibold ${
