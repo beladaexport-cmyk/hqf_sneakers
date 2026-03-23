@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown, XCircle } from 'lucide-react';
+import { TrendingUp, Package, AlertCircle, DollarSign, TrendingDown, XCircle, ShoppingCart } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, Expense } from '../types';
 
@@ -7,27 +7,28 @@ interface StatCardProps {
   title: string;
   value: string;
   icon: React.FC<{ className?: string }>;
-  color: 'blue' | 'green' | 'purple' | 'red' | 'orange';
+  color: 'indigo' | 'emerald' | 'purple' | 'red' | 'amber';
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) => {
-  const colorClasses: Record<string, string> = {
-    blue: 'bg-blue-500',
-    green: 'bg-green-500',
-    purple: 'bg-purple-500',
-    red: 'bg-red-500',
-    orange: 'bg-orange-500',
+  const colorClasses: Record<string, { bg: string; icon: string }> = {
+    indigo: { bg: 'bg-indigo-50 border-indigo-100', icon: 'bg-indigo-600' },
+    emerald: { bg: 'bg-emerald-50 border-emerald-100', icon: 'bg-emerald-600' },
+    purple: { bg: 'bg-purple-50 border-purple-100', icon: 'bg-purple-600' },
+    red: { bg: 'bg-red-50 border-red-100', icon: 'bg-red-500' },
+    amber: { bg: 'bg-amber-50 border-amber-100', icon: 'bg-amber-600' },
   };
+  const c = colorClasses[color];
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className={`rounded-xl border p-5 ${c.bg}`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold mt-1 text-gray-900">{value}</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{title}</p>
+          <p className="text-2xl font-bold mt-1.5 text-gray-900">{value}</p>
         </div>
-        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
-          <Icon className="w-6 h-6 text-white" />
+        <div className={`${c.icon} p-3 rounded-xl`}>
+          <Icon className="w-5 h-5 text-white" />
         </div>
       </div>
     </div>
@@ -41,8 +42,8 @@ const Dashboard: React.FC = () => {
 
   if (loadingProducts || loadingSales || loadingExpenses) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Загрузка данных...</div>
+      <div className="flex items-center justify-center p-12">
+        <div className="text-gray-400 font-medium">Загрузка...</div>
       </div>
     );
   }
@@ -66,29 +67,24 @@ const Dashboard: React.FC = () => {
     ? Math.round((monthCancelledSales.length / monthAllSales.length) * 100)
     : 0;
 
-  // Top cancellation reasons
+  // Preorder stats
+  const preorderProducts = products.filter((p) => p.status === 'preorder');
+  const allPreorders = sales.filter((s) => s.isPreorder);
+  const pendingPreorders = allPreorders.filter((s) => s.status === 'pending');
+  const preorderRevenue = pendingPreorders.reduce((sum, s) => sum + s.total, 0);
+
   const reasonCounts: Record<string, number> = {};
   monthCancelledSales.forEach((s) => {
     if (s.cancellationReason) {
       reasonCounts[s.cancellationReason] = (reasonCounts[s.cancellationReason] ?? 0) + 1;
     }
   });
-  const topReasons = Object.entries(reasonCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
+  const topReasons = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  const monthExpenses = expenses
-    .filter((e) => e.date.startsWith(currentMonth))
-    .reduce((sum, e) => sum + e.amount, 0);
-  const monthAdvertising = expenses
-    .filter((e) => e.date.startsWith(currentMonth) && e.type === 'advertising')
-    .reduce((sum, e) => sum + e.amount, 0);
-  const monthDelivery = expenses
-    .filter((e) => e.date.startsWith(currentMonth) && e.type === 'delivery')
-    .reduce((sum, e) => sum + e.amount, 0);
-  const monthOther = expenses
-    .filter((e) => e.date.startsWith(currentMonth) && e.type === 'other')
-    .reduce((sum, e) => sum + e.amount, 0);
+  const monthExpenses = expenses.filter((e) => e.date.startsWith(currentMonth)).reduce((sum, e) => sum + e.amount, 0);
+  const monthAdvertising = expenses.filter((e) => e.date.startsWith(currentMonth) && e.type === 'advertising').reduce((sum, e) => sum + e.amount, 0);
+  const monthDelivery = expenses.filter((e) => e.date.startsWith(currentMonth) && e.type === 'delivery').reduce((sum, e) => sum + e.amount, 0);
+  const monthOther = expenses.filter((e) => e.date.startsWith(currentMonth) && e.type === 'other').reduce((sum, e) => sum + e.amount, 0);
   const netProfit = grossProfit - monthExpenses;
 
   const recentSales = [...sales].reverse().slice(0, 10);
@@ -97,48 +93,61 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Товаров на складе"
-          value={totalProducts.toString()}
-          icon={Package}
-          color="blue"
-        />
-        <StatCard
-          title="Выручка сегодня"
-          value={`${todayRevenue.toLocaleString('ru-RU')} Br`}
-          icon={DollarSign}
-          color="green"
-        />
-        <StatCard
-          title="Расходы за месяц"
-          value={`${monthExpenses.toLocaleString('ru-RU')} Br`}
-          icon={TrendingDown}
-          color="orange"
-        />
-        <StatCard
-          title="Чистая прибыль за месяц"
-          value={`${netProfit.toLocaleString('ru-RU')} Br`}
-          icon={TrendingUp}
-          color={netProfit >= 0 ? 'green' : 'red'}
-        />
+        <StatCard title="Товаров на складе" value={totalProducts.toString()} icon={Package} color="indigo" />
+        <StatCard title="Выручка сегодня" value={`${todayRevenue.toLocaleString('ru-RU')} Br`} icon={DollarSign} color="emerald" />
+        <StatCard title="Расходы за месяц" value={`${monthExpenses.toLocaleString('ru-RU')} Br`} icon={TrendingDown} color="amber" />
+        <StatCard title="Чистая прибыль" value={`${netProfit.toLocaleString('ru-RU')} Br`} icon={TrendingUp} color={netProfit >= 0 ? 'emerald' : 'red'} />
       </div>
+
+      {/* Preorder Stats */}
+      {(preorderProducts.length > 0 || allPreorders.length > 0) && (
+        <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="bg-amber-600 p-2.5 rounded-xl">
+              <ShoppingCart className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-gray-900 text-sm">Предзаказы</h3>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Моделей в предзаказе</div>
+                  <div className="text-xl font-bold text-amber-700">{preorderProducts.length}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Всего предзаказов</div>
+                  <div className="text-xl font-bold text-amber-700">{allPreorders.length}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Ожидают выполнения</div>
+                  <div className="text-xl font-bold text-amber-700">{pendingPreorders.length}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Сумма ожидающих</div>
+                  <div className="text-xl font-bold text-amber-700">{preorderRevenue.toLocaleString('ru-RU')} Br</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancelled Sales Card */}
       {monthCancelledSales.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50/60 border border-red-100 rounded-xl p-5">
           <div className="flex items-start gap-3">
-            <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="font-semibold text-red-900">
-                Отменённые продажи за месяц: {monthCancelledSales.length} ({cancellationRate}%)
+              <h3 className="font-bold text-red-800 text-sm">
+                Отменённые: {monthCancelledSales.length} ({cancellationRate}%)
               </h3>
               {topReasons.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-sm text-red-700 font-medium">Топ причин отказов:</p>
-                  <ul className="mt-1 space-y-0.5">
+                  <p className="text-xs text-red-600 font-semibold uppercase tracking-wide">Топ причин:</p>
+                  <ul className="mt-1.5 space-y-1">
                     {topReasons.map(([reason, count]) => (
-                      <li key={reason} className="text-sm text-red-600">
-                        {count}× — {reason}
+                      <li key={reason} className="text-sm text-red-600 flex items-center gap-2">
+                        <span className="text-xs font-bold bg-red-100 px-1.5 py-0.5 rounded">{count}x</span>
+                        {reason}
                       </li>
                     ))}
                   </ul>
@@ -151,16 +160,15 @@ const Dashboard: React.FC = () => {
 
       {/* Low Stock Alert */}
       {lowStock.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+        <div className="bg-red-50/60 border border-red-100 rounded-xl p-5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
             <div>
-              <h3 className="font-semibold text-red-900">Товары с низким остатком!</h3>
-              <ul className="mt-2 space-y-1">
+              <h3 className="font-bold text-red-800 text-sm">Низкий остаток</h3>
+              <ul className="mt-2 space-y-1.5">
                 {lowStock.map((p) => (
                   <li key={p.id} className="text-sm text-red-700">
-                    {p.brand} {p.model} (размер {p.size}) — осталось {p.quantity} шт.
-                    (мин. {p.minStock})
+                    {p.brand} {p.model} (EU {p.size}{p.sizeCM ? ` / ${p.sizeCM}см` : ''}) — <span className="font-bold">{p.quantity} шт.</span> (мин. {p.minStock})
                   </li>
                 ))}
               </ul>
@@ -170,42 +178,42 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Monthly Detail */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Детализация за месяц</h2>
-        <div className="space-y-2">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Детализация за месяц</h2>
+        <div className="space-y-2.5">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Выручка:</span>
-            <span className="font-medium">{monthRevenue.toLocaleString('ru-RU')} Br</span>
+            <span className="text-gray-500">Выручка</span>
+            <span className="font-semibold text-gray-900">{monthRevenue.toLocaleString('ru-RU')} Br</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Себестоимость проданных товаров:</span>
-            <span className="font-medium text-red-600">{monthCogs.toLocaleString('ru-RU')} Br</span>
+            <span className="text-gray-500">Себестоимость</span>
+            <span className="font-semibold text-red-600">{monthCogs.toLocaleString('ru-RU')} Br</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Валовая прибыль:</span>
-            <span className="font-medium text-green-600">{grossProfit.toLocaleString('ru-RU')} Br</span>
+            <span className="text-gray-500">Валовая прибыль</span>
+            <span className="font-semibold text-emerald-600">{grossProfit.toLocaleString('ru-RU')} Br</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Расходы:</span>
-            <span className="font-medium text-orange-600">{monthExpenses.toLocaleString('ru-RU')} Br</span>
+            <span className="text-gray-500">Расходы</span>
+            <span className="font-semibold text-amber-600">{monthExpenses.toLocaleString('ru-RU')} Br</span>
           </div>
-          <div className="pl-4 space-y-1">
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>📢 Реклама</span>
+          <div className="pl-4 space-y-1.5 py-1">
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>Реклама</span>
               <span>{monthAdvertising.toLocaleString('ru-RU')} Br</span>
             </div>
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>🚚 Доставка</span>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>Доставка</span>
               <span>{monthDelivery.toLocaleString('ru-RU')} Br</span>
             </div>
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>📝 Другое</span>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>Другое</span>
               <span>{monthOther.toLocaleString('ru-RU')} Br</span>
             </div>
           </div>
-          <div className="flex justify-between text-sm border-t pt-2 mt-2">
-            <span className="font-bold text-gray-900">Чистая прибыль:</span>
-            <span className={`font-bold text-lg ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <div className="flex justify-between text-sm border-t border-gray-100 pt-3 mt-3">
+            <span className="font-bold text-gray-900">Чистая прибыль</span>
+            <span className={`font-bold text-lg ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {netProfit.toLocaleString('ru-RU')} Br
             </span>
           </div>
@@ -213,63 +221,51 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Recent Sales */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Последние 10 продаж</h2>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Последние 10 продаж</h2>
         {recentSales.length === 0 ? (
-          <p className="text-gray-400 text-center py-8">Продаж пока нет</p>
+          <p className="text-gray-400 text-center py-10 text-sm">Продаж пока нет</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Дата
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Товар
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Покупатель
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Кол-во
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Сумма
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Статус
-                  </th>
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  {['Дата', 'Товар', 'Покупатель', 'Кол-во', 'Сумма', 'Статус'].map((h) => (
+                    <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-               {recentSales.map((sale, idx) => {
-                    const isCancelled = sale.status === 'cancelled';
-                    return (
-                    <tr key={sale.id} className={isCancelled ? 'bg-red-50 opacity-70' : (idx % 2 === 0 ? 'bg-white' : 'bg-gray-50')}>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {new Date(sale.date).toLocaleDateString('ru-RU')}
+              <tbody className="divide-y divide-gray-50">
+                {recentSales.map((sale) => {
+                  const isCancelled = sale.status === 'cancelled';
+                  return (
+                    <tr key={sale.id} className={`hover:bg-gray-50/50 transition-colors ${isCancelled ? 'bg-red-50/30 opacity-60' : ''}`}>
+                      <td className="px-4 py-3 text-sm text-gray-500">{new Date(sale.date).toLocaleDateString('ru-RU')}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-sm text-gray-900 ${isCancelled ? 'line-through' : ''}`}>{sale.productName}</span>
+                        {sale.isPreorder && (
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
+                            Предзаказ
+                          </span>
+                        )}
                       </td>
-                      <td className={`px-4 py-3 text-sm text-gray-900 ${isCancelled ? 'line-through' : ''}`}>{sale.productName}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {sale.customer || '—'}
-                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">{sale.customer || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{sale.quantity}</td>
-                      <td className={`px-4 py-3 text-sm font-semibold ${isCancelled ? 'text-gray-400 line-through' : 'text-green-600'}`}>
+                      <td className={`px-4 py-3 text-sm font-bold ${isCancelled ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                         {sale.total.toLocaleString('ru-RU')} Br
                       </td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-3">
                         {isCancelled ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Отменена</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">Отменена</span>
                         ) : sale.status === 'pending' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">В процессе</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">В процессе</span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Завершена</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Завершена</span>
                         )}
                       </td>
                     </tr>
-                    );
-                  })}
+                  );
+                })}
               </tbody>
             </table>
           </div>

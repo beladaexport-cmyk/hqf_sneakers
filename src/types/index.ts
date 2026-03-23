@@ -4,6 +4,7 @@ export interface Product {
   brand: string;
   model: string;
   size: string;
+  sizeCM: string;
   color: string;
   quantity: number;
   purchasePrice: number;
@@ -44,6 +45,7 @@ export interface Sale {
   status: SaleStatus;
   cancellationReason?: string;
   cancelledAt?: string;
+  isPreorder?: boolean;
 }
 
 export interface Expense {
