@@ -279,7 +279,17 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
     purchasePrice: '',
     paymentMethod: 'наличные',
     notes: '',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    isDelivery: false,
+    deliveryService: 'белпочта',
+    deliveryCity: '',
+    deliveryAddress: '',
+    deliveryIndex: '',
+    deliveryPhone: '',
+    deliveryFullName: '',
+    trackingNumber: '',
+    deliveryCost: '',
+    deliveryPaidBy: 'покупатель'
   });
   const [sellLoading, setSellLoading] = useState(false);
 
@@ -494,7 +504,17 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
       purchasePrice: String(preorder.purchasePrice || ''),
       paymentMethod: 'наличные',
       notes: `Продажа из предзаказа.${buyerName ? ` Покупатель: ${buyerName}` : ''}`,
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      isDelivery: false,
+      deliveryService: 'белпочта',
+      deliveryCity: '',
+      deliveryAddress: '',
+      deliveryIndex: '',
+      deliveryPhone: '',
+      deliveryFullName: '',
+      trackingNumber: '',
+      deliveryCost: '',
+      deliveryPaidBy: 'покупатель'
     });
 
     setSellModal({ show: true, preorder });
@@ -635,7 +655,18 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
         preorderId: preorder.id,
         supplier: preorder.supplier || '',
         paymentMethod: sellForm.paymentMethod,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        isDelivery: sellForm.paymentMethod === 'почта',
+        deliveryService: sellForm.deliveryService || '',
+        deliveryCity: sellForm.deliveryCity || '',
+        deliveryAddress: sellForm.deliveryAddress || '',
+        deliveryIndex: sellForm.deliveryIndex || '',
+        deliveryPhone: sellForm.deliveryPhone || '',
+        deliveryFullName: sellForm.deliveryFullName || sellForm.customerName || '',
+        trackingNumber: sellForm.trackingNumber || '',
+        deliveryCost: Number(sellForm.deliveryCost || 0),
+        deliveryPaidBy: sellForm.deliveryPaidBy || 'покупатель',
+        saleType: sellForm.paymentMethod === 'почта' ? 'доставка' : 'самовывоз'
       };
 
       const saleRef = await addDoc(collection(db, 'sales'), newSale);
@@ -2043,37 +2074,177 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               {/* PAYMENT METHOD */}
               <div style={{ marginBottom: '14px' }}>
                 <label style={{
-                  display: 'block', fontSize: '12px', fontWeight: '700',
-                  color: '#374151', marginBottom: '6px'
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#374151',
+                  marginBottom: '8px',
+                  letterSpacing: '0.3px'
                 }}>
-                  💳 СПОСОБ ОПЛАТЫ
+                  💳 СПОСОБ ПОЛУЧЕНИЯ
                 </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4,1fr)',
+                  gap: '8px'
+                }}>
                   {[
                     { key: 'наличные', icon: '💵', label: 'Наличные' },
                     { key: 'перевод', icon: '📱', label: 'Перевод' },
-                    { key: 'карта', icon: '💳', label: 'Карта' }
+                    { key: 'карта', icon: '💳', label: 'Карта' },
+                    { key: 'почта', icon: '📦', label: 'Почта' }
                   ].map(m => (
                     <button
                       key={m.key}
-                      onClick={() => setSellForm(prev => ({ ...prev, paymentMethod: m.key }))}
+                      onClick={() => setSellForm(prev => ({ ...prev, paymentMethod: m.key, isDelivery: m.key === 'почта' }))}
                       style={{
-                        flex: 1, padding: '8px 4px', borderRadius: '10px',
+                        padding: '10px 4px',
+                        borderRadius: '12px',
                         border: '1.5px solid',
-                        borderColor: sellForm.paymentMethod === m.key ? '#10B981' : '#E2E8F0',
-                        backgroundColor: sellForm.paymentMethod === m.key ? '#F0FDF4' : 'white',
-                        cursor: 'pointer', fontSize: '12px', fontWeight: '600',
-                        color: sellForm.paymentMethod === m.key ? '#10B981' : '#64748B',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        gap: '3px', transition: 'all 0.15s'
+                        borderColor: sellForm.paymentMethod === m.key
+                          ? m.key === 'почта' ? '#6366F1' : '#10B981'
+                          : '#E2E8F0',
+                        backgroundColor: sellForm.paymentMethod === m.key
+                          ? m.key === 'почта' ? '#EEF2FF' : '#F0FDF4'
+                          : 'white',
+                        color: sellForm.paymentMethod === m.key
+                          ? m.key === 'почта' ? '#6366F1' : '#10B981'
+                          : '#64748B',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column' as const,
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        transition: 'all 0.15s',
+                        boxShadow: sellForm.paymentMethod === m.key
+                          ? m.key === 'почта'
+                            ? '0 2px 8px rgba(99,102,241,0.2)'
+                            : '0 2px 8px rgba(16,185,129,0.2)'
+                          : 'none'
                       }}
                     >
-                      <span style={{ fontSize: '18px' }}>{m.icon}</span>
+                      <span style={{ fontSize: '20px' }}>{m.icon}</span>
                       {m.label}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {sellForm.paymentMethod === 'почта' && (
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#F5F3FF',
+                  borderRadius: '16px',
+                  border: '1.5px solid #DDD6FE',
+                  marginBottom: '14px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '10px',
+                      background: 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '18px', flexShrink: 0
+                    }}>📦</div>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#4C1D95' }}>Данные для отправки</div>
+                      <div style={{ fontSize: '11px', color: '#7C3AED' }}>Заполни адрес получателя</div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '6px', letterSpacing: '0.3px' }}>🚚 СЛУЖБА ДОСТАВКИ</label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {[
+                        { key: 'белпочта', label: '🟡 Белпочта' },
+                        { key: 'европочта', label: '🔵 Европочта' },
+                        { key: 'сдэк', label: '🟢 СДЭК' },
+                        { key: 'другое', label: '⚪ Другое' }
+                      ].map(s => (
+                        <button key={s.key} onClick={() => setSellForm(prev => ({ ...prev, deliveryService: s.key }))}
+                          style={{
+                            padding: '6px 12px', borderRadius: '8px', border: '1.5px solid',
+                            borderColor: sellForm.deliveryService === s.key ? '#6366F1' : '#DDD6FE',
+                            backgroundColor: sellForm.deliveryService === s.key ? '#6366F1' : 'white',
+                            color: sellForm.deliveryService === s.key ? 'white' : '#5B21B6',
+                            fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
+                          }}>{s.label}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>👤 ФИО ПОЛУЧАТЕЛЯ *</label>
+                    <input type="text" value={sellForm.deliveryFullName} onChange={e => setSellForm(prev => ({ ...prev, deliveryFullName: e.target.value }))} placeholder="Фамилия Имя Отчество"
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                      onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                  </div>
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📞 ТЕЛЕФОН *</label>
+                    <input type="tel" value={sellForm.deliveryPhone} onChange={e => setSellForm(prev => ({ ...prev, deliveryPhone: e.target.value }))} placeholder="+375 XX XXX XX XX"
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                      onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>🏙️ ГОРОД *</label>
+                      <input type="text" value={sellForm.deliveryCity} onChange={e => setSellForm(prev => ({ ...prev, deliveryCity: e.target.value }))} placeholder="Минск"
+                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                        onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📮 ИНДЕКС</label>
+                      <input type="text" value={sellForm.deliveryIndex} onChange={e => setSellForm(prev => ({ ...prev, deliveryIndex: e.target.value }))} placeholder="220000"
+                        style={{ width: '90px', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                        onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📍 АДРЕС / ОТДЕЛЕНИЕ *</label>
+                    <input type="text" value={sellForm.deliveryAddress} onChange={e => setSellForm(prev => ({ ...prev, deliveryAddress: e.target.value }))} placeholder="ул. Ленина 1, кв. 5 / Отделение №3"
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                      onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                  </div>
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>🔍 ТРЕК-НОМЕР (заполни после отправки)</label>
+                    <input type="text" value={sellForm.trackingNumber} onChange={e => setSellForm(prev => ({ ...prev, trackingNumber: e.target.value }))} placeholder="BY123456789BY"
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white', letterSpacing: '0.5px' }}
+                      onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '4px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>💸 СТОИМОСТЬ ДОСТАВКИ</label>
+                      <input type="number" value={sellForm.deliveryCost} onChange={e => setSellForm(prev => ({ ...prev, deliveryCost: e.target.value }))} placeholder="0"
+                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', fontWeight: '700', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                        onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>💳 КТО ПЛАТИТ</label>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {[
+                          { key: 'покупатель', label: 'Покупатель' },
+                          { key: 'продавец', label: 'Я' }
+                        ].map(p => (
+                          <button key={p.key} onClick={() => setSellForm(prev => ({ ...prev, deliveryPaidBy: p.key }))}
+                            style={{
+                              flex: 1, padding: '9px 4px', borderRadius: '10px', border: '1.5px solid',
+                              borderColor: sellForm.deliveryPaidBy === p.key ? '#6366F1' : '#DDD6FE',
+                              backgroundColor: sellForm.deliveryPaidBy === p.key ? '#6366F1' : 'white',
+                              color: sellForm.deliveryPaidBy === p.key ? 'white' : '#5B21B6',
+                              fontSize: '11px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
+                            }}>{p.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* DATE */}
               <div style={{ marginBottom: '20px' }}>
