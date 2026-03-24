@@ -70,6 +70,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '16px',
         boxShadow: '0 8px 32px rgba(99,102,241,0.35)',
         overflow: 'hidden',
         position: 'relative'
@@ -124,7 +126,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         <div style={{
           display: 'flex',
           gap: '10px',
-          position: 'relative'
+          position: 'relative',
+          flexWrap: 'wrap'
         }}>
           {[
             { label: '+ Продажа', tab: 'sales', bg: 'rgba(255,255,255,0.2)', border: 'rgba(255,255,255,0.3)' },
@@ -162,7 +165,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* STAT CARDS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4,1fr)',
+        gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))',
         gap: '16px',
         marginBottom: '24px'
       }}>
@@ -280,7 +283,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* MAIN GRID */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 340px',
+        gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))',
         gap: '20px',
         marginBottom: '20px'
       }}>

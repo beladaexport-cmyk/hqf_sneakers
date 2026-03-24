@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -372,6 +372,97 @@ function AppContent() {
       <main>
         {renderContent()}
       </main>
+
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+    </div>
+  );
+}
+
+function MobileBottomNav({ activeTab, setActiveTab }: { activeTab: Tab; setActiveTab: (t: Tab) => void }) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  if (!isMobile) return null;
+
+  const items: { id: Tab; icon: string; label: string }[] = [
+    { id: 'dashboard', icon: '📊', label: 'Дашборд' },
+    { id: 'catalog', icon: '👟', label: 'Каталог' },
+    { id: 'sales', icon: '🛍️', label: 'Продажи' },
+    { id: 'preorders', icon: '📋', label: 'Заказы' },
+    { id: 'expenses', icon: '💸', label: 'Расходы' }
+  ];
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: '68px',
+      backgroundColor: 'white',
+      borderTop: '1px solid #F1F5F9',
+      boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-around',
+      padding: '0 4px',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+    }}>
+      {items.map(item => {
+        const isActive = activeTab === item.id;
+        return (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3px',
+              padding: '6px 0',
+              border: 'none',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              flex: 1,
+              position: 'relative',
+              transition: 'all 0.15s'
+            }}
+          >
+            {isActive && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '32px',
+                height: '3px',
+                borderRadius: '0 0 4px 4px',
+                background: 'linear-gradient(90deg,#6366F1,#8B5CF6)'
+              }} />
+            )}
+            <span style={{ fontSize: '22px', lineHeight: 1 }}>
+              {item.icon}
+            </span>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: isActive ? '700' : '500',
+              color: isActive ? '#6366F1' : '#94A3B8',
+              whiteSpace: 'nowrap'
+            }}>
+              {item.label}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
