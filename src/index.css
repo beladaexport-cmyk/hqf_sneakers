@@ -116,3 +116,37 @@ body {
     }
   }
 }
+
+/* ═══ DESKTOP MODE on mobile device ═══ */
+body.desktop-mode {
+  min-width: 1200px !important;
+  overflow-x: auto !important;
+}
+
+body.desktop-mode .page-content {
+  padding: 24px !important;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+}
+
+body.desktop-mode #mobileBottomNav {
+  display: none !important;
+}
+
+body.desktop-mode .desktop-nav-links {
+  display: flex !important;
+}
+
+body.desktop-mode h1 {
+  font-size: 28px !important;
+}
+
+body.desktop-mode [class*="grid"] {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+}
+
+/* ═══ MOBILE MODE ═══ */
+body.mobile-mode {
+  min-width: unset !important;
+  overflow-x: hidden !important;
+}

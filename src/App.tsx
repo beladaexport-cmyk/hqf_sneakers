@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useViewMode } from './contexts/ViewModeContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Catalog from './components/Catalog';
@@ -17,6 +18,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, logout } = useAuth();
+  const { toggleView, isMobileDevice, isDesktopMode } = useViewMode();
 
   if (!currentUser) {
     return <Login />;
@@ -171,8 +173,41 @@ function AppContent() {
             })}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden" style={{ marginLeft: 'auto' }}>
+          {/* Mobile menu button + View Toggle */}
+          <div className="md:hidden" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* VIEW TOGGLE BUTTON */}
+            {isMobileDevice && (
+              <button
+                onClick={toggleView}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '1.5px solid',
+                  borderColor: isDesktopMode ? '#C7D2FE' : '#E2E8F0',
+                  backgroundColor: isDesktopMode ? '#EEF2FF' : 'white',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  color: isDesktopMode ? '#6366F1' : '#64748B',
+                  transition: 'all 0.2s',
+                  boxShadow: isDesktopMode
+                    ? '0 2px 8px rgba(99,102,241,0.2)'
+                    : 'none'
+                }}
+              >
+                <span style={{ fontSize: '16px' }}>
+                  {isDesktopMode ? '📱' : '🖥️'}
+                </span>
+                <span>
+                  {isDesktopMode ? 'Моб.' : 'ПК'}
+                </span>
+              </button>
+            )}
+
+            {/* HAMBURGER — existing */}
             <button
               onClick={() => setMobileMenuOpen(v => !v)}
               style={{
@@ -370,8 +405,72 @@ function AppContent() {
 
       {/* Main Content */}
       <main>
-        {renderContent()}
+        <div style={{
+          maxWidth: (isDesktopMode || !isMobileDevice) ? '1400px' : '100%',
+          margin: (isDesktopMode || !isMobileDevice) ? '0 auto' : '0',
+          padding: (isDesktopMode || !isMobileDevice) ? '24px' : '0',
+          width: '100%'
+        }}>
+          {renderContent()}
+        </div>
       </main>
+
+      {/* FLOATING VIEW TOGGLE */}
+      {isMobileDevice && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          right: '16px',
+          zIndex: 999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <div style={{
+            fontSize: '10px',
+            fontWeight: '700',
+            color: isDesktopMode ? '#6366F1' : '#94A3B8',
+            backgroundColor: 'white',
+            padding: '2px 8px',
+            borderRadius: '20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            whiteSpace: 'nowrap'
+          }}>
+            {isDesktopMode ? '🖥️ ПК режим' : '📱 Моб. режим'}
+          </div>
+          <button
+            onClick={toggleView}
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '16px',
+              border: 'none',
+              background: isDesktopMode
+                ? 'linear-gradient(135deg,#6366F1,#8B5CF6)'
+                : 'linear-gradient(135deg,#64748B,#94A3B8)',
+              color: 'white',
+              fontSize: '22px',
+              cursor: 'pointer',
+              boxShadow: isDesktopMode
+                ? '0 6px 20px rgba(99,102,241,0.5)'
+                : '0 4px 14px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            {isDesktopMode ? '📱' : '🖥️'}
+          </button>
+        </div>
+      )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
       <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
