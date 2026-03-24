@@ -58,9 +58,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   return (
     <div style={{
-      maxWidth: '1400px',
+      maxWidth: isMobileView ? '100%' : '1400px',
       margin: '0 auto',
-      padding: isMobileView ? '16px' : '24px'
+      padding: isMobileView ? '16px' : '24px',
+      width: '100%',
+      boxSizing: 'border-box' as const,
+      overflowX: 'hidden' as const
     }}>
 
       {/* WELCOME BANNER */}
@@ -126,36 +129,42 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         <div style={{
-          display: 'flex',
-          gap: '10px',
+          display: 'grid',
+          gridTemplateColumns: isMobileView ? '1fr 1fr' : 'repeat(4, auto)',
+          gap: '8px',
+          marginTop: isMobileView ? '16px' : '0',
           position: 'relative',
-          flexWrap: 'wrap'
+          zIndex: 1,
+          width: isMobileView ? '100%' : 'auto'
         }}>
           {[
-            { label: '+ Продажа', tab: 'sales', bg: 'rgba(255,255,255,0.2)', border: 'rgba(255,255,255,0.3)' },
-            { label: '+ Предзаказ', tab: 'preorders', bg: 'rgba(255,255,255,0.15)', border: 'rgba(255,255,255,0.25)' },
-            { label: '+ Расход', tab: 'expenses', bg: 'rgba(255,255,255,0.1)', border: 'rgba(255,255,255,0.2)' }
+            { label: '+ Продажа', tab: 'sales' },
+            { label: '+ Предзаказ', tab: 'preorders' },
+            { label: '+ Расход', tab: 'expenses' },
+            { label: '+ Товар', tab: 'catalog' }
           ].map(btn => (
             <button
               key={btn.label}
               onClick={() => navigate(btn.tab)}
               style={{
-                padding: '9px 16px',
-                backgroundColor: btn.bg,
-                border: `1px solid ${btn.border}`,
-                borderRadius: '10px',
+                padding: isMobileView ? '10px 8px' : '9px 16px',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '12px',
                 color: 'white',
                 fontSize: '13px',
                 fontWeight: '700',
                 cursor: 'pointer',
                 backdropFilter: 'blur(8px)',
-                transition: 'all 0.15s'
+                transition: 'all 0.15s',
+                width: '100%',
+                textAlign: 'center'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)';
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.35)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = btn.bg;
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
               }}
             >
               {btn.label}
@@ -167,14 +176,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* STAT CARDS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobileView ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
-        gap: '16px',
-        marginBottom: '24px'
+        gridTemplateColumns: isMobileView ? '1fr 1fr' : 'repeat(4,1fr)',
+        gap: isMobileView ? '10px' : '16px',
+        marginBottom: isMobileView ? '16px' : '24px',
+        width: '100%'
       }}>
         {[
           {
             label: 'Товаров на складе',
-            value: totalProducts,
+            value: `${totalProducts || 0}`,
             unit: 'шт.',
             icon: '👟',
             gradient: 'linear-gradient(135deg,#6366F1,#8B5CF6)',
@@ -183,7 +193,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           },
           {
             label: 'Выручка за месяц',
-            value: monthRevenue,
+            value: `${monthRevenue || 0}`,
             unit: 'Br',
             icon: '💰',
             gradient: 'linear-gradient(135deg,#10B981,#34D399)',
@@ -192,7 +202,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           },
           {
             label: 'Расходы за месяц',
-            value: monthExpenses,
+            value: `${monthExpenses || 0}`,
             unit: 'Br',
             icon: '📉',
             gradient: 'linear-gradient(135deg,#F59E0B,#FCD34D)',
@@ -201,29 +211,33 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           },
           {
             label: 'Чистая прибыль',
-            value: netProfit,
+            value: `${netProfit || 0}`,
             unit: 'Br',
-            icon: netProfit >= 0 ? '🏆' : '⚠️',
-            gradient: netProfit >= 0
+            icon: (netProfit || 0) >= 0 ? '🏆' : '⚠️',
+            gradient: (netProfit || 0) >= 0
               ? 'linear-gradient(135deg,#10B981,#34D399)'
               : 'linear-gradient(135deg,#EF4444,#FCA5A5)',
-            glow: netProfit >= 0
+            glow: (netProfit || 0) >= 0
               ? 'rgba(16,185,129,0.25)'
               : 'rgba(239,68,68,0.25)',
-            lightBg: netProfit >= 0 ? '#F0FDF4' : '#FEF2F2'
+            lightBg: (netProfit || 0) >= 0 ? '#F0FDF4' : '#FEF2F2'
           }
         ].map(stat => (
           <div
             key={stat.label}
             style={{
               backgroundColor: 'white',
-              borderRadius: '20px',
-              padding: '22px',
+              borderRadius: isMobileView ? '16px' : '20px',
+              padding: isMobileView ? '14px' : '22px',
               display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+              flexDirection: isMobileView ? 'column' : 'row',
+              alignItems: isMobileView ? 'flex-start' : 'center',
+              gap: isMobileView ? '10px' : '16px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
               border: '1px solid #F1F5F9',
+              width: '100%',
+              overflow: 'hidden',
+              minWidth: 0,
               transition: 'all 0.2s ease',
               cursor: 'default'
             }}
@@ -233,46 +247,51 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06)';
             }}
           >
             <div style={{
-              width: '58px',
-              height: '58px',
-              borderRadius: '16px',
+              width: isMobileView ? '44px' : '58px',
+              height: isMobileView ? '44px' : '58px',
+              borderRadius: isMobileView ? '13px' : '16px',
               background: stat.gradient,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '26px',
+              fontSize: isMobileView ? '22px' : '26px',
               flexShrink: 0,
-              boxShadow: `0 6px 16px ${stat.glow}`
+              boxShadow: `0 4px 12px ${stat.glow}`
             }}>
               {stat.icon}
             </div>
-            <div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <div style={{
-                fontSize: '12px',
+                fontSize: isMobileView ? '11px' : '12px',
                 color: '#94A3B8',
                 fontWeight: '500',
-                marginBottom: '6px',
-                whiteSpace: 'nowrap'
+                marginBottom: isMobileView ? '4px' : '6px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}>
                 {stat.label}
               </div>
               <div style={{
-                fontSize: '28px',
+                fontSize: isMobileView ? '20px' : '28px',
                 fontWeight: '800',
                 color: '#0F172A',
                 letterSpacing: '-0.5px',
-                lineHeight: 1
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}>
                 {stat.value}
                 <span style={{
-                  fontSize: '13px',
+                  fontSize: isMobileView ? '12px' : '13px',
                   fontWeight: '600',
                   color: '#94A3B8',
-                  marginLeft: '4px'
+                  marginLeft: isMobileView ? '3px' : '4px'
                 }}>
                   {stat.unit}
                 </span>
@@ -314,7 +333,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2,1fr)',
-            gap: '12px'
+            gap: isMobileView ? '10px' : '12px',
+            width: '100%'
           }}>
             {[
               { label: 'ВЫРУЧКА', value: monthRevenue || 0, icon: '💵', color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0', wide: false },
@@ -338,10 +358,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   backgroundColor: item.bg,
                   border: `1.5px solid ${item.border}`,
                   borderRadius: '14px',
-                  padding: '16px',
+                  padding: isMobileView ? '14px' : '16px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
+                  gap: isMobileView ? '10px' : '12px',
+                  width: '100%',
+                  boxSizing: 'border-box' as const,
                   transition: 'all 0.15s'
                 }}
                 onMouseEnter={e => {
@@ -353,22 +375,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <div style={{ fontSize: '28px', flexShrink: 0 }}>{item.icon}</div>
-                <div>
+                <div style={{ fontSize: isMobileView ? '24px' : '28px', flexShrink: 0 }}>{item.icon}</div>
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
                   <div style={{
                     fontSize: '10px',
                     color: '#94A3B8',
                     fontWeight: '700',
                     letterSpacing: '0.5px',
-                    marginBottom: '4px'
+                    marginBottom: isMobileView ? '3px' : '4px'
                   }}>
                     {item.label}
                   </div>
                   <div style={{
-                    fontSize: item.wide ? '22px' : '18px',
+                    fontSize: item.wide ? (isMobileView ? '20px' : '22px') : (isMobileView ? '16px' : '18px'),
                     fontWeight: '800',
                     color: item.color,
-                    letterSpacing: '-0.3px'
+                    letterSpacing: '-0.3px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}>
                     {item.value} Br
                   </div>
@@ -587,7 +612,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    marginBottom: '3px'
+                    marginBottom: '3px',
+                    maxWidth: isMobileView ? '120px' : 'none'
                   }}>
                     {sale.productName}
                   </div>
@@ -602,7 +628,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     <span style={{
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      textOverflow: 'ellipsis',
+                      maxWidth: isMobileView ? '100px' : 'none'
                     }}>
                       {sale.customer || 'Покупатель'}
                     </span>

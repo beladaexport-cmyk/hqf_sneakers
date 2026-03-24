@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -19,6 +24,22 @@ body {
 
 /* ═══ MOBILE RESPONSIVE ═══ */
 @media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Fix any wide elements */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
   /* Bottom padding for mobile nav bar */
   main {
     padding-bottom: 76px !important;
