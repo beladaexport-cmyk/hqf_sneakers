@@ -58,7 +58,7 @@ export interface SneakerSize {
   expectedDate?: string;
 }
 
-export type PreorderStatus = 'pending' | 'arrived' | 'cancelled';
+export type PreorderStatus = 'pending' | 'arrived' | 'cancelled' | 'sold';
 
 export interface Preorder {
   id: string;
