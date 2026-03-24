@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Phone, Mail, MapPin, User } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
-import { Supplier } from '../types';
+import { Supplier, Product, Preorder } from '../types';
 
 const emptySupplier: Omit<Supplier, 'id'> = {
   name: '',
@@ -124,6 +124,8 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ initial, onSave, onCancel, 
 
 const Suppliers: React.FC = () => {
   const { data: suppliers, loading, add, update, remove } = useFirestore<Supplier>('suppliers');
+  const { data: products } = useFirestore<Product>('products');
+  const { data: preorders } = useFirestore<Preorder>('preorders');
   const [showForm, setShowForm] = useState(false);
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null);
 
@@ -155,76 +157,310 @@ const Suppliers: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-900">Поставщики</h2>
+      <div style={{
+        display:'flex',
+        justifyContent:'space-between',
+        alignItems:'center',
+        marginBottom:'24px'
+      }}>
+        <div>
+          <h1 style={{
+            margin:'0 0 4px 0',
+            fontSize:'28px',
+            fontWeight:'800',
+            color:'#0F172A',
+            letterSpacing:'-0.5px'
+          }}>
+            🏪 Поставщики
+          </h1>
+          <p style={{
+            margin:0,
+            fontSize:'14px',
+            color:'#94A3B8'
+          }}>
+            {suppliers?.length || 0} поставщиков
+            в базе
+          </p>
+        </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          style={{
+            padding:'12px 20px',
+            background:
+              'linear-gradient(135deg,#6366F1,#8B5CF6)',
+            color:'white',
+            border:'none',
+            borderRadius:'12px',
+            fontSize:'14px',
+            fontWeight:'700',
+            cursor:'pointer',
+            boxShadow:
+              '0 4px 14px rgba(99,102,241,0.4)',
+            transition:'all 0.2s'
+          }}
+          onMouseEnter={e=>{
+            e.currentTarget.style.transform='translateY(-1px)';
+            e.currentTarget.style.boxShadow='0 6px 20px rgba(99,102,241,0.5)';
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.transform='translateY(0)';
+            e.currentTarget.style.boxShadow='0 4px 14px rgba(99,102,241,0.4)';
+          }}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить поставщика
+          + Добавить поставщика
         </button>
       </div>
 
       {/* Cards Grid */}
-      {suppliers.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-400">Поставщиков пока нет. Добавьте первого!</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {suppliers.map((s) => (
-            <div key={s.id} className="bg-white rounded-lg shadow p-5 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">{s.name}</h3>
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => setEditSupplier(s)}
-                    className="p-1 text-blue-500 hover:text-blue-700 transition-colors"
-                    title="Редактировать"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(s.id)}
-                    className="p-1 text-red-500 hover:text-red-700 transition-colors"
-                    title="Удалить"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:
+          'repeat(auto-fill,minmax(300px,1fr))',
+        gap:'16px'
+      }}>
+        {suppliers?.map(supplier=>(
+          <div
+            key={supplier.id}
+            style={{
+              backgroundColor:'white',
+              borderRadius:'20px',
+              overflow:'hidden',
+              boxShadow:'0 4px 20px rgba(0,0,0,0.07)',
+              border:'1px solid #F1F5F9',
+              transition:'all 0.2s ease'
+            }}
+            onMouseEnter={e=>{
+              e.currentTarget.style.transform='translateY(-3px)';
+              e.currentTarget.style.boxShadow='0 12px 32px rgba(0,0,0,0.12)';
+            }}
+            onMouseLeave={e=>{
+              e.currentTarget.style.transform='translateY(0)';
+              e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.07)';
+            }}
+          >
+            <div style={{
+              background:
+                'linear-gradient(135deg,#6366F1,#8B5CF6)',
+              padding:'20px',
+              display:'flex',
+              alignItems:'center',
+              gap:'14px'
+            }}>
+              <div style={{
+                width:'52px',
+                height:'52px',
+                borderRadius:'14px',
+                backgroundColor:'rgba(255,255,255,0.2)',
+                display:'flex',
+                alignItems:'center',
+                justifyContent:'center',
+                fontSize:'26px',
+                flexShrink:0
+              }}>
+                🏪
               </div>
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <User className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                  <span>{s.contact}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{
+                  fontSize:'18px',
+                  fontWeight:'800',
+                  color:'white',
+                  whiteSpace:'nowrap',
+                  overflow:'hidden',
+                  textOverflow:'ellipsis'
+                }}>
+                  {supplier.name}
                 </div>
-                <div className="flex items-center">
-                  <Phone className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                  <span>{s.phone}</span>
-                </div>
-                {s.email && (
-                  <div className="flex items-center">
-                    <Mail className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                    <span className="truncate">{s.email}</span>
-                  </div>
-                )}
-                {s.address && (
-                  <div className="flex items-start">
-                    <MapPin className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" />
-                    <span>{s.address}</span>
-                  </div>
-                )}
-                {s.notes && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 text-gray-500 italic">
-                    {s.notes}
+                {(supplier as any).instagram && (
+                  <div style={{
+                    fontSize:'13px',
+                    color:'rgba(255,255,255,0.75)',
+                    marginTop:'2px',
+                    whiteSpace:'nowrap',
+                    overflow:'hidden',
+                    textOverflow:'ellipsis'
+                  }}>
+                    📸 {(supplier as any).instagram}
                   </div>
                 )}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+
+            <div style={{padding:'16px'}}>
+              <div style={{
+                display:'grid',
+                gridTemplateColumns:'1fr 1fr',
+                gap:'10px',
+                marginBottom:'14px'
+              }}>
+                <div style={{
+                  backgroundColor:'#F8FAFC',
+                  borderRadius:'10px',
+                  padding:'10px',
+                  textAlign:'center',
+                  border:'1px solid #E2E8F0'
+                }}>
+                  <div style={{
+                    fontSize:'22px',
+                    fontWeight:'800',
+                    color:'#6366F1'
+                  }}>
+                    {products?.filter(p=>
+                      p.supplier===supplier.name
+                    ).length || 0}
+                  </div>
+                  <div style={{
+                    fontSize:'10px',
+                    color:'#94A3B8',
+                    fontWeight:'700',
+                    letterSpacing:'0.5px'
+                  }}>
+                    ТОВАРОВ
+                  </div>
+                </div>
+                <div style={{
+                  backgroundColor:'#F0FDF4',
+                  borderRadius:'10px',
+                  padding:'10px',
+                  textAlign:'center',
+                  border:'1px solid #A7F3D0'
+                }}>
+                  <div style={{
+                    fontSize:'22px',
+                    fontWeight:'800',
+                    color:'#10B981'
+                  }}>
+                    {preorders?.filter(p=>
+                      p.supplier===supplier.name
+                    ).length || 0}
+                  </div>
+                  <div style={{
+                    fontSize:'10px',
+                    color:'#94A3B8',
+                    fontWeight:'700',
+                    letterSpacing:'0.5px'
+                  }}>
+                    ПРЕДЗАКАЗОВ
+                  </div>
+                </div>
+              </div>
+
+              {supplier.phone && (
+                <div style={{
+                  display:'flex',
+                  alignItems:'center',
+                  gap:'8px',
+                  padding:'9px 12px',
+                  backgroundColor:'#F8FAFC',
+                  borderRadius:'10px',
+                  marginBottom:'10px',
+                  border:'1px solid #E2E8F0'
+                }}>
+                  <span>📞</span>
+                  <span style={{
+                    fontSize:'13px',
+                    color:'#374151',
+                    fontWeight:'500'
+                  }}>
+                    {supplier.phone}
+                  </span>
+                </div>
+              )}
+
+              {supplier.notes && (
+                <div style={{
+                  fontSize:'12px',
+                  color:'#92400E',
+                  padding:'9px 12px',
+                  backgroundColor:'#FFFBEB',
+                  borderRadius:'8px',
+                  marginBottom:'12px',
+                  border:'1px solid #FDE68A'
+                }}>
+                  💬 {supplier.notes}
+                </div>
+              )}
+
+              <div style={{display:'flex',gap:'8px'}}>
+                <button
+                  onClick={()=>
+                    setEditSupplier(supplier)
+                  }
+                  style={{
+                    flex:1,
+                    padding:'10px',
+                    border:'1.5px solid #E2E8F0',
+                    borderRadius:'10px',
+                    backgroundColor:'white',
+                    color:'#475569',
+                    fontSize:'13px',
+                    fontWeight:'600',
+                    cursor:'pointer',
+                    transition:'all 0.15s'
+                  }}
+                  onMouseEnter={e=>{
+                    e.currentTarget.style.backgroundColor='#F8FAFC';
+                  }}
+                  onMouseLeave={e=>{
+                    e.currentTarget.style.backgroundColor='white';
+                  }}
+                >
+                  ✏️ Изменить
+                </button>
+                <button
+                  onClick={()=>
+                    handleDelete(supplier.id)
+                  }
+                  style={{
+                    width:'40px',
+                    height:'40px',
+                    border:'none',
+                    borderRadius:'10px',
+                    backgroundColor:'#FEF2F2',
+                    color:'#EF4444',
+                    fontSize:'16px',
+                    cursor:'pointer',
+                    display:'flex',
+                    alignItems:'center',
+                    justifyContent:'center',
+                    transition:'all 0.15s'
+                  }}
+                  onMouseEnter={e=>{
+                    e.currentTarget.style.backgroundColor='#FECACA';
+                  }}
+                  onMouseLeave={e=>{
+                    e.currentTarget.style.backgroundColor='#FEF2F2';
+                  }}
+                >🗑️</button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {(!suppliers || suppliers.length===0) && (
+          <div style={{
+            gridColumn:'1/-1',
+            textAlign:'center',
+            padding:'60px 20px',
+            color:'#94A3B8'
+          }}>
+            <div style={{fontSize:'56px'}}>🏪</div>
+            <div style={{
+              fontSize:'18px',
+              fontWeight:'700',
+              color:'#475569',
+              marginTop:'16px'
+            }}>
+              Поставщиков нет
+            </div>
+            <div style={{
+              fontSize:'14px',
+              marginTop:'6px'
+            }}>
+              Добавь первого поставщика
+            </div>
+          </div>
+        )}
+      </div>
 
       {showForm && (
         <SupplierForm
