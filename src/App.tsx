@@ -45,7 +45,7 @@ function AppContent() {
       case 'sales':
         return <Sales />;
       case 'preorders':
-        return <Preorders />;
+        return <Preorders onNavigate={(tab: string) => setActiveTab(tab as Tab)} />;
       case 'ai-assistant':
         return <AIAssistant />;
       case 'ai-agent':
