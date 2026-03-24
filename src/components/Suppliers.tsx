@@ -306,6 +306,7 @@ const Suppliers: React.FC = () => {
                   }}>
                     {products?.filter(p=>
                       p.supplier===supplier.name
+                      || (p as any).supplierId===supplier.id
                     ).length || 0}
                   </div>
                   <div style={{
@@ -331,6 +332,7 @@ const Suppliers: React.FC = () => {
                   }}>
                     {preorders?.filter(p=>
                       p.supplier===supplier.name
+                      || (p as any).supplierId===supplier.id
                     ).length || 0}
                   </div>
                   <div style={{
