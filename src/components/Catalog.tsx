@@ -612,36 +612,6 @@ const Catalog: React.FC = () => {
     }
   };
 
-  const handleDeleteSize = async (product: Product, size: string) => {
-    const confirmed = window.confirm(
-      `Удалить размер ${size} из ${product.brand} ${product.model}?`
-    );
-    if (!confirmed) return;
-
-    try {
-      const productRef = doc(db, 'products', product.id);
-
-      const updatedSizes = (product.sizes || []).filter(s => s !== String(size));
-      const updatedVariants = (product.variants || []).filter(v => v.size !== String(size));
-      const newQuantity = updatedVariants.reduce(
-        (sum, v) => sum + (Number(v.quantity) || 0),
-        0
-      );
-
-      await updateDoc(productRef, {
-        sizes: updatedSizes,
-        variants: updatedVariants,
-        quantity: newQuantity,
-        updatedAt: new Date(),
-      });
-
-      alert(`Размер ${size} удалён!`);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      alert(`Ошибка: ${message}`);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -965,13 +935,13 @@ const Catalog: React.FC = () => {
                             {first.color}
                           </div>
 
-                          {/* SIZES — redesigned */}
+                          {/* SIZES */}
                           <div style={{
                             display: 'flex',
                             flexWrap: 'wrap',
                             gap: '5px',
                             marginBottom: '12px',
-                            minHeight: '28px'
+                            minHeight: '32px'
                           }}>
                             {(first.sizes || sizes)
                               ?.sort((a: string, b: string) => Number(a) - Number(b))
@@ -979,8 +949,8 @@ const Catalog: React.FC = () => {
                                 const variant = first.variants?.find(
                                   v => String(v.size) === String(size)
                                 );
-                                const sizeQty = variant?.quantity ?? 1;
-                                const hasStock = sizeQty > 0;
+                                const qty = variant?.quantity ?? (first.quantity > 0 ? 1 : 0);
+                                const hasStock = qty > 0;
 
                                 return (
                                   <div
@@ -989,55 +959,45 @@ const Catalog: React.FC = () => {
                                       display: 'flex',
                                       alignItems: 'center',
                                       gap: '3px',
-                                      padding: '4px 9px',
+                                      padding: '5px 10px',
                                       borderRadius: '8px',
                                       backgroundColor: hasStock ? '#ECFDF5' : '#FEF2F2',
                                       border: hasStock
                                         ? '1.5px solid #6EE7B7'
                                         : '1.5px solid #FCA5A5',
-                                      fontSize: '12px',
-                                      fontWeight: '700',
-                                      color: hasStock ? '#065F46' : '#991B1B',
+                                      cursor: 'default',
                                       transition: 'all 0.15s'
                                     }}
                                   >
-                                    {size}
-                                    {sizeQty > 1 && (
+                                    <span style={{
+                                      fontSize: '9px',
+                                      fontWeight: '700',
+                                      color: hasStock ? '#6EE7B7' : '#FCA5A5',
+                                      letterSpacing: '0.5px'
+                                    }}>
+                                      EU
+                                    </span>
+                                    <span style={{
+                                      fontSize: '13px',
+                                      fontWeight: '800',
+                                      color: hasStock ? '#065F46' : '#991B1B',
+                                      letterSpacing: '0.3px'
+                                    }}>
+                                      {size}
+                                    </span>
+                                    {qty > 1 && (
                                       <span style={{
                                         fontSize: '9px',
                                         fontWeight: '800',
                                         backgroundColor: hasStock ? '#10B981' : '#EF4444',
                                         color: 'white',
                                         borderRadius: '4px',
-                                        padding: '0px 4px'
+                                        padding: '0 3px',
+                                        lineHeight: '14px'
                                       }}>
-                                        {sizeQty}
+                                        {qty}
                                       </span>
                                     )}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteSize(first, size);
-                                      }}
-                                      style={{
-                                        width: '14px',
-                                        height: '14px',
-                                        borderRadius: '50%',
-                                        border: 'none',
-                                        backgroundColor: hasStock ? '#D1FAE5' : '#FEE2E2',
-                                        color: hasStock ? '#059669' : '#EF4444',
-                                        fontSize: '10px',
-                                        fontWeight: '900',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: '0',
-                                        marginLeft: '2px',
-                                      }}
-                                    >
-                                      ×
-                                    </button>
                                   </div>
                                 );
                               })}
@@ -1048,26 +1008,32 @@ const Catalog: React.FC = () => {
                                 openAddSizeModal(first);
                               }}
                               style={{
-                                padding: '4px 9px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '5px 10px',
                                 borderRadius: '8px',
-                                backgroundColor: '#EEF2FF',
-                                border: '1.5px dashed #A5B4FC',
-                                fontSize: '12px',
-                                fontWeight: '700',
-                                color: '#6366F1',
+                                backgroundColor: '#F8FAFC',
+                                border: '1.5px dashed #CBD5E1',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s'
                               }}
                               onMouseEnter={e => {
-                                e.currentTarget.style.backgroundColor = '#E0E7FF';
+                                e.currentTarget.style.backgroundColor = '#EEF2FF';
                                 e.currentTarget.style.borderColor = '#6366F1';
                               }}
                               onMouseLeave={e => {
-                                e.currentTarget.style.backgroundColor = '#EEF2FF';
-                                e.currentTarget.style.borderColor = '#A5B4FC';
+                                e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                e.currentTarget.style.borderColor = '#CBD5E1';
                               }}
                             >
-                              + EUR
+                              <span style={{
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                color: '#94A3B8'
+                              }}>
+                                + EU
+                              </span>
                             </div>
                           </div>
 
