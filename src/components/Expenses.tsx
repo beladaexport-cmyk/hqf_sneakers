@@ -299,7 +299,7 @@ const Expenses: React.FC = () => {
       {/* Stat Cards */}
       <div style={{
         display:'grid',
-        gridTemplateColumns:'repeat(3,1fr)',
+        gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',
         gap:'16px',
         marginBottom:'24px'
       }}>
