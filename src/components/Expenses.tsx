@@ -169,8 +169,6 @@ const Expenses: React.FC = () => {
     ? periodFiltered
     : periodFiltered.filter((e) => e.type === typeFilter);
 
-  const totalAmount = filtered.reduce((sum, e) => sum + e.amount, 0);
-
   const totalExp = filtered
     .reduce((s, e) => s + Number(e.amount || 0), 0);
   const adExp = filtered
@@ -212,50 +210,44 @@ const Expenses: React.FC = () => {
         display:'flex',
         justifyContent:'space-between',
         alignItems:'center',
-        marginBottom:'24px'
+        marginBottom:'16px',
+        gap:'12px'
       }}>
-        <div>
+        <div style={{minWidth:0}}>
           <h1 style={{
-            margin:'0 0 4px 0',
-            fontSize:'28px',
+            margin:'0 0 2px 0',
+            fontSize:'22px',
             fontWeight:'800',
             color:'#0F172A',
-            letterSpacing:'-0.5px'
+            letterSpacing:'-0.3px'
           }}>
             💸 Расходы
           </h1>
           <p style={{
             margin:0,
-            fontSize:'14px',
+            fontSize:'12px',
             color:'#94A3B8'
           }}>
-            Управление расходами бизнеса
+            Управление расходами
           </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
           style={{
-            padding:'12px 20px',
+            padding:'10px 14px',
             backgroundColor:'#EF4444',
             color:'white',
             border:'none',
             borderRadius:'12px',
-            fontSize:'14px',
+            fontSize:'13px',
             fontWeight:'700',
             cursor:'pointer',
-            boxShadow:'0 4px 14px rgba(239,68,68,0.35)',
-            transition:'all 0.2s'
-          }}
-          onMouseEnter={e=>{
-            e.currentTarget.style.transform='translateY(-1px)';
-            e.currentTarget.style.boxShadow='0 6px 20px rgba(239,68,68,0.45)';
-          }}
-          onMouseLeave={e=>{
-            e.currentTarget.style.transform='translateY(0)';
-            e.currentTarget.style.boxShadow='0 4px 14px rgba(239,68,68,0.35)';
+            whiteSpace:'nowrap',
+            flexShrink:0,
+            boxShadow:'0 4px 12px rgba(239,68,68,0.35)'
           }}
         >
-          + Добавить расход
+          + Добавить
         </button>
       </div>
 
@@ -287,26 +279,19 @@ const Expenses: React.FC = () => {
           <option value="delivery">🚚 Доставка</option>
           <option value="other">📝 Другое</option>
         </select>
-
-        {/* Total */}
-        <div className="flex items-center text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2 ml-auto">
-          <span className="text-sm font-medium">
-            Итого расходов: {totalAmount.toLocaleString('ru-RU')} Br
-          </span>
-        </div>
       </div>
 
       {/* Stat Cards */}
       <div style={{
         display:'grid',
-        gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',
-        gap:'16px',
-        marginBottom:'24px'
+        gridTemplateColumns:'repeat(3,1fr)',
+        gap:'10px',
+        marginBottom:'16px'
       }}>
         {[
           {
-            label:'Итого расходов',
-            value:totalExp.toFixed(2),
+            label:'Итого',
+            value:totalExp.toFixed(0),
             icon:'💸',
             color:'#EF4444',
             bg:'#FEF2F2',
@@ -314,7 +299,7 @@ const Expenses: React.FC = () => {
           },
           {
             label:'Реклама',
-            value:adExp.toFixed(2),
+            value:adExp.toFixed(0),
             icon:'📣',
             color:'#6366F1',
             bg:'#EEF2FF',
@@ -322,54 +307,50 @@ const Expenses: React.FC = () => {
           },
           {
             label:'Доставка',
-            value:delExp.toFixed(2),
+            value:delExp.toFixed(0),
             icon:'📦',
             color:'#F59E0B',
             bg:'#FFFBEB',
             border:'#FDE68A'
           }
         ].map(s=>(
-          <div key={s.label} style={{
-            backgroundColor:s.bg,
-            border:`2px solid ${s.border}`,
-            borderRadius:'16px',
-            padding:'20px',
-            display:'flex',
-            alignItems:'center',
-            gap:'14px',
-            boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
-            transition:'all 0.2s'
-          }}
-          onMouseEnter={e=>{
-            e.currentTarget.style.transform='translateY(-2px)';
-            e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)';
-          }}
-          onMouseLeave={e=>{
-            e.currentTarget.style.transform='translateY(0)';
-            e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';
-          }}
+          <div
+            key={s.label}
+            style={{
+              backgroundColor:s.bg,
+              border:`1.5px solid ${s.border}`,
+              borderRadius:'14px',
+              padding:'12px 10px',
+              display:'flex',
+              flexDirection:'column',
+              alignItems:'center',
+              textAlign:'center',
+              gap:'4px'
+            }}
           >
-            <div style={{fontSize:'36px'}}>
+            <div style={{fontSize:'22px'}}>
               {s.icon}
             </div>
-            <div>
-              <div style={{
-                fontSize:'12px',
-                color:'#94A3B8',
-                fontWeight:'600',
-                marginBottom:'4px',
-                letterSpacing:'0.5px'
+            <div style={{
+              fontSize:'14px',
+              fontWeight:'800',
+              color:s.color,
+              lineHeight:1
+            }}>
+              {s.value}
+              <span style={{
+                fontSize:'10px',
+                marginLeft:'2px'
               }}>
-                {s.label}
-              </div>
-              <div style={{
-                fontSize:'22px',
-                fontWeight:'800',
-                color:s.color,
-                letterSpacing:'-0.5px'
-              }}>
-                {s.value} Br
-              </div>
+                Br
+              </span>
+            </div>
+            <div style={{
+              fontSize:'10px',
+              color:'#94A3B8',
+              fontWeight:'600'
+            }}>
+              {s.label}
             </div>
           </div>
         ))}
@@ -387,159 +368,122 @@ const Expenses: React.FC = () => {
             style={{
               backgroundColor:'white',
               borderRadius:'14px',
-              padding:'16px 20px',
+              padding:'12px 14px',
               display:'flex',
               alignItems:'center',
-              gap:'16px',
+              gap:'10px',
               boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
               border:'1px solid #F1F5F9',
-              transition:'all 0.15s ease'
-            }}
-            onMouseEnter={e=>{
-              e.currentTarget.style.transform='translateX(4px)';
-              e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)';
-              e.currentTarget.style.borderColor='#E2E8F0';
-            }}
-            onMouseLeave={e=>{
-              e.currentTarget.style.transform='translateX(0)';
-              e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';
-              e.currentTarget.style.borderColor='#F1F5F9';
+              marginBottom:'8px'
             }}
           >
             <div style={{
-              width:'50px',
-              height:'50px',
-              borderRadius:'14px',
+              width:'40px',
+              height:'40px',
+              borderRadius:'12px',
               backgroundColor:
-                expense.type==='advertising' ? '#EEF2FF'
-                : expense.type==='delivery' ? '#FFFBEB'
-                : '#F0FDF4',
+                expense.type==='advertising'
+                  ? '#EEF2FF'
+                  : expense.type==='delivery'
+                  ? '#FFFBEB'
+                  : '#F0FDF4',
               display:'flex',
               alignItems:'center',
               justifyContent:'center',
-              fontSize:'24px',
-              flexShrink:0,
-              border:
-                expense.type==='advertising'
-                  ? '1px solid #C7D2FE'
-                  : expense.type==='delivery'
-                  ? '1px solid #FDE68A'
-                  : '1px solid #A7F3D0'
+              fontSize:'20px',
+              flexShrink:0
             }}>
-              {expense.type==='advertising' ? '📣'
-                : expense.type==='delivery' ? '📦'
-                : '💼'}
+              {expense.type==='advertising'
+                ? '📣'
+                : expense.type==='delivery'
+                ? '📦' : '💼'}
             </div>
 
-            <div style={{flex:1}}>
+            <div style={{flex:1,minWidth:0}}>
               <div style={{
-                fontSize:'15px',
+                fontSize:'14px',
                 fontWeight:'700',
                 color:'#1E293B',
-                marginBottom:'5px'
+                whiteSpace:'nowrap',
+                overflow:'hidden',
+                textOverflow:'ellipsis'
               }}>
                 {expense.description || typeLabels[expense.type]}
               </div>
               <div style={{
+                fontSize:'11px',
+                color:'#94A3B8',
+                marginTop:'2px',
                 display:'flex',
-                gap:'8px',
-                alignItems:'center',
-                flexWrap:'wrap'
+                gap:'6px',
+                alignItems:'center'
               }}>
+                <span>📅 {expense.date}</span>
                 <span style={{
-                  fontSize:'12px',
-                  color:'#94A3B8'
-                }}>
-                  📅 {expense.date}
-                </span>
-                <span style={{
-                  fontSize:'11px',
-                  fontWeight:'600',
-                  padding:'2px 8px',
-                  borderRadius:'6px',
+                  padding:'1px 6px',
+                  borderRadius:'4px',
                   backgroundColor:
-                    expense.type==='advertising' ? '#EEF2FF'
-                    : expense.type==='delivery' ? '#FFFBEB'
-                    : '#F0FDF4',
+                    expense.type==='advertising'
+                      ? '#EEF2FF'
+                      : expense.type==='delivery'
+                      ? '#FFFBEB'
+                      : '#F0FDF4',
                   color:
-                    expense.type==='advertising' ? '#6366F1'
-                    : expense.type==='delivery' ? '#F59E0B'
-                    : '#10B981'
+                    expense.type==='advertising'
+                      ? '#6366F1'
+                      : expense.type==='delivery'
+                      ? '#F59E0B'
+                      : '#10B981',
+                  fontWeight:'600',
+                  fontSize:'10px'
                 }}>
                   {typeLabels[expense.type]}
                 </span>
-                {expense.notes &&
-                 expense.notes !== '.' &&
-                 expense.notes !== '—' && (
-                  <span style={{
-                    fontSize:'12px',
-                    color:'#64748B'
-                  }}>
-                    💬 {expense.notes}
-                  </span>
-                )}
               </div>
             </div>
 
             <div style={{
-              fontSize:'20px',
+              fontSize:'15px',
               fontWeight:'800',
               color:'#EF4444',
-              flexShrink:0,
-              letterSpacing:'-0.5px'
+              flexShrink:0
             }}>
               -{Number(expense.amount).toFixed(2)} Br
             </div>
 
             <div style={{
               display:'flex',
-              gap:'6px',
+              gap:'4px',
               flexShrink:0
             }}>
               <button
                 onClick={()=>setEditExpense(expense)}
                 style={{
-                  width:'36px',
-                  height:'36px',
-                  border:'1.5px solid #E2E8F0',
-                  borderRadius:'10px',
+                  width:'32px',
+                  height:'32px',
+                  border:'1px solid #E2E8F0',
+                  borderRadius:'8px',
                   backgroundColor:'white',
                   cursor:'pointer',
-                  fontSize:'14px',
+                  fontSize:'13px',
                   display:'flex',
                   alignItems:'center',
-                  justifyContent:'center',
-                  transition:'all 0.15s'
-                }}
-                onMouseEnter={e=>{
-                  e.currentTarget.style.backgroundColor='#F8FAFC';
-                  e.currentTarget.style.borderColor='#CBD5E1';
-                }}
-                onMouseLeave={e=>{
-                  e.currentTarget.style.backgroundColor='white';
-                  e.currentTarget.style.borderColor='#E2E8F0';
+                  justifyContent:'center'
                 }}
               >✏️</button>
               <button
                 onClick={()=>handleDelete(expense.id)}
                 style={{
-                  width:'36px',
-                  height:'36px',
+                  width:'32px',
+                  height:'32px',
                   border:'none',
-                  borderRadius:'10px',
+                  borderRadius:'8px',
                   backgroundColor:'#FEF2F2',
                   cursor:'pointer',
-                  fontSize:'14px',
+                  fontSize:'13px',
                   display:'flex',
                   alignItems:'center',
-                  justifyContent:'center',
-                  transition:'all 0.15s'
-                }}
-                onMouseEnter={e=>{
-                  e.currentTarget.style.backgroundColor='#FECACA';
-                }}
-                onMouseLeave={e=>{
-                  e.currentTarget.style.backgroundColor='#FEF2F2';
+                  justifyContent:'center'
                 }}
               >🗑️</button>
             </div>

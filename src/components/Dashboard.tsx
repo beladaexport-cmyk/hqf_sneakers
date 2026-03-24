@@ -58,7 +58,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     <div style={{
       maxWidth: '1400px',
       margin: '0 auto',
-      padding: '24px'
+      padding: '16px'
     }}>
 
       {/* WELCOME BANNER */}

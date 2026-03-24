@@ -1,16 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Plus, X, Clock, Package, DollarSign } from 'lucide-react';
+import { X } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Preorder, PreorderStatus } from '../types';
 import { SIZE_OPTIONS } from '../utils/sizeChart';
-
-const statusConfig: Record<PreorderStatus, { label: string; badgeClass: string }> = {
-  pending: { label: 'Ожидается', badgeClass: 'bg-yellow-100 text-yellow-800' },
-  arrived: { label: 'Пришло', badgeClass: 'bg-green-100 text-green-800' },
-  cancelled: { label: 'Отменён', badgeClass: 'bg-red-100 text-red-800' },
-};
 
 const emptyPreorder: Omit<Preorder, 'id' | 'createdAt'> = {
   modelId: '',
@@ -330,61 +324,158 @@ const Preorders: React.FC = () => {
       />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-900">🛒 Предзаказы</h2>
+      <div style={{
+        display:'flex',
+        justifyContent:'space-between',
+        alignItems:'center',
+        marginBottom:'14px',
+        gap:'10px'
+      }}>
+        <h1 style={{
+          margin:0,
+          fontSize:'22px',
+          fontWeight:'800',
+          color:'#0F172A'
+        }}>
+          🛒 Предзаказы
+        </h1>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          style={{
+            padding:'10px 14px',
+            background:'linear-gradient(135deg,#6366F1,#8B5CF6)',
+            color:'white',
+            border:'none',
+            borderRadius:'12px',
+            fontSize:'13px',
+            fontWeight:'700',
+            cursor:'pointer',
+            whiteSpace:'nowrap',
+            flexShrink:0,
+            boxShadow:'0 4px 12px rgba(99,102,241,0.35)'
+          }}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить предзаказ
+          + Добавить
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-          <div className="bg-yellow-100 p-3 rounded-lg">
-            <Clock className="w-6 h-6 text-yellow-600" />
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:'repeat(3,1fr)',
+        gap:'10px',
+        marginBottom:'16px'
+      }}>
+        {[
+          {
+            icon:'⏳',
+            label:'Моделей',
+            value:pending.length||0,
+            color:'#F59E0B',
+            bg:'#FFFBEB',
+            border:'#FDE68A'
+          },
+          {
+            icon:'📦',
+            label:'Всего пар',
+            value:totalPairs||0,
+            color:'#6366F1',
+            bg:'#EEF2FF',
+            border:'#C7D2FE'
+          },
+          {
+            icon:'💰',
+            label:'Выручка',
+            value:totalExpectedRevenue||0,
+            color:'#10B981',
+            bg:'#F0FDF4',
+            border:'#A7F3D0',
+            short:true
+          }
+        ].map(s=>(
+          <div
+            key={s.label}
+            style={{
+              backgroundColor:s.bg,
+              border:`1.5px solid ${s.border}`,
+              borderRadius:'14px',
+              padding:'12px 8px',
+              textAlign:'center'
+            }}
+          >
+            <div style={{
+              fontSize:'20px',
+              marginBottom:'4px'
+            }}>
+              {s.icon}
+            </div>
+            <div style={{
+              fontSize:s.short
+                ? '13px' : '18px',
+              fontWeight:'800',
+              color:s.color,
+              lineHeight:1,
+              marginBottom:'3px'
+            }}>
+              {s.short
+                ? `${s.value} Br`
+                : s.value}
+            </div>
+            <div style={{
+              fontSize:'10px',
+              color:'#94A3B8',
+              fontWeight:'600'
+            }}>
+              {s.label}
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Моделей в ожидании</p>
-            <p className="text-2xl font-bold text-gray-900">{pending.length}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-          <div className="bg-blue-100 p-3 rounded-lg">
-            <Package className="w-6 h-6 text-blue-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Всего пар ожидается</p>
-            <p className="text-2xl font-bold text-gray-900">{totalPairs}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
-          <div className="bg-green-100 p-3 rounded-lg">
-            <DollarSign className="w-6 h-6 text-green-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Ожидаемая выручка</p>
-            <p className="text-2xl font-bold text-gray-900">{totalExpectedRevenue.toLocaleString('ru-RU')} Br</p>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Status filter */}
-      <div className="flex gap-2 flex-wrap">
-        {(['all', 'pending', 'arrived', 'cancelled'] as const).map((s) => (
+      <div style={{
+        display:'flex',
+        gap:'6px',
+        overflowX:'auto',
+        paddingBottom:'4px',
+        marginBottom:'14px',
+        scrollbarWidth:'none'
+      }}>
+        {[
+          {key:'all',label:'Все'},
+          {key:'pending',label:'⏳ Ожидается'},
+          {key:'arrived',label:'✅ Пришло'},
+          {key:'cancelled',label:'❌ Отменён'}
+        ].map(tab=>(
           <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              statusFilter === s
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-300'
-            }`}
+            key={tab.key}
+            onClick={()=>
+              setStatusFilter(tab.key as PreorderStatus | 'all')
+            }
+            style={{
+              padding:'8px 14px',
+              borderRadius:'20px',
+              border:'none',
+              backgroundColor:
+                statusFilter===tab.key
+                  ? '#6366F1'
+                  : 'white',
+              color:
+                statusFilter===tab.key
+                  ? 'white'
+                  : '#64748B',
+              fontSize:'12px',
+              fontWeight:'600',
+              cursor:'pointer',
+              whiteSpace:'nowrap',
+              flexShrink:0,
+              boxShadow:
+                statusFilter===tab.key
+                  ? '0 4px 12px rgba(99,102,241,0.35)'
+                  : '0 1px 4px rgba(0,0,0,0.08)'
+            }}
           >
-            {s === 'all' ? 'Все' : statusConfig[s].label}
+            {tab.label}
           </button>
         ))}
       </div>

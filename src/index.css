@@ -62,3 +62,57 @@ body {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* ═══ SMALL MOBILE ═══ */
+@media (max-width: 480px) {
+
+  /* Smaller headings */
+  h1 {
+    font-size: 20px !important;
+  }
+
+  /* No horizontal overflow */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Scrollable filter rows */
+  .filter-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+  }
+  .filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Stat cards always 3 col */
+  .stats-grid {
+    grid-template-columns: repeat(3,1fr) !important;
+  }
+
+  /* Cards full width */
+  .card {
+    width: 100% !important;
+    margin: 0 0 8px 0 !important;
+  }
+
+  /* Buttons smaller text */
+  button {
+    font-size: 13px;
+  }
+
+  /* Input full width */
+  input, select, textarea {
+    width: 100% !important;
+    font-size: 16px !important;
+  }
+
+  /* No box shadows on mobile for performance */
+  @media (prefers-reduced-motion) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}
