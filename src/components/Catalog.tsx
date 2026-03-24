@@ -6,6 +6,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
 import { SIZE_OPTIONS } from '../utils/sizeChart';
 import ImageUpload from './ImageUpload';
+import { useViewMode } from '../contexts/ViewModeContext';
 
 interface SizeEntry {
   eu: string;
@@ -501,6 +502,7 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
 };
 
 const Catalog: React.FC = () => {
+  const { isMobileView } = useViewMode();
   const { data: products, loading, add, update, remove } = useFirestore<Product>('products');
   const [search, setSearch] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
@@ -621,7 +623,7 @@ const Catalog: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" style={{ padding: isMobileView ? '16px' : '24px' }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl font-semibold text-gray-900">

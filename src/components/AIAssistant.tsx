@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useViewMode } from '../contexts/ViewModeContext';
 
 interface AIResponse {
   brand: string;
@@ -30,6 +31,7 @@ const AIAssistant: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isMobileView } = useViewMode();
 
   // Pulse animation for loading dots
   useEffect(() => {
@@ -215,7 +217,7 @@ const AIAssistant: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth:'860px', margin:'0 auto', padding:'24px 16px' }}>
+    <div style={{ maxWidth:'860px', margin:'0 auto', padding: isMobileView ? '16px' : '24px' }}>
 
       {/* HEADER */}
       <div style={{

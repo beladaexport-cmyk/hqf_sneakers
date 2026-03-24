@@ -1,5 +1,6 @@
 import React from 'react';
 import { useFirestore } from '../hooks/useFirestore';
+import { useViewMode } from '../contexts/ViewModeContext';
 import { Product, Sale, Expense } from '../types';
 
 interface DashboardProps {
@@ -7,6 +8,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+  const { isMobileView } = useViewMode();
   const { data: products, loading: loadingProducts } = useFirestore<Product>('products');
   const { data: sales, loading: loadingSales } = useFirestore<Sale>('sales');
   const { data: expenses, loading: loadingExpenses } = useFirestore<Expense>('expenses');
@@ -58,7 +60,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     <div style={{
       maxWidth: '1400px',
       margin: '0 auto',
-      padding: '16px'
+      padding: isMobileView ? '16px' : '24px'
     }}>
 
       {/* WELCOME BANNER */}
@@ -165,7 +167,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* STAT CARDS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4,1fr)',
+        gridTemplateColumns: isMobileView ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
         gap: '16px',
         marginBottom: '24px'
       }}>
@@ -283,7 +285,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* MAIN GRID */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: isMobileView ? '1fr' : '1fr 340px',
         gap: '20px',
         marginBottom: '20px',
         alignItems: 'stretch'

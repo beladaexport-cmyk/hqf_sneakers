@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Expense } from '../types';
+import { useViewMode } from '../contexts/ViewModeContext';
 
 type Period = 'all' | 'today' | 'week' | 'month';
 type ExpenseType = Expense['type'] | 'all';
@@ -158,6 +159,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, ti
 };
 
 const Expenses: React.FC = () => {
+  const { isMobileView } = useViewMode();
   const { data: expenses, loading, add, update, remove } = useFirestore<Expense>('expenses');
   const [showForm, setShowForm] = useState(false);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
@@ -284,7 +286,7 @@ const Expenses: React.FC = () => {
       {/* Stat Cards */}
       <div style={{
         display:'grid',
-        gridTemplateColumns:'repeat(3,1fr)',
+        gridTemplateColumns: isMobileView ? '1fr' : 'repeat(3,1fr)',
         gap:'10px',
         marginBottom:'16px'
       }}>

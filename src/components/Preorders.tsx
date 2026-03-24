@@ -5,6 +5,7 @@ import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Preorder, PreorderStatus } from '../types';
 import { SIZE_OPTIONS } from '../utils/sizeChart';
+import { useViewMode } from '../contexts/ViewModeContext';
 
 const emptyPreorder: Omit<Preorder, 'id' | 'createdAt'> = {
   modelId: '',
@@ -235,6 +236,7 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
 };
 
 const Preorders: React.FC = () => {
+  const { isMobileView } = useViewMode();
   const { data: preorders, loading, add, update, remove } = useFirestore<Preorder>('preorders');
   const [showForm, setShowForm] = useState(false);
   const [editPreorder, setEditPreorder] = useState<Preorder | null>(null);
@@ -313,7 +315,7 @@ const Preorders: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" style={{ padding: isMobileView ? '16px' : '24px' }}>
       {/* Hidden file input for photo uploads */}
       <input
         type="file"
@@ -362,7 +364,7 @@ const Preorders: React.FC = () => {
       {/* Stats */}
       <div style={{
         display:'grid',
-        gridTemplateColumns:'repeat(3,1fr)',
+        gridTemplateColumns: isMobileView ? '1fr' : 'repeat(3,1fr)',
         gap:'10px',
         marginBottom:'16px'
       }}>

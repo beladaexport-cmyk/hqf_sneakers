@@ -4,6 +4,7 @@ import { doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
+import { useViewMode } from '../contexts/ViewModeContext';
 
 type Period = 'all' | 'today' | 'week' | 'month';
 
@@ -644,6 +645,7 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
 type StatusFilter = 'all' | SaleStatus;
 
 const Sales: React.FC = () => {
+  const { isMobileView } = useViewMode();
   const { data: products } = useFirestore<Product>('products');
   const { data: sales, add: addSale, update: updateSale } = useFirestore<Sale>('sales');
   const [showForm, setShowForm] = useState(false);
@@ -949,7 +951,7 @@ const Sales: React.FC = () => {
       {/* Stats Cards */}
       <div style={{
         display:'grid',
-        gridTemplateColumns:'repeat(3,1fr)',
+        gridTemplateColumns: isMobileView ? '1fr' : 'repeat(3,1fr)',
         gap:'10px',
         marginBottom:'16px'
       }}>
