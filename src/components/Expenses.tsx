@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Megaphone, Truck, FileText } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Expense } from '../types';
 
@@ -19,11 +19,6 @@ const typeLabels: Record<Expense['type'], string> = {
   other: '📝 Другое',
 };
 
-const typeIcons: Record<Expense['type'], React.ReactNode> = {
-  advertising: <Megaphone className="w-4 h-4 text-purple-500" />,
-  delivery: <Truck className="w-4 h-4 text-blue-500" />,
-  other: <FileText className="w-4 h-4 text-gray-500" />,
-};
 
 function filterByPeriod(expenses: Expense[], period: Period): Expense[] {
   if (period === 'all') return expenses;
@@ -176,6 +171,15 @@ const Expenses: React.FC = () => {
 
   const totalAmount = filtered.reduce((sum, e) => sum + e.amount, 0);
 
+  const totalExp = filtered
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
+  const adExp = filtered
+    .filter(e => e.type === 'advertising')
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
+  const delExp = filtered
+    .filter(e => e.type === 'delivery')
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
+
   const handleAdd = async (data: Omit<Expense, 'id'>) => {
     await add(data);
     setShowForm(false);
@@ -204,14 +208,54 @@ const Expenses: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-900">Расходы</h2>
+      <div style={{
+        display:'flex',
+        justifyContent:'space-between',
+        alignItems:'center',
+        marginBottom:'24px'
+      }}>
+        <div>
+          <h1 style={{
+            margin:'0 0 4px 0',
+            fontSize:'28px',
+            fontWeight:'800',
+            color:'#0F172A',
+            letterSpacing:'-0.5px'
+          }}>
+            💸 Расходы
+          </h1>
+          <p style={{
+            margin:0,
+            fontSize:'14px',
+            color:'#94A3B8'
+          }}>
+            Управление расходами бизнеса
+          </p>
+        </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          style={{
+            padding:'12px 20px',
+            backgroundColor:'#EF4444',
+            color:'white',
+            border:'none',
+            borderRadius:'12px',
+            fontSize:'14px',
+            fontWeight:'700',
+            cursor:'pointer',
+            boxShadow:'0 4px 14px rgba(239,68,68,0.35)',
+            transition:'all 0.2s'
+          }}
+          onMouseEnter={e=>{
+            e.currentTarget.style.transform='translateY(-1px)';
+            e.currentTarget.style.boxShadow='0 6px 20px rgba(239,68,68,0.45)';
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.transform='translateY(0)';
+            e.currentTarget.style.boxShadow='0 4px 14px rgba(239,68,68,0.35)';
+          }}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Добавить расход
+          + Добавить расход
         </button>
       </div>
 
@@ -252,74 +296,279 @@ const Expenses: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {['Дата', 'Тип', 'Описание', 'Сумма', 'Примечания', 'Действия'].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
-                    {expenses.length === 0
-                      ? 'Расходов пока нет. Добавьте первый!'
-                      : 'Нет расходов за выбранный период'}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((expense, idx) => (
-                  <tr key={expense.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(expense.date).toLocaleDateString('ru-RU')}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-1.5">
-                        {typeIcons[expense.type]}
-                        <span className="text-gray-700">{typeLabels[expense.type]}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{expense.description}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-red-600">
-                      {expense.amount.toLocaleString('ru-RU')} Br
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {expense.notes || '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => setEditExpense(expense)}
-                          className="text-blue-500 hover:text-blue-700 transition-colors"
-                          title="Редактировать"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(expense.id)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
-                          title="Удалить"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Stat Cards */}
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:'repeat(3,1fr)',
+        gap:'16px',
+        marginBottom:'24px'
+      }}>
+        {[
+          {
+            label:'Итого расходов',
+            value:totalExp.toFixed(2),
+            icon:'💸',
+            color:'#EF4444',
+            bg:'#FEF2F2',
+            border:'#FECACA'
+          },
+          {
+            label:'Реклама',
+            value:adExp.toFixed(2),
+            icon:'📣',
+            color:'#6366F1',
+            bg:'#EEF2FF',
+            border:'#C7D2FE'
+          },
+          {
+            label:'Доставка',
+            value:delExp.toFixed(2),
+            icon:'📦',
+            color:'#F59E0B',
+            bg:'#FFFBEB',
+            border:'#FDE68A'
+          }
+        ].map(s=>(
+          <div key={s.label} style={{
+            backgroundColor:s.bg,
+            border:`2px solid ${s.border}`,
+            borderRadius:'16px',
+            padding:'20px',
+            display:'flex',
+            alignItems:'center',
+            gap:'14px',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
+            transition:'all 0.2s'
+          }}
+          onMouseEnter={e=>{
+            e.currentTarget.style.transform='translateY(-2px)';
+            e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)';
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.transform='translateY(0)';
+            e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';
+          }}
+          >
+            <div style={{fontSize:'36px'}}>
+              {s.icon}
+            </div>
+            <div>
+              <div style={{
+                fontSize:'12px',
+                color:'#94A3B8',
+                fontWeight:'600',
+                marginBottom:'4px',
+                letterSpacing:'0.5px'
+              }}>
+                {s.label}
+              </div>
+              <div style={{
+                fontSize:'22px',
+                fontWeight:'800',
+                color:s.color,
+                letterSpacing:'-0.5px'
+              }}>
+                {s.value} Br
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Expense Cards */}
+      <div style={{
+        display:'flex',
+        flexDirection:'column',
+        gap:'10px'
+      }}>
+        {filtered.map(expense=>(
+          <div
+            key={expense.id}
+            style={{
+              backgroundColor:'white',
+              borderRadius:'14px',
+              padding:'16px 20px',
+              display:'flex',
+              alignItems:'center',
+              gap:'16px',
+              boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
+              border:'1px solid #F1F5F9',
+              transition:'all 0.15s ease'
+            }}
+            onMouseEnter={e=>{
+              e.currentTarget.style.transform='translateX(4px)';
+              e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)';
+              e.currentTarget.style.borderColor='#E2E8F0';
+            }}
+            onMouseLeave={e=>{
+              e.currentTarget.style.transform='translateX(0)';
+              e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';
+              e.currentTarget.style.borderColor='#F1F5F9';
+            }}
+          >
+            <div style={{
+              width:'50px',
+              height:'50px',
+              borderRadius:'14px',
+              backgroundColor:
+                expense.type==='advertising' ? '#EEF2FF'
+                : expense.type==='delivery' ? '#FFFBEB'
+                : '#F0FDF4',
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'center',
+              fontSize:'24px',
+              flexShrink:0,
+              border:
+                expense.type==='advertising'
+                  ? '1px solid #C7D2FE'
+                  : expense.type==='delivery'
+                  ? '1px solid #FDE68A'
+                  : '1px solid #A7F3D0'
+            }}>
+              {expense.type==='advertising' ? '📣'
+                : expense.type==='delivery' ? '📦'
+                : '💼'}
+            </div>
+
+            <div style={{flex:1}}>
+              <div style={{
+                fontSize:'15px',
+                fontWeight:'700',
+                color:'#1E293B',
+                marginBottom:'5px'
+              }}>
+                {expense.description || typeLabels[expense.type]}
+              </div>
+              <div style={{
+                display:'flex',
+                gap:'8px',
+                alignItems:'center',
+                flexWrap:'wrap'
+              }}>
+                <span style={{
+                  fontSize:'12px',
+                  color:'#94A3B8'
+                }}>
+                  📅 {expense.date}
+                </span>
+                <span style={{
+                  fontSize:'11px',
+                  fontWeight:'600',
+                  padding:'2px 8px',
+                  borderRadius:'6px',
+                  backgroundColor:
+                    expense.type==='advertising' ? '#EEF2FF'
+                    : expense.type==='delivery' ? '#FFFBEB'
+                    : '#F0FDF4',
+                  color:
+                    expense.type==='advertising' ? '#6366F1'
+                    : expense.type==='delivery' ? '#F59E0B'
+                    : '#10B981'
+                }}>
+                  {typeLabels[expense.type]}
+                </span>
+                {expense.notes &&
+                 expense.notes !== '.' &&
+                 expense.notes !== '—' && (
+                  <span style={{
+                    fontSize:'12px',
+                    color:'#64748B'
+                  }}>
+                    💬 {expense.notes}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div style={{
+              fontSize:'20px',
+              fontWeight:'800',
+              color:'#EF4444',
+              flexShrink:0,
+              letterSpacing:'-0.5px'
+            }}>
+              -{Number(expense.amount).toFixed(2)} Br
+            </div>
+
+            <div style={{
+              display:'flex',
+              gap:'6px',
+              flexShrink:0
+            }}>
+              <button
+                onClick={()=>setEditExpense(expense)}
+                style={{
+                  width:'36px',
+                  height:'36px',
+                  border:'1.5px solid #E2E8F0',
+                  borderRadius:'10px',
+                  backgroundColor:'white',
+                  cursor:'pointer',
+                  fontSize:'14px',
+                  display:'flex',
+                  alignItems:'center',
+                  justifyContent:'center',
+                  transition:'all 0.15s'
+                }}
+                onMouseEnter={e=>{
+                  e.currentTarget.style.backgroundColor='#F8FAFC';
+                  e.currentTarget.style.borderColor='#CBD5E1';
+                }}
+                onMouseLeave={e=>{
+                  e.currentTarget.style.backgroundColor='white';
+                  e.currentTarget.style.borderColor='#E2E8F0';
+                }}
+              >✏️</button>
+              <button
+                onClick={()=>handleDelete(expense.id)}
+                style={{
+                  width:'36px',
+                  height:'36px',
+                  border:'none',
+                  borderRadius:'10px',
+                  backgroundColor:'#FEF2F2',
+                  cursor:'pointer',
+                  fontSize:'14px',
+                  display:'flex',
+                  alignItems:'center',
+                  justifyContent:'center',
+                  transition:'all 0.15s'
+                }}
+                onMouseEnter={e=>{
+                  e.currentTarget.style.backgroundColor='#FECACA';
+                }}
+                onMouseLeave={e=>{
+                  e.currentTarget.style.backgroundColor='#FEF2F2';
+                }}
+              >🗑️</button>
+            </div>
+          </div>
+        ))}
+
+        {filtered.length === 0 && (
+          <div style={{
+            textAlign:'center',
+            padding:'60px 20px',
+            color:'#94A3B8'
+          }}>
+            <div style={{fontSize:'56px'}}>💸</div>
+            <div style={{
+              fontSize:'18px',
+              fontWeight:'700',
+              color:'#475569',
+              marginTop:'16px'
+            }}>
+              Расходов нет
+            </div>
+            <div style={{
+              fontSize:'14px',
+              marginTop:'6px'
+            }}>
+              Нажми + Добавить расход
+            </div>
+          </div>
+        )}
       </div>
 
       {showForm && (
