@@ -392,14 +392,21 @@ const Preorders: React.FC = () => {
       {/* Grid Cards */}
       {filtered.length === 0 ? (
         <div style={{
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: '48px',
           textAlign: 'center',
-          color: '#94A3B8',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+          padding: '60px 20px'
         }}>
-          {preorders.length === 0 ? 'Предзаказов нет. Добавьте первый!' : 'Нет предзаказов с выбранным статусом'}
+          <div style={{ fontSize: '64px' }}>📋</div>
+          <div style={{
+            fontSize: '18px',
+            fontWeight: '700',
+            color: '#475569',
+            marginTop: '16px'
+          }}>
+            {preorders.length === 0 ? 'Предзаказов нет' : 'Нет предзаказов с выбранным статусом'}
+          </div>
+          <div style={{ fontSize: '14px', color: '#94A3B8', marginTop: '4px' }}>
+            {preorders.length === 0 ? 'Добавьте первый предзаказ!' : 'Попробуйте другой фильтр'}
+          </div>
         </div>
       ) : (
         <div style={{
@@ -408,42 +415,64 @@ const Preorders: React.FC = () => {
           gap: '16px',
           marginTop: '16px'
         }}>
-          {filtered.map((p) => (
+          {[...filtered].sort((a, b) => {
+            if (a.status === 'pending' && b.status !== 'pending') return -1;
+            if (a.status !== 'pending' && b.status === 'pending') return 1;
+            return 0;
+          }).map((p) => {
+            const isArrived = p.status === 'arrived';
+            const isCancelled = p.status === 'cancelled';
+            const isPending = !isArrived && !isCancelled;
+            const sizeDisplay = p.sizeEU || null;
+            const mainImage = p.image || null;
+
+            return (
             <div
               key={p.id}
               style={{
                 backgroundColor: 'white',
-                borderRadius: '16px',
+                borderRadius: '20px',
                 overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                border: '1px solid #F1F5F9',
-                transition: 'transform 0.2s, box-shadow 0.2s'
+                boxShadow: isPending
+                  ? '0 4px 20px rgba(251,191,36,0.15)'
+                  : isArrived
+                  ? '0 4px 20px rgba(16,185,129,0.12)'
+                  : '0 2px 8px rgba(0,0,0,0.06)',
+                border: isPending
+                  ? '2px solid #FDE68A'
+                  : isArrived
+                  ? '2px solid #A7F3D0'
+                  : '2px solid #FECACA',
+                transition: 'all 0.25s ease'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+                e.currentTarget.style.transform = 'translateY(-4px)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
               }}
             >
-              {/* TOP — Photo area */}
+              {/* IMAGE AREA */}
               <div
                 style={{
                   position: 'relative',
-                  backgroundColor: '#F8FAFC',
-                  height: '180px',
+                  height: '190px',
+                  backgroundColor: isPending
+                    ? '#FFFBEB'
+                    : isArrived
+                    ? '#F0FDF4'
+                    : '#FEF2F2',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  overflow: 'hidden'
                 }}
                 onClick={() => handlePhotoClick(p)}
               >
-                {p.image ? (
+                {mainImage ? (
                   <img
-                    src={p.image}
+                    src={mainImage}
                     alt={p.modelName}
                     style={{
                       width: '100%',
@@ -456,46 +485,45 @@ const Preorders: React.FC = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '8px',
-                    color: '#CBD5E1'
+                    gap: '8px'
                   }}>
-                    <span style={{ fontSize: '48px' }}>👟</span>
+                    <span style={{ fontSize: '52px' }}>👟</span>
                     <span style={{
                       fontSize: '12px',
-                      fontWeight: '600',
-                      color: '#94A3B8'
+                      color: '#94A3B8',
+                      fontWeight: '600'
                     }}>
                       + Добавить фото
                     </span>
                   </div>
                 )}
 
-                {/* Status badge */}
+                {/* STATUS BADGE */}
                 <div style={{
                   position: 'absolute',
                   top: '10px',
                   right: '10px',
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   borderRadius: '20px',
                   fontSize: '11px',
-                  fontWeight: '700',
-                  backgroundColor:
-                    p.status === 'arrived' ? '#D1FAE5'
-                    : p.status === 'cancelled' ? '#FEE2E2'
-                    : '#FEF3C7',
-                  color:
-                    p.status === 'arrived' ? '#065F46'
-                    : p.status === 'cancelled' ? '#991B1B'
-                    : '#92400E'
+                  fontWeight: '800',
+                  backdropFilter: 'blur(8px)',
+                  backgroundColor: isPending
+                    ? 'rgba(251,191,36,0.92)'
+                    : isArrived
+                    ? 'rgba(16,185,129,0.92)'
+                    : 'rgba(239,68,68,0.85)',
+                  color: 'white',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                 }}>
-                  {p.status === 'arrived'
+                  {isPending
+                    ? '⏳ Ожидается'
+                    : isArrived
                     ? '✅ Пришло'
-                    : p.status === 'cancelled'
-                    ? '❌ Отменён'
-                    : '🕐 Ожидается'}
+                    : '❌ Отменён'}
                 </div>
 
-                {/* Expected date top left */}
+                {/* DATE */}
                 {p.expectedDate && (
                   <div style={{
                     position: 'absolute',
@@ -506,19 +534,50 @@ const Preorders: React.FC = () => {
                     padding: '3px 8px',
                     fontSize: '11px',
                     fontWeight: '600',
-                    color: '#64748B'
+                    color: '#64748B',
+                    backdropFilter: 'blur(8px)'
                   }}>
                     📅 {new Date(p.expectedDate).toLocaleDateString('ru-RU')}
                   </div>
                 )}
 
-                {/* Camera icon if has photo */}
-                {p.image && (
+                {/* SIZE BADGE — LARGE VISIBLE */}
+                {sizeDisplay && (
                   <div style={{
                     position: 'absolute',
-                    bottom: '8px',
-                    right: '8px',
-                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    bottom: '10px',
+                    left: '10px',
+                    backgroundColor: '#1E293B',
+                    color: 'white',
+                    borderRadius: '10px',
+                    padding: '6px 14px',
+                    fontSize: '16px',
+                    fontWeight: '900',
+                    letterSpacing: '0.5px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: '600',
+                      color: '#94A3B8',
+                      letterSpacing: '1px'
+                    }}>
+                      EU
+                    </span>
+                    {sizeDisplay}
+                  </div>
+                )}
+
+                {/* Camera hint */}
+                {mainImage && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '10px',
+                    right: '10px',
+                    backgroundColor: 'rgba(0,0,0,0.55)',
                     borderRadius: '8px',
                     padding: '4px 8px',
                     fontSize: '11px',
@@ -528,99 +587,110 @@ const Preorders: React.FC = () => {
                     📷 Изменить
                   </div>
                 )}
+
+                {/* Bottom color strip */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  left: '0',
+                  right: '0',
+                  height: '3px',
+                  background: isPending
+                    ? 'linear-gradient(90deg, #F59E0B, #FCD34D)'
+                    : isArrived
+                    ? 'linear-gradient(90deg, #10B981, #34D399)'
+                    : 'linear-gradient(90deg, #EF4444, #FCA5A5)'
+                }} />
               </div>
 
-              {/* BOTTOM — Info */}
-              <div style={{ padding: '14px' }}>
-                {/* Model name + size */}
+              {/* CARD BODY */}
+              <div style={{ padding: '14px 16px' }}>
+                {/* Model name */}
                 <div style={{
                   fontSize: '15px',
-                  fontWeight: '700',
-                  color: '#1E293B',
-                  marginBottom: '4px',
+                  fontWeight: '800',
+                  color: '#0F172A',
+                  marginBottom: '6px',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
-                  textOverflow: 'ellipsis'
+                  textOverflow: 'ellipsis',
+                  letterSpacing: '-0.2px'
                 }}>
                   {p.modelName}
-                  {p.sizeEU && (
+                </div>
+
+                {/* Supplier row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '6px'
+                }}>
+                  <span style={{ fontSize: '13px' }}>🏪</span>
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#475569',
+                    backgroundColor: '#F1F5F9',
+                    padding: '2px 8px',
+                    borderRadius: '6px'
+                  }}>
+                    {p.supplier || 'Поставщик'}
+                  </span>
+                  {p.quantity > 1 && (
                     <span style={{
-                      marginLeft: '6px',
-                      fontSize: '12px',
+                      fontSize: '11px',
                       fontWeight: '700',
-                      color: '#6366F1',
-                      backgroundColor: '#EEF2FF',
-                      padding: '2px 8px',
+                      color: '#64748B',
+                      backgroundColor: '#F1F5F9',
+                      padding: '2px 7px',
                       borderRadius: '6px'
                     }}>
-                      EU {p.sizeEU}
+                      {p.quantity} шт
                     </span>
                   )}
                 </div>
 
-                {/* Supplier */}
-                {p.supplier && (
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#94A3B8',
-                    marginBottom: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    🏪 {p.supplier}
-                    {p.quantity > 1 && (
-                      <span style={{
-                        marginLeft: '6px',
-                        backgroundColor: '#F1F5F9',
-                        padding: '1px 7px',
-                        borderRadius: '6px',
-                        color: '#64748B',
-                        fontWeight: '600'
-                      }}>
-                        {p.quantity} шт
-                      </span>
-                    )}
-                  </div>
-                )}
-
                 {/* Notes */}
                 {p.notes && (
                   <div style={{
-                    fontSize: '12px',
-                    color: '#6366F1',
-                    marginBottom: '10px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginBottom: '12px'
                   }}>
-                    📝 {p.notes}
+                    <span style={{ fontSize: '13px' }}>📝</span>
+                    <span style={{
+                      fontSize: '12px',
+                      color: '#6366F1',
+                      fontWeight: '500',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      flex: 1
+                    }}>
+                      {p.notes}
+                    </span>
                   </div>
                 )}
 
-                {/* Divider */}
-                <div style={{
-                  height: '1px',
-                  backgroundColor: '#F1F5F9',
-                  marginBottom: '10px'
-                }} />
-
-                {/* Price stats */}
+                {/* PRICE CARDS */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
                   gap: '8px',
-                  marginBottom: '12px'
+                  marginBottom: '14px'
                 }}>
                   <div style={{
                     backgroundColor: '#F8FAFC',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    textAlign: 'center'
+                    borderRadius: '10px',
+                    padding: '10px',
+                    textAlign: 'center',
+                    border: '1px solid #E2E8F0'
                   }}>
                     <div style={{
-                      fontSize: '15px',
-                      fontWeight: '700',
+                      fontSize: '16px',
+                      fontWeight: '800',
                       color: '#1E293B'
                     }}>
                       {p.purchasePrice ? p.purchasePrice.toLocaleString('ru-RU') : '—'} Br
@@ -628,21 +698,23 @@ const Preorders: React.FC = () => {
                     <div style={{
                       fontSize: '10px',
                       color: '#94A3B8',
-                      fontWeight: '600',
-                      marginTop: '2px'
+                      fontWeight: '700',
+                      marginTop: '2px',
+                      letterSpacing: '0.5px'
                     }}>
                       ЗАКУПКА
                     </div>
                   </div>
                   <div style={{
                     backgroundColor: '#F0FDF4',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    textAlign: 'center'
+                    borderRadius: '10px',
+                    padding: '10px',
+                    textAlign: 'center',
+                    border: '1px solid #A7F3D0'
                   }}>
                     <div style={{
-                      fontSize: '15px',
-                      fontWeight: '700',
+                      fontSize: '16px',
+                      fontWeight: '800',
                       color: '#10B981'
                     }}>
                       {p.retailPrice ? p.retailPrice.toLocaleString('ru-RU') : '—'} Br
@@ -650,29 +722,63 @@ const Preorders: React.FC = () => {
                     <div style={{
                       fontSize: '10px',
                       color: '#94A3B8',
-                      fontWeight: '600',
-                      marginTop: '2px'
+                      fontWeight: '700',
+                      marginTop: '2px',
+                      letterSpacing: '0.5px'
                     }}>
                       ПРОДАЖА
                     </div>
                   </div>
                 </div>
 
-                {/* Action buttons */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {p.status === 'pending' && (
+                {/* PROFIT PILL */}
+                {p.retailPrice > 0 && p.purchasePrice > 0 && (
+                  <div style={{
+                    backgroundColor: '#EEF2FF',
+                    border: '1px solid #C7D2FE',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{
+                      fontSize: '12px',
+                      color: '#6366F1',
+                      fontWeight: '600'
+                    }}>
+                      💰 Потенциал
+                    </span>
+                    <span style={{
+                      fontSize: '14px',
+                      fontWeight: '800',
+                      color: '#4F46E5'
+                    }}>
+                      +{(p.retailPrice - p.purchasePrice).toFixed(0)} Br
+                    </span>
+                  </div>
+                )}
+
+                {/* ACTION BUTTONS */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px'
+                }}>
+                  {isPending && (
                     <button
                       onClick={() => handleMarkArrived(p.id)}
                       style={{
                         flex: 1,
-                        padding: '8px',
+                        padding: '10px',
                         border: 'none',
-                        borderRadius: '8px',
+                        borderRadius: '10px',
                         backgroundColor: '#D1FAE5',
                         color: '#065F46',
                         fontSize: '12px',
                         fontWeight: '700',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
                       }}
                     >
                       ✅ Пришло
@@ -682,14 +788,15 @@ const Preorders: React.FC = () => {
                     onClick={() => setEditPreorder(p)}
                     style={{
                       flex: 1,
-                      padding: '8px',
-                      border: '1px solid #E2E8F0',
-                      borderRadius: '8px',
+                      padding: '10px',
+                      border: '1.5px solid #E2E8F0',
+                      borderRadius: '10px',
                       backgroundColor: 'white',
-                      color: '#64748B',
+                      color: '#475569',
                       fontSize: '12px',
                       fontWeight: '600',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
                     }}
                   >
                     ✏️ Изменить
@@ -697,26 +804,28 @@ const Preorders: React.FC = () => {
                   <button
                     onClick={() => handleDelete(p.id)}
                     style={{
-                      width: '36px',
-                      height: '36px',
+                      width: '38px',
+                      height: '38px',
                       border: 'none',
-                      borderRadius: '8px',
-                      backgroundColor: '#FEE2E2',
+                      borderRadius: '10px',
+                      backgroundColor: '#FEF2F2',
                       color: '#EF4444',
                       fontSize: '16px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      transition: 'all 0.15s'
                     }}
                   >
-                    🗑
+                    🗑️
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
