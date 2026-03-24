@@ -1,113 +1,61 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface ViewModeContextType {
-  viewMode: string;
+  isMobileView: boolean;
   toggleView: () => void;
-  isDesktopMode: boolean;
-  isMobileMode: boolean;
-  isMobileDevice: boolean;
 }
 
 const ViewModeContext = createContext<ViewModeContextType>({
-  viewMode: 'mobile',
+  isMobileView: true,
   toggleView: () => {},
-  isDesktopMode: false,
-  isMobileMode: true,
-  isMobileDevice: true
 });
 
 export const ViewModeProvider = ({ children }: { children: ReactNode }) => {
-  const [viewMode, setViewMode] = useState(() => {
-    const saved = localStorage.getItem('hqf_view_mode');
-    if (saved) return saved;
-    return window.innerWidth > 768 ? 'desktop' : 'mobile';
+  const [isMobileView, setIsMobileView] = useState(() => {
+    const saved = localStorage.getItem('hqf_view');
+    if (saved) return saved === 'mobile';
+    return window.innerWidth <= 768;
   });
 
-  const [isMobileDevice, setIsMobileDevice] = useState(window.innerWidth <= 768);
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
-    const check = () => {
-      setIsMobileDevice(window.innerWidth <= 768);
-    };
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  useEffect(() => {
-    if (viewMode === 'desktop') {
-      document.documentElement.style.minWidth = '1200px';
-      document.documentElement.style.overflowX = 'auto';
-      document.body.style.minWidth = '1200px';
-    } else {
-      document.documentElement.style.minWidth = '';
-      document.documentElement.style.overflowX = '';
-      document.body.style.minWidth = '';
-    }
-  }, [viewMode]);
-
-  // Body class switching
-  useEffect(() => {
-    if (viewMode === 'desktop') {
-      document.body.classList.add('desktop-mode');
-      document.body.classList.remove('mobile-mode');
-    } else {
-      document.body.classList.add('mobile-mode');
-      document.body.classList.remove('desktop-mode');
-    }
-  }, [viewMode]);
+    document.body.className = isMobileView ? 'mobile-view' : 'desktop-view';
+  }, [isMobileView]);
 
   const toggleView = () => {
-    const next = viewMode === 'mobile' ? 'desktop' : 'mobile';
-    setViewMode(next);
-    localStorage.setItem('hqf_view_mode', next);
-
-    // Show toast
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-      position: fixed;
-      top: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: ${
-        next === 'desktop'
-          ? 'linear-gradient(135deg,#6366F1,#8B5CF6)'
-          : 'linear-gradient(135deg,#10B981,#34D399)'
-      };
-      color: white;
-      padding: 12px 24px;
-      border-radius: 40px;
-      font-size: 14px;
-      font-weight: 700;
-      z-index: 99999;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-      white-space: nowrap;
-      transition: all 0.3s;
-      opacity: 1;
-    `;
-    toast.textContent =
-      next === 'desktop'
-        ? '🖥️ Переключено на ПК версию'
-        : '📱 Переключено на мобильную версию';
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(-50%) translateY(-10px)';
-      setTimeout(() => toast.remove(), 300);
-    }, 2000);
+    setIsMobileView(prev => {
+      const next = !prev;
+      localStorage.setItem('hqf_view', next ? 'mobile' : 'desktop');
+      setToast(next ? '📱 Мобильная версия' : '🖥️ ПК версия');
+      setTimeout(() => setToast(''), 2000);
+      return next;
+    });
   };
 
   return (
-    <ViewModeContext.Provider
-      value={{
-        viewMode,
-        toggleView,
-        isDesktopMode: viewMode === 'desktop',
-        isMobileMode: viewMode === 'mobile',
-        isMobileDevice
-      }}
-    >
+    <ViewModeContext.Provider value={{ isMobileView, toggleView }}>
       {children}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          top: '72px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+          color: 'white',
+          padding: '10px 24px',
+          borderRadius: '30px',
+          fontSize: '14px',
+          fontWeight: '700',
+          zIndex: 99999,
+          boxShadow: '0 6px 24px rgba(99,102,241,0.45)',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+        }}>
+          {toast}
+        </div>
+      )}
     </ViewModeContext.Provider>
   );
 };

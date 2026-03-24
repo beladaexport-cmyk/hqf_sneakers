@@ -26,6 +26,7 @@ import {
 } from '../services/aiTools';
 import { logAction } from '../services/aiHistory';
 import AIHistoryLog from './AIHistoryLog';
+import { useViewMode } from '../contexts/ViewModeContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -62,6 +63,7 @@ const AIAgent: React.FC = () => {
   const [products, setProducts] = useState<Array<{ id: string; brand: string; model: string; color?: string; sizes?: string[]; sku?: string; [key: string]: unknown }>>([]);
   const [preorders, setPreorders] = useState<Array<{ id: string; [key: string]: unknown }>>([]);
   const conversationEndRef = useRef<HTMLDivElement>(null);
+  const { isMobileView } = useViewMode();
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -416,7 +418,7 @@ const AIAgent: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" style={{ padding: isMobileView ? '16px' : '24px' }}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <Bot className="w-8 h-8 text-indigo-600" />

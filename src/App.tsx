@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useViewMode } from './contexts/ViewModeContext';
 import Login from './components/Login';
@@ -18,7 +18,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, logout } = useAuth();
-  const { toggleView, isMobileDevice, isDesktopMode } = useViewMode();
+  const { isMobileView, toggleView } = useViewMode();
 
   if (!currentUser) {
     return <Login />;
@@ -114,7 +114,8 @@ function AppContent() {
           </div>
 
           {/* NAV LINKS - desktop only */}
-          <div className="hidden md:flex" style={{
+          <div style={{
+            display: isMobileView ? 'none' : 'flex',
             alignItems: 'center',
             gap: '2px',
             flex: 1
@@ -174,38 +175,43 @@ function AppContent() {
           </div>
 
           {/* Mobile menu button + View Toggle */}
-          <div className="md:hidden" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ marginLeft: 'auto', display: isMobileView ? 'flex' : 'none', alignItems: 'center', gap: '8px' }}>
             {/* VIEW TOGGLE BUTTON */}
-            {isMobileDevice && (
-              <button
-                onClick={toggleView}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  border: '1.5px solid',
-                  borderColor: isDesktopMode ? '#C7D2FE' : '#E2E8F0',
-                  backgroundColor: isDesktopMode ? '#EEF2FF' : 'white',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  color: isDesktopMode ? '#6366F1' : '#64748B',
-                  transition: 'all 0.2s',
-                  boxShadow: isDesktopMode
-                    ? '0 2px 8px rgba(99,102,241,0.2)'
-                    : 'none'
-                }}
-              >
-                <span style={{ fontSize: '16px' }}>
-                  {isDesktopMode ? '📱' : '🖥️'}
-                </span>
-                <span>
-                  {isDesktopMode ? 'Моб.' : 'ПК'}
-                </span>
-              </button>
-            )}
+            <button
+              onClick={toggleView}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 12px',
+                borderRadius: '10px',
+                border: '1.5px solid',
+                borderColor: isMobileView ? '#C7D2FE' : '#E2E8F0',
+                backgroundColor: isMobileView ? '#EEF2FF' : 'white',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '700',
+                color: isMobileView ? '#6366F1' : '#64748B',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                boxShadow: isMobileView ? '0 2px 8px rgba(99,102,241,0.25)' : 'none'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#EEF2FF';
+                e.currentTarget.style.borderColor = '#C7D2FE';
+                e.currentTarget.style.color = '#6366F1';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = isMobileView ? '#EEF2FF' : 'white';
+                e.currentTarget.style.borderColor = isMobileView ? '#C7D2FE' : '#E2E8F0';
+                e.currentTarget.style.color = isMobileView ? '#6366F1' : '#64748B';
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>
+                {isMobileView ? '🖥️' : '📱'}
+              </span>
+              {isMobileView ? 'ПК' : 'Моб.'}
+            </button>
 
             {/* HAMBURGER — existing */}
             <button
@@ -228,7 +234,8 @@ function AppContent() {
           </div>
 
           {/* RIGHT SIDE - desktop only */}
-          <div className="hidden md:flex" style={{
+          <div style={{
+            display: isMobileView ? 'none' : 'flex',
             alignItems: 'center',
             gap: '10px',
             flexShrink: 0
@@ -271,14 +278,15 @@ function AppContent() {
                 padding: '7px 12px',
                 borderRadius: '10px',
                 border: '1.5px solid',
-                borderColor: isDesktopMode ? '#E2E8F0' : '#C7D2FE',
-                backgroundColor: !isDesktopMode ? '#EEF2FF' : 'white',
+                borderColor: isMobileView ? '#C7D2FE' : '#E2E8F0',
+                backgroundColor: isMobileView ? '#EEF2FF' : 'white',
                 cursor: 'pointer',
                 fontSize: '13px',
-                fontWeight: '600',
-                color: !isDesktopMode ? '#6366F1' : '#64748B',
+                fontWeight: '700',
+                color: isMobileView ? '#6366F1' : '#64748B',
                 transition: 'all 0.2s',
-                flexShrink: 0
+                flexShrink: 0,
+                boxShadow: isMobileView ? '0 2px 8px rgba(99,102,241,0.25)' : 'none'
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.backgroundColor = '#EEF2FF';
@@ -286,19 +294,16 @@ function AppContent() {
                 e.currentTarget.style.color = '#6366F1';
               }}
               onMouseLeave={e => {
-                const isMob = !isDesktopMode;
-                e.currentTarget.style.backgroundColor = isMob ? '#EEF2FF' : 'white';
-                e.currentTarget.style.borderColor = isMob ? '#C7D2FE' : '#E2E8F0';
-                e.currentTarget.style.color = isMob ? '#6366F1' : '#64748B';
+                e.currentTarget.style.backgroundColor = isMobileView ? '#EEF2FF' : 'white';
+                e.currentTarget.style.borderColor = isMobileView ? '#C7D2FE' : '#E2E8F0';
+                e.currentTarget.style.color = isMobileView ? '#6366F1' : '#64748B';
               }}
               title="Переключить вид"
             >
               <span style={{ fontSize: '16px' }}>
-                {isDesktopMode ? '📱' : '🖥️'}
+                {isMobileView ? '🖥️' : '📱'}
               </span>
-              <span>
-                {isDesktopMode ? 'Моб.' : 'ПК'}
-              </span>
+              {isMobileView ? 'ПК' : 'Моб.'}
             </button>
 
             {/* Logout button */}
@@ -337,18 +342,31 @@ function AppContent() {
       </div>
 
       {/* Mobile overlay */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && isMobileView && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-30 md:hidden"
-          style={{ zIndex: 101 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            zIndex: 101
+          }}
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
+      {isMobileView && (
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-xl transform transition-transform duration-300 md:hidden ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        style={{ zIndex: 102 }}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100%',
+          width: '256px',
+          backgroundColor: 'white',
+          boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+          transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease',
+          zIndex: 102
+        }}
       >
         <div style={{
           display: 'flex',
@@ -442,94 +460,33 @@ function AppContent() {
           </button>
         </div>
       </aside>
+      )}
 
       {/* Main Content */}
       <main>
         <div style={{
-          maxWidth: (isDesktopMode || !isMobileDevice) ? '1400px' : '100%',
-          margin: (isDesktopMode || !isMobileDevice) ? '0 auto' : '0',
-          padding: (isDesktopMode || !isMobileDevice) ? '24px' : '0',
+          minWidth: isMobileView ? 'auto' : '1280px',
+          overflowX: isMobileView ? 'hidden' : 'visible',
           width: '100%'
         }}>
-          {renderContent()}
+          <div style={{
+            maxWidth: isMobileView ? '100%' : '1400px',
+            margin: '0 auto',
+            padding: isMobileView ? '0' : '0 24px',
+            width: '100%'
+          }}>
+            {renderContent()}
+          </div>
         </div>
       </main>
 
-      {/* FLOATING VIEW TOGGLE */}
-      {isMobileDevice && (
-        <div style={{
-          position: 'fixed',
-          bottom: '80px',
-          right: '16px',
-          zIndex: 999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '6px'
-        }}>
-          <div style={{
-            fontSize: '10px',
-            fontWeight: '700',
-            color: isDesktopMode ? '#6366F1' : '#94A3B8',
-            backgroundColor: 'white',
-            padding: '2px 8px',
-            borderRadius: '20px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            whiteSpace: 'nowrap'
-          }}>
-            {isDesktopMode ? '🖥️ ПК режим' : '📱 Моб. режим'}
-          </div>
-          <button
-            onClick={toggleView}
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '16px',
-              border: 'none',
-              background: isDesktopMode
-                ? 'linear-gradient(135deg,#6366F1,#8B5CF6)'
-                : 'linear-gradient(135deg,#64748B,#94A3B8)',
-              color: 'white',
-              fontSize: '22px',
-              cursor: 'pointer',
-              boxShadow: isDesktopMode
-                ? '0 6px 20px rgba(99,102,241,0.5)'
-                : '0 4px 14px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'scale(1.1)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
-          >
-            {isDesktopMode ? '📱' : '🖥️'}
-          </button>
-        </div>
-      )}
-
       {/* MOBILE BOTTOM NAVIGATION */}
-      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} isMobileView={isMobileView} />
     </div>
   );
 }
 
-function MobileBottomNav({ activeTab, setActiveTab }: { activeTab: Tab; setActiveTab: (t: Tab) => void }) {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  if (!isMobile) return null;
-
+function MobileBottomNav({ activeTab, setActiveTab, isMobileView }: { activeTab: Tab; setActiveTab: (t: Tab) => void; isMobileView: boolean }) {
   const items: { id: Tab; icon: string; label: string }[] = [
     { id: 'dashboard', icon: '📊', label: 'Дашборд' },
     { id: 'catalog', icon: '👟', label: 'Каталог' },
@@ -549,7 +506,7 @@ function MobileBottomNav({ activeTab, setActiveTab }: { activeTab: Tab; setActiv
       borderTop: '1px solid #F1F5F9',
       boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
       zIndex: 1000,
-      display: 'flex',
+      display: isMobileView ? 'flex' : 'none',
       alignItems: 'center',
       justifyContent: 'space-around',
       padding: '0 4px',

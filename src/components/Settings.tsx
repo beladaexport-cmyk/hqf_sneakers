@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, Preorder, Supplier } from '../types';
+import { useViewMode } from '../contexts/ViewModeContext';
 
 const Settings: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -9,6 +10,7 @@ const Settings: React.FC = () => {
   const { data: sales } = useFirestore<Sale>('sales');
   const { data: preorders } = useFirestore<Preorder>('preorders');
   const { data: suppliers } = useFirestore<Supplier>('suppliers');
+  const { isMobileView } = useViewMode();
 
   const handleLogout = () => {
     logout();
@@ -233,7 +235,7 @@ const Settings: React.FC = () => {
   );
 
   return (
-    <div style={{maxWidth:'900px', margin:'0 auto', padding:'16px'}}>
+    <div style={{maxWidth:'900px', margin:'0 auto', padding: isMobileView ? '16px' : '24px'}}>
 
       <div style={{
         display:'flex',
@@ -324,7 +326,7 @@ const Settings: React.FC = () => {
       {/* TWO COLUMN LAYOUT */}
       <div style={{
         display:'grid',
-        gridTemplateColumns:'1fr 1fr',
+        gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr',
         gap:'16px',
         alignItems:'start'
       }}>

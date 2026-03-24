@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Supplier, Product, Preorder } from '../types';
+import { useViewMode } from '../contexts/ViewModeContext';
 
 const emptySupplier: Omit<Supplier, 'id'> = {
   name: '',
@@ -123,6 +124,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ initial, onSave, onCancel, 
 };
 
 const Suppliers: React.FC = () => {
+  const { isMobileView } = useViewMode();
   const { data: suppliers, loading, add, update, remove } = useFirestore<Supplier>('suppliers');
   const { data: products } = useFirestore<Product>('products');
   const { data: preorders } = useFirestore<Preorder>('preorders');
@@ -155,7 +157,7 @@ const Suppliers: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" style={{ padding: isMobileView ? '16px' : '24px' }}>
       {/* Header */}
       <div style={{
         display:'flex',

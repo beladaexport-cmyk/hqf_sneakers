@@ -117,36 +117,33 @@ body {
   }
 }
 
-/* ═══ DESKTOP MODE on mobile device ═══ */
-body.desktop-mode {
-  min-width: 1200px !important;
-  overflow-x: auto !important;
+/* ═══ DESKTOP VIEW (toggle) ═══ */
+body.desktop-view * {
+  box-sizing: border-box;
 }
 
-body.desktop-mode .page-content {
-  padding: 24px !important;
-  max-width: 1400px !important;
-  margin: 0 auto !important;
+body.desktop-view .page-wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
 }
 
-body.desktop-mode #mobileBottomNav {
+body.desktop-view .bottom-nav {
   display: none !important;
 }
 
-body.desktop-mode .desktop-nav-links {
-  display: flex !important;
-}
-
-body.desktop-mode h1 {
-  font-size: 28px !important;
-}
-
-body.desktop-mode [class*="grid"] {
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
-}
-
-/* ═══ MOBILE MODE ═══ */
-body.mobile-mode {
+/* ═══ MOBILE VIEW (toggle) ═══ */
+body.mobile-view {
   min-width: unset !important;
   overflow-x: hidden !important;
+}
+
+body.mobile-view .page-wrap {
+  max-width: 100%;
+  padding: 16px;
+  padding-bottom: 80px;
+}
+
+body.mobile-view .bottom-nav {
+  display: flex !important;
 }
