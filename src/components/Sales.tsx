@@ -1020,145 +1020,282 @@ const Sales: React.FC = () => {
             gap: '16px',
             marginTop: '16px'
           }}>
-          {filteredSales.map((sale) => {
-            const status: SaleStatus = sale.status ?? 'completed';
-            const isCancelled = status === 'cancelled';
-            const productImage = getSaleProductImage(sale);
-            const dm = sale.deliveryMethod ?? 'in_person';
+          {[...filteredSales]
+            .sort((a, b) => {
+              const order: Record<string, number> = {
+                'pending': 0,
+                'в процессе': 0,
+                'inprocess': 0,
+                'completed': 1,
+                'завершена': 1,
+                'cancelled': 2,
+                'отменена': 2
+              };
+              return (
+                order[a.status?.toLowerCase()] ?? 1
+              ) - (
+                order[b.status?.toLowerCase()] ?? 1
+              );
+            })
+            .map((sale) => {
+
+            const isCompleted =
+              sale.status === 'completed';
+            const isCancelled =
+              sale.status === 'cancelled';
+            const isInProcess =
+              !isCompleted && !isCancelled;
+
+            const saleImage = getSaleProductImage(sale);
+
+            const sizeMatch =
+              sale.productName?.match(
+                /\((\d+\.?\d*)\)/
+              );
+            const sizeDisplay =
+              sizeMatch ? sizeMatch[1] : null;
+
+            const cleanName = (
+              sale.productName || ''
+            ).replace(/\s*\(\d+\.?\d*\)\s*$/, '');
 
             return (
               <div
                 key={sale.id}
                 style={{
                   backgroundColor: 'white',
-                  borderRadius: '16px',
+                  borderRadius: '20px',
                   overflow: 'hidden',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  border: '1px solid #F1F5F9',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'pointer',
-                  opacity: isCancelled ? 0.75 : 1,
+                  boxShadow: isCompleted
+                    ? '0 4px 20px rgba(16,185,129,0.15)'
+                    : isInProcess
+                    ? '0 4px 20px rgba(99,102,241,0.15)'
+                    : '0 2px 8px rgba(0,0,0,0.06)',
+                  border: isCompleted
+                    ? '2px solid #A7F3D0'
+                    : isInProcess
+                    ? '2px solid #C7D2FE'
+                    : '2px solid #FECACA',
+                  transition: 'all 0.25s ease'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+                  e.currentTarget.style.transform =
+                    'translateY(-4px)';
+                  e.currentTarget.style.boxShadow =
+                    isCompleted
+                      ? '0 16px 40px rgba(16,185,129,0.22)'
+                      : isInProcess
+                      ? '0 16px 40px rgba(99,102,241,0.2)'
+                      : '0 12px 32px rgba(0,0,0,0.1)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                  e.currentTarget.style.transform =
+                    'translateY(0)';
+                  e.currentTarget.style.boxShadow =
+                    isCompleted
+                      ? '0 4px 20px rgba(16,185,129,0.15)'
+                      : isInProcess
+                      ? '0 4px 20px rgba(99,102,241,0.15)'
+                      : '0 2px 8px rgba(0,0,0,0.06)';
                 }}
               >
-                {/* TOP — Image + Status */}
+                {/* IMAGE */}
                 <div style={{
                   position: 'relative',
-                  backgroundColor: '#F8FAFC',
-                  height: '180px',
+                  height: '200px',
+                  backgroundColor: isCompleted
+                    ? '#F0FDF4'
+                    : isInProcess
+                    ? '#EEF2FF'
+                    : '#FEF2F2',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  overflow: 'hidden'
                 }}>
-                  {/* Product Image */}
-                  {productImage ? (
+                  {saleImage ? (
                     <img
-                      src={productImage}
-                      alt={sale.productName}
+                      src={saleImage}
+                      alt={cleanName}
                       style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover'
+                        objectFit: 'cover',
+                        transition: 'transform 0.3s'
                       }}
+                      onMouseEnter={e =>
+                        (e.target as HTMLImageElement).style.transform =
+                          'scale(1.05)'
+                      }
+                      onMouseLeave={e =>
+                        (e.target as HTMLImageElement).style.transform =
+                          'scale(1)'
+                      }
                     />
                   ) : (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <span style={{ fontSize: '48px' }}>👟</span>
-                      <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '500' }}>Нет фото</span>
-                    </div>
+                    <span style={{fontSize:'56px'}}>
+                      👟
+                    </span>
                   )}
 
-                  {/* Status badge top right */}
+                  {/* STATUS */}
                   <div style={{
                     position: 'absolute',
                     top: '10px',
                     right: '10px',
-                    padding: '4px 10px',
+                    padding: '5px 12px',
                     borderRadius: '20px',
                     fontSize: '11px',
-                    fontWeight: '700',
-                    backgroundColor:
-                      status === 'completed' ? '#D1FAE5'
-                      : status === 'cancelled' ? '#FEE2E2'
-                      : '#FEF3C7',
-                    color:
-                      status === 'completed' ? '#065F46'
-                      : status === 'cancelled' ? '#991B1B'
-                      : '#92400E'
+                    fontWeight: '800',
+                    backdropFilter: 'blur(8px)',
+                    backgroundColor: isCompleted
+                      ? 'rgba(16,185,129,0.92)'
+                      : isInProcess
+                      ? 'rgba(251,191,36,0.95)'
+                      : 'rgba(239,68,68,0.88)',
+                    color: 'white',
+                    boxShadow:
+                      '0 2px 10px rgba(0,0,0,0.2)'
                   }}>
-                    {status === 'completed'
+                    {isCompleted
                       ? '✅ Завершена'
-                      : status === 'cancelled'
-                      ? '❌ Отменена'
-                      : '🕐 В процессе'}
+                      : isInProcess
+                      ? '⏳ В процессе'
+                      : '❌ Отменена'}
                   </div>
 
-                  {/* Date top left */}
+                  {/* DATE */}
                   <div style={{
                     position: 'absolute',
                     top: '10px',
                     left: '10px',
-                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    backgroundColor:
+                      'rgba(255,255,255,0.92)',
                     borderRadius: '8px',
                     padding: '3px 8px',
                     fontSize: '11px',
                     fontWeight: '600',
-                    color: '#64748B'
+                    color: '#64748B',
+                    backdropFilter: 'blur(8px)'
                   }}>
                     {new Date(sale.date).toLocaleDateString('ru-RU')}
                   </div>
+
+                  {/* SIZE */}
+                  {sizeDisplay && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '10px',
+                      left: '10px',
+                      backgroundColor: '#0F172A',
+                      color: 'white',
+                      borderRadius: '10px',
+                      padding: '6px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      boxShadow:
+                        '0 4px 14px rgba(0,0,0,0.35)'
+                    }}>
+                      <span style={{
+                        fontSize: '9px',
+                        fontWeight: '700',
+                        color: '#64748B',
+                        letterSpacing: '1.5px'
+                      }}>
+                        EU
+                      </span>
+                      <span style={{
+                        fontSize: '17px',
+                        fontWeight: '900',
+                        letterSpacing: '0.5px'
+                      }}>
+                        {sizeDisplay}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* DELIVERY */}
+                  {sale.deliveryMethod && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '10px',
+                      right: '10px',
+                      backgroundColor:
+                        'rgba(255,255,255,0.92)',
+                      borderRadius: '8px',
+                      padding: '4px 9px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#475569',
+                      backdropFilter: 'blur(8px)'
+                    }}>
+                      {sale.deliveryMethod === 'mail'
+                        ? '📦 Почта'
+                        : '🤝 Лично'}
+                    </div>
+                  )}
+
+                  {/* BOTTOM STRIP */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: '3px',
+                    background: isCompleted
+                      ? 'linear-gradient(90deg,#10B981,#34D399)'
+                      : isInProcess
+                      ? 'linear-gradient(90deg,#6366F1,#818CF8)'
+                      : 'linear-gradient(90deg,#EF4444,#FCA5A5)'
+                  }} />
                 </div>
 
-                {/* BOTTOM — Info */}
-                <div style={{ padding: '14px' }}>
+                {/* BODY */}
+                <div style={{padding: '14px 16px'}}>
 
-                  {/* Product name */}
+                  {/* Name */}
                   <div style={{
                     fontSize: '15px',
-                    fontWeight: '700',
-                    color: '#1E293B',
-                    marginBottom: '4px',
+                    fontWeight: '800',
+                    color: '#0F172A',
+                    marginBottom: '3px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    textDecoration: isCancelled ? 'line-through' : 'none'
+                    letterSpacing: '-0.2px'
                   }}>
-                    {sale.productName}
+                    {cleanName}
                   </div>
 
                   {/* Color + SKU */}
                   <div style={{
-                    fontSize: '12px',
-                    color: '#94A3B8',
+                    display: 'flex',
+                    gap: '6px',
                     marginBottom: '10px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
+                    flexWrap: 'wrap'
                   }}>
                     {sale.productColor && (
-                      <span>{sale.productColor}</span>
-                    )}
-                    {(sale.productModelArticle || sale.productSku) && (
                       <span style={{
-                        marginLeft: '6px',
-                        backgroundColor: '#F1F5F9',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        fontFamily: 'monospace'
+                        fontSize: '12px',
+                        color: '#94A3B8'
                       }}>
-                        {sale.productModelArticle || sale.productSku}
+                        {sale.productColor}
+                      </span>
+                    )}
+                    {(sale.productModelArticle ||
+                      sale.productSku) && (
+                      <span style={{
+                        fontSize: '11px',
+                        fontFamily: 'monospace',
+                        backgroundColor: '#F1F5F9',
+                        color: '#64748B',
+                        padding: '1px 6px',
+                        borderRadius: '5px',
+                        fontWeight: '600'
+                      }}>
+                        {sale.productModelArticle ||
+                         sale.productSku}
                       </span>
                     )}
                   </div>
@@ -1167,210 +1304,156 @@ const Sales: React.FC = () => {
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    marginBottom: '12px',
-                    fontSize: '13px',
-                    color: '#475569'
+                    gap: '8px',
+                    padding: '8px 10px',
+                    backgroundColor: '#F8FAFC',
+                    borderRadius: '10px',
+                    border: '1px solid #E2E8F0',
+                    marginBottom: '12px'
                   }}>
-                    <span>👤</span>
+                    <span style={{fontSize:'14px'}}>
+                      👤
+                    </span>
                     <span style={{
-                      fontWeight: '500',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      flex: 1,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
                     }}>
                       {sale.customer || 'Покупатель'}
                     </span>
-                    <span style={{
-                      marginLeft: 'auto',
-                      fontSize: '11px',
-                      backgroundColor: '#F1F5F9',
-                      padding: '2px 7px',
-                      borderRadius: '6px',
-                      color: '#64748B',
-                      flexShrink: 0
-                    }}>
-                      {dm === 'mail' ? '✉️ Почта' : dm === 'courier' ? '🚚 Курьер' : '🤝 Лично'}
-                    </span>
                   </div>
 
-                  {/* Cancellation reason if cancelled */}
-                  {isCancelled && sale.cancellationReason && (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: '6px',
-                      fontSize: '12px', color: '#EF4444', marginBottom: '12px',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                    }} title={sale.cancellationReason}>
-                      <span>💬</span>
-                      <span>{sale.cancellationReason}</span>
-                    </div>
-                  )}
-
-                  {/* Divider */}
-                  <div style={{
-                    height: '1px',
-                    backgroundColor: '#F1F5F9',
-                    marginBottom: '12px'
-                  }} />
-
-                  {/* Price stats */}
+                  {/* PRICES */}
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr 1fr',
-                    gap: '8px',
+                    gap: '6px',
                     marginBottom: '12px'
                   }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{
-                        fontSize: '15px',
-                        fontWeight: '700',
-                        color: isCancelled ? '#94A3B8' : '#1E293B',
-                        textDecoration: isCancelled ? 'line-through' : 'none'
-                      }}>
-                        {sale.price.toLocaleString('ru-RU')} Br
+                    {[
+                      {
+                        val: sale.price,
+                        label: 'ЦЕНА',
+                        bg: '#F8FAFC',
+                        color: '#1E293B',
+                        border: '#E2E8F0'
+                      },
+                      {
+                        val: `+${sale.profit ?? 0}`,
+                        label: 'ПРИБЫЛЬ',
+                        bg: '#F0FDF4',
+                        color: '#10B981',
+                        border: '#A7F3D0'
+                      },
+                      {
+                        val: sale.total,
+                        label: 'ИТОГО',
+                        bg: '#EEF2FF',
+                        color: '#6366F1',
+                        border: '#C7D2FE'
+                      }
+                    ].map(item => (
+                      <div
+                        key={item.label}
+                        style={{
+                          backgroundColor: item.bg,
+                          borderRadius: '10px',
+                          padding: '8px 4px',
+                          textAlign: 'center',
+                          border:
+                            `1px solid ${item.border}`
+                        }}
+                      >
+                        <div style={{
+                          fontSize: '13px',
+                          fontWeight: '800',
+                          color: item.color
+                        }}>
+                          {item.val} Br
+                        </div>
+                        <div style={{
+                          fontSize: '9px',
+                          color: '#94A3B8',
+                          fontWeight: '700',
+                          marginTop: '2px',
+                          letterSpacing: '0.5px'
+                        }}>
+                          {item.label}
+                        </div>
                       </div>
-                      <div style={{
-                        fontSize: '10px',
-                        color: '#94A3B8',
-                        fontWeight: '500',
-                        marginTop: '2px'
-                      }}>
-                        ЦЕНА
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{
-                        fontSize: '15px',
-                        fontWeight: '700',
-                        color: isCancelled ? '#94A3B8' : '#10B981'
-                      }}>
-                        +{(sale.profit ?? 0).toLocaleString('ru-RU')} Br
-                      </div>
-                      <div style={{
-                        fontSize: '10px',
-                        color: '#94A3B8',
-                        fontWeight: '500',
-                        marginTop: '2px'
-                      }}>
-                        ПРИБЫЛЬ
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{
-                        fontSize: '15px',
-                        fontWeight: '700',
-                        color: isCancelled ? '#94A3B8' : '#6366F1',
-                        textDecoration: isCancelled ? 'line-through' : 'none'
-                      }}>
-                        {sale.total.toLocaleString('ru-RU')} Br
-                      </div>
-                      <div style={{
-                        fontSize: '10px',
-                        color: '#94A3B8',
-                        fontWeight: '500',
-                        marginTop: '2px'
-                      }}>
-                        ИТОГО
-                      </div>
-                    </div>
+                    ))}
                   </div>
 
-                  {/* Action buttons */}
+                  {/* BUTTONS */}
                   <div style={{
                     display: 'flex',
                     gap: '8px'
                   }}>
-                    {/* Edit */}
-                    <button
-                      onClick={() => setEditSaleData(sale)}
-                      style={{
-                        flex: 1,
-                        padding: '8px',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '8px',
-                        backgroundColor: 'white',
-                        color: '#64748B',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      ✏️ Изменить
-                    </button>
-
-                    {/* Complete - only if pending */}
-                    {status === 'pending' && (
+                    {isInProcess && (
                       <button
-                        onClick={() => handleCompleteSale(sale.id)}
+                        onClick={() =>
+                          handleCompleteSale(sale.id)
+                        }
                         style={{
                           flex: 1,
-                          padding: '8px',
+                          padding: '10px',
                           border: 'none',
-                          borderRadius: '8px',
+                          borderRadius: '10px',
                           backgroundColor: '#D1FAE5',
                           color: '#065F46',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
                         }}
                       >
                         ✅ Завершить
                       </button>
                     )}
-
-                    {/* Cancel */}
-                    {(status === 'pending' || status === 'completed') && (
-                      <button
-                        onClick={() => setCancelSale(sale)}
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          border: 'none',
-                          borderRadius: '8px',
-                          backgroundColor: '#FEE2E2',
-                          color: '#EF4444',
-                          fontSize: '16px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}
-                      >
-                        🗑
-                      </button>
-                    )}
-
-                    {/* Delete permanently - only if cancelled */}
-                    {status === 'cancelled' && (
-                      <button
-                        onClick={() => setDeleteConfirmSale(sale)}
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          border: 'none',
-                          borderRadius: '8px',
-                          backgroundColor: '#FEE2E2',
-                          color: '#EF4444',
-                          fontSize: '16px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}
-                      >
-                        🗑
-                      </button>
-                    )}
+                    <button
+                      onClick={() =>
+                        setEditSaleData(sale)
+                      }
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        border: '1.5px solid #E2E8F0',
+                        borderRadius: '10px',
+                        backgroundColor: 'white',
+                        color: '#475569',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✏️ Изменить
+                    </button>
+                    <button
+                      onClick={() =>
+                        isCancelled
+                          ? setDeleteConfirmSale(sale)
+                          : setCancelSale(sale)
+                      }
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        border: 'none',
+                        borderRadius: '10px',
+                        backgroundColor: '#FEF2F2',
+                        color: '#EF4444',
+                        fontSize: '15px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
               </div>
