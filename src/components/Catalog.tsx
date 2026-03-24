@@ -519,6 +519,7 @@ const Catalog: React.FC = () => {
     quantity: 1,
     purchasePrice: '' as string | number,
   });
+  const [showReservedOnly, setShowReservedOnly] = useState(false);
 
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups(prev => {
@@ -542,7 +543,8 @@ const Catalog: React.FC = () => {
       p.sku.toLowerCase().includes(q) ||
       (p.modelArticle?.toLowerCase().includes(q) ?? false);
     const matchesSupplier = !selectedSupplier || (p.supplier || '') === selectedSupplier;
-    return matchesSearch && matchesSupplier;
+    const matchesReserved = !showReservedOnly || p.isReserved === true;
+    return matchesSearch && matchesSupplier && matchesReserved;
   });
 
   const handleAdd = async (data: Omit<Product, 'id'>) => {
@@ -689,7 +691,7 @@ const Catalog: React.FC = () => {
       </div>
 
       {/* View toggle */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <button
           onClick={() => setViewMode('cards')}
           style={{
@@ -719,6 +721,23 @@ const Catalog: React.FC = () => {
           }}
         >
           ☰ Таблица
+        </button>
+        <button
+          onClick={() => setShowReservedOnly(!showReservedOnly)}
+          style={{
+            padding: '6px 14px',
+            backgroundColor: showReservedOnly ? '#6366F1' : '#F1F5F9',
+            color: showReservedOnly ? 'white' : '#475569',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: showReservedOnly ? '700' : '500',
+            marginLeft: 'auto',
+            boxShadow: showReservedOnly ? '0 2px 8px rgba(99,102,241,0.3)' : 'none',
+          }}
+        >
+          🔒 Резерв
         </button>
       </div>
 
@@ -877,6 +896,29 @@ const Catalog: React.FC = () => {
                             {isInStock ? '✓' : '✕'} {totalQuantity} шт.
                           </div>
 
+                          {/* RESERVED BADGE */}
+                          {first.isReserved && (
+                            <div style={{
+                              position:'absolute',
+                              top:'10px',
+                              left:'10px',
+                              padding:'4px 10px',
+                              backgroundColor:'#6366F1',
+                              borderRadius:'20px',
+                              fontSize:'11px',
+                              fontWeight:'700',
+                              color:'white',
+                              display:'flex',
+                              alignItems:'center',
+                              gap:'4px',
+                              boxShadow:'0 2px 8px rgba(99,102,241,0.4)',
+                              zIndex:2,
+                              marginTop:'32px'
+                            }}>
+                              🔒 Зарезервировано
+                            </div>
+                          )}
+
                           {/* PACKAGE TYPE - top right */}
                           {first.supplier && !mainImage && (
                             <div style={{
@@ -924,6 +966,43 @@ const Catalog: React.FC = () => {
                           }}>
                             {first.brand} {first.model}
                           </div>
+
+                          {/* BUYER TAG */}
+                          {(first.buyerTag || first.reservedFor || first.forWho) && (
+                            <div style={{
+                              display:'inline-flex',
+                              alignItems:'center',
+                              gap:'5px',
+                              padding:'4px 10px',
+                              backgroundColor:'#EEF2FF',
+                              border:'1px solid #C7D2FE',
+                              borderRadius:'20px',
+                              marginBottom:'8px',
+                              maxWidth:'100%'
+                            }}>
+                              <span style={{fontSize:'12px'}}>👤</span>
+                              <span style={{
+                                fontSize:'11px',
+                                fontWeight:'700',
+                                color:'#6366F1',
+                                whiteSpace:'nowrap',
+                                overflow:'hidden',
+                                textOverflow:'ellipsis',
+                                maxWidth:'140px'
+                              }}>
+                                {first.buyerTag ||
+                                 first.reservedFor ||
+                                 (() => {
+                                   const raw = first.forWho || '';
+                                   if (raw.includes('instagram.com/')) {
+                                     const u = raw.split('instagram.com/')[1]?.split('/')[0]?.split('?')[0];
+                                     return u ? `@${u}` : raw;
+                                   }
+                                   return raw;
+                                 })()}
+                              </span>
+                            </div>
+                          )}
 
                           {/* Color */}
                           <div style={{

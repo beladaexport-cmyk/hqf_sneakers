@@ -168,3 +168,20 @@ body.mobile-view .page-wrap {
 body.mobile-view .bottom-nav {
   display: flex !important;
 }
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

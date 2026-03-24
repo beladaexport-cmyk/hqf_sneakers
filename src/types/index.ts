@@ -26,6 +26,12 @@ export interface Product {
   images?: string[];
   sizes?: string[];
   variants?: ProductVariant[];
+  buyerTag?: string;
+  reservedFor?: string;
+  forWho?: string;
+  isReserved?: boolean;
+  preorderId?: string;
+  addedFromPreorder?: boolean;
 }
 
 // New model-based architecture
@@ -70,6 +76,9 @@ export interface Preorder {
   image?: string;
   createdAt: string;
   arrivedAt?: string;
+  forWho?: string;
+  catalogProductId?: string;
+  addedToCatalog?: boolean;
 }
 
 export type DeliveryMethod = 'mail' | 'in_person' | 'courier';
