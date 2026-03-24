@@ -654,7 +654,27 @@ const Catalog: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-900">Каталог товаров</h2>
+        <h2 className="text-xl font-semibold text-gray-900">
+          Каталог товаров
+          {(() => {
+            const inStockCount = products.filter(p => (p.quantity || 0) > 0).length;
+            return inStockCount > 0 ? (
+              <span style={{
+                marginLeft: '12px',
+                fontSize: '13px',
+                fontWeight: '600',
+                backgroundColor: '#ECFDF5',
+                color: '#065F46',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                border: '1px solid #A7F3D0',
+                verticalAlign: 'middle'
+              }}>
+                ✓ {inStockCount} в наличии
+              </span>
+            ) : null;
+          })()}
+        </h2>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setShowBulkForm(true)}
@@ -733,8 +753,23 @@ const Catalog: React.FC = () => {
       {viewMode === 'cards' ? (
         /* Card Grid View */
         filtered.length === 0 ? (
-          <div style={{ padding: '32px', textAlign: 'center', color: '#9CA3AF' }}>
-            {products.length === 0 ? 'Товаров нет. Добавьте первый!' : 'Ничего не найдено'}
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: '#94A3B8'
+          }}>
+            <div style={{ fontSize: '64px' }}>👟</div>
+            <div style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              marginTop: '16px',
+              color: '#475569'
+            }}>
+              {products.length === 0 ? 'Товаров нет' : 'Товаров не найдено'}
+            </div>
+            <div style={{ fontSize: '14px', marginTop: '4px' }}>
+              {products.length === 0 ? 'Добавьте первый товар!' : 'Попробуй изменить поиск'}
+            </div>
           </div>
         ) : (
           (() => {
@@ -744,6 +779,14 @@ const Catalog: React.FC = () => {
               if (!groupMap[key]) groupMap[key] = [];
               groupMap[key].push(p);
             }
+            // Sort groups: in-stock first
+            const sortedEntries = Object.entries(groupMap).sort((a, b) => {
+              const aQty = a[1].reduce((s, p) => s + p.quantity, 0);
+              const bQty = b[1].reduce((s, p) => s + p.quantity, 0);
+              if (bQty > 0 && aQty === 0) return 1;
+              if (aQty > 0 && bQty === 0) return -1;
+              return 0;
+            });
             return (
               <div style={{
                 display: 'grid',
@@ -751,10 +794,11 @@ const Catalog: React.FC = () => {
                 gap: '16px',
                 padding: '16px 0',
               }}>
-                {Object.entries(groupMap).map(([key, items]) => {
+                {sortedEntries.map(([key, items]) => {
                   const first = items[0];
                   const isExpanded = expandedGroups.has(key);
                   const totalQuantity = items.reduce((s, p) => s + p.quantity, 0);
+                  const isInStock = totalQuantity > 0;
                   const sizes = items.map(p => p.size);
                   const prices = items.map(p => p.retailPrice);
                   const minPrice = Math.min(...prices);
@@ -762,48 +806,63 @@ const Catalog: React.FC = () => {
                   const priceRange = minPrice === maxPrice
                     ? `${minPrice.toLocaleString('ru-RU')} Br`
                     : `${minPrice.toLocaleString('ru-RU')}–${maxPrice.toLocaleString('ru-RU')} Br`;
+                  const mainImage = first.images?.[0] || null;
                   return (
                     <div key={key}>
                       <div
                         style={{
                           backgroundColor: 'white',
-                          borderRadius: '16px',
-                          border: '1px solid #E2E8F0',
+                          borderRadius: '20px',
                           overflow: 'hidden',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                          transition: 'all 0.2s ease',
+                          boxShadow: isInStock
+                            ? '0 4px 20px rgba(16,185,129,0.12)'
+                            : '0 2px 8px rgba(0,0,0,0.06)',
+                          border: isInStock
+                            ? '2px solid #A7F3D0'
+                            : '2px solid #F1F5F9',
+                          transition: 'all 0.25s ease',
+                          position: 'relative',
                           cursor: 'pointer',
                         }}
                         onMouseEnter={e => {
-                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.transform = 'translateY(-4px)';
+                          e.currentTarget.style.boxShadow = isInStock
+                            ? '0 12px 40px rgba(16,185,129,0.2)'
+                            : '0 12px 32px rgba(0,0,0,0.12)';
                         }}
                         onMouseLeave={e => {
-                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
                           e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = isInStock
+                            ? '0 4px 20px rgba(16,185,129,0.12)'
+                            : '0 2px 8px rgba(0,0,0,0.06)';
                         }}
                       >
-                        {/* Photo section */}
+                        {/* IMAGE AREA */}
                         <div style={{
-                          width: '100%',
-                          height: '220px',
-                          backgroundColor: '#F8FAFC',
                           position: 'relative',
-                          overflow: 'hidden',
+                          height: '200px',
+                          backgroundColor: isInStock ? '#F0FDF4' : '#F8FAFC',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden'
                         }}>
-                          {first.images && first.images.length > 0 ? (
+                          {mainImage ? (
                             <>
                               <img
-                                src={first.images[0]}
+                                src={mainImage}
                                 alt={first.model}
                                 style={{
                                   width: '100%',
                                   height: '100%',
                                   objectFit: 'cover',
+                                  transition: 'transform 0.3s'
                                 }}
-                                onClick={() => setZoomedImage(first.images![0])}
+                                onMouseEnter={e => (e.target as HTMLImageElement).style.transform = 'scale(1.05)'}
+                                onMouseLeave={e => (e.target as HTMLImageElement).style.transform = 'scale(1)'}
+                                onClick={() => setZoomedImage(mainImage)}
                               />
-                              {first.images.length > 1 && (
+                              {first.images && first.images.length > 1 && (
                                 <div style={{
                                   position: 'absolute',
                                   top: '8px',
@@ -819,48 +878,77 @@ const Catalog: React.FC = () => {
                               )}
                             </>
                           ) : (
-                            <div style={{
-                              width: '100%',
-                              height: '100%',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: '#F1F5F9',
-                            }}>
-                              <span style={{ fontSize: '48px' }}>👟</span>
-                              <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '8px' }}>
-                                Нет фото
-                              </span>
-                            </div>
+                            <span style={{ fontSize: '56px' }}>👟</span>
                           )}
-                          {/* Stock badge */}
+
+                          {/* STOCK BADGE - top left */}
                           <div style={{
                             position: 'absolute',
-                            top: '8px',
-                            left: '8px',
-                            backgroundColor: totalQuantity === 0 ? '#FEE2E2' : '#DCFCE7',
-                            color: totalQuantity === 0 ? '#EF4444' : '#16A34A',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
+                            top: '12px',
+                            left: '12px',
+                            padding: '5px 12px',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: '800',
+                            backdropFilter: 'blur(8px)',
+                            backgroundColor: isInStock
+                              ? 'rgba(16,185,129,0.9)'
+                              : 'rgba(239,68,68,0.85)',
+                            color: 'white',
+                            boxShadow: isInStock
+                              ? '0 2px 8px rgba(16,185,129,0.4)'
+                              : '0 2px 8px rgba(239,68,68,0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}>
-                            {totalQuantity === 0 ? '0 шт.' : `${totalQuantity} шт.`}
+                            {isInStock ? '✓' : '✕'} {totalQuantity} шт.
                           </div>
+
+                          {/* PACKAGE TYPE - top right */}
+                          {first.supplier && !mainImage && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '12px',
+                              right: '12px',
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              backgroundColor: 'rgba(255,255,255,0.92)',
+                              color: '#475569',
+                              backdropFilter: 'blur(8px)',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                            }}>
+                              📦 {first.supplier}
+                            </div>
+                          )}
+
+                          {/* IN STOCK GREEN GLOW STRIP */}
+                          {isInStock && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '0',
+                              left: '0',
+                              right: '0',
+                              height: '3px',
+                              background: 'linear-gradient(90deg, #10B981, #34D399)'
+                            }} />
+                          )}
                         </div>
 
-                        {/* Info section */}
-                        <div style={{ padding: '12px' }}>
+                        {/* CARD BODY */}
+                        <div style={{ padding: '14px 16px' }}>
                           {/* Brand + Model */}
                           <div style={{
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            color: '#1E293B',
-                            marginBottom: '4px',
+                            fontSize: '15px',
+                            fontWeight: '800',
+                            color: '#0F172A',
+                            marginBottom: '3px',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
+                            letterSpacing: '-0.2px'
                           }}>
                             {first.brand} {first.model}
                           </div>
@@ -868,145 +956,202 @@ const Catalog: React.FC = () => {
                           {/* Color */}
                           <div style={{
                             fontSize: '12px',
-                            color: '#64748B',
-                            marginBottom: '8px',
+                            color: '#94A3B8',
+                            marginBottom: '12px',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            textOverflow: 'ellipsis'
                           }}>
                             {first.color}
                           </div>
 
-                          {/* Sizes */}
+                          {/* SIZES — redesigned */}
                           <div style={{
                             display: 'flex',
                             flexWrap: 'wrap',
-                            gap: '6px',
-                            marginBottom: '8px',
+                            gap: '5px',
+                            marginBottom: '12px',
+                            minHeight: '28px'
                           }}>
                             {(first.sizes || sizes)
                               ?.sort((a: string, b: string) => Number(a) - Number(b))
-                              .map((size: string) => (
-                              <div
-                                key={size}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  backgroundColor: '#EFF6FF',
-                                  border: '1px solid #BFDBFE',
-                                  borderRadius: '8px',
-                                  padding: '3px 8px',
-                                }}
-                              >
-                                <span style={{
-                                  fontSize: '13px',
-                                  fontWeight: '700',
-                                  color: '#1D4ED8',
-                                }}>
-                                  {size}
-                                </span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteSize(first, size);
-                                  }}
-                                  style={{
-                                    width: '14px',
-                                    height: '14px',
-                                    borderRadius: '50%',
-                                    border: 'none',
-                                    backgroundColor: '#FEE2E2',
-                                    color: '#EF4444',
-                                    fontSize: '10px',
-                                    fontWeight: '900',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: '0',
-                                    marginLeft: '2px',
-                                  }}
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
+                              .map((size: string) => {
+                                const variant = first.variants?.find(
+                                  v => String(v.size) === String(size)
+                                );
+                                const sizeQty = variant?.quantity ?? 1;
+                                const hasStock = sizeQty > 0;
 
+                                return (
+                                  <div
+                                    key={size}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      padding: '4px 9px',
+                                      borderRadius: '8px',
+                                      backgroundColor: hasStock ? '#ECFDF5' : '#FEF2F2',
+                                      border: hasStock
+                                        ? '1.5px solid #6EE7B7'
+                                        : '1.5px solid #FCA5A5',
+                                      fontSize: '12px',
+                                      fontWeight: '700',
+                                      color: hasStock ? '#065F46' : '#991B1B',
+                                      transition: 'all 0.15s'
+                                    }}
+                                  >
+                                    {size}
+                                    {sizeQty > 1 && (
+                                      <span style={{
+                                        fontSize: '9px',
+                                        fontWeight: '800',
+                                        backgroundColor: hasStock ? '#10B981' : '#EF4444',
+                                        color: 'white',
+                                        borderRadius: '4px',
+                                        padding: '0px 4px'
+                                      }}>
+                                        {sizeQty}
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteSize(first, size);
+                                      }}
+                                      style={{
+                                        width: '14px',
+                                        height: '14px',
+                                        borderRadius: '50%',
+                                        border: 'none',
+                                        backgroundColor: hasStock ? '#D1FAE5' : '#FEE2E2',
+                                        color: hasStock ? '#059669' : '#EF4444',
+                                        fontSize: '10px',
+                                        fontWeight: '900',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '0',
+                                        marginLeft: '2px',
+                                      }}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                );
+                              })}
                             {/* Add size button */}
-                            <button
+                            <div
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openAddSizeModal(first);
                               }}
                               style={{
-                                padding: '3px 10px',
-                                backgroundColor: '#10B981',
-                                color: 'white',
-                                border: 'none',
+                                padding: '4px 9px',
                                 borderRadius: '8px',
+                                backgroundColor: '#EEF2FF',
+                                border: '1.5px dashed #A5B4FC',
                                 fontSize: '12px',
                                 fontWeight: '700',
+                                color: '#6366F1',
                                 cursor: 'pointer',
+                                transition: 'all 0.15s'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.backgroundColor = '#E0E7FF';
+                                e.currentTarget.style.borderColor = '#6366F1';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.backgroundColor = '#EEF2FF';
+                                e.currentTarget.style.borderColor = '#A5B4FC';
                               }}
                             >
                               + EUR
-                            </button>
+                            </div>
                           </div>
 
-                          {/* Price + Supplier row */}
+                          {/* PRICE + CATEGORY ROW */}
                           <div style={{
                             display: 'flex',
-                            justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginBottom: '10px',
+                            justifyContent: 'space-between',
+                            marginBottom: '12px'
                           }}>
-                            <span style={{
-                              fontSize: '16px',
-                              fontWeight: '700',
-                              color: '#1E293B',
+                            <div style={{
+                              fontSize: '20px',
+                              fontWeight: '800',
+                              color: '#0F172A',
+                              letterSpacing: '-0.5px'
                             }}>
                               {priceRange}
-                            </span>
-                            <span style={{
+                            </div>
+                            <div style={{
                               fontSize: '11px',
+                              fontWeight: '600',
                               color: '#94A3B8',
                               backgroundColor: '#F8FAFC',
-                              padding: '2px 8px',
+                              padding: '3px 8px',
                               borderRadius: '8px',
-                              border: '1px solid #E2E8F0',
+                              border: '1px solid #E2E8F0'
                             }}>
-                              {first.supplier || '—'}
-                            </span>
+                              {categoryLabels[first.category] || 'Лайфстайл'}
+                            </div>
                           </div>
 
-                          {/* Category */}
-                          <div style={{
-                            fontSize: '11px',
-                            color: '#94A3B8',
-                            marginBottom: '10px',
-                          }}>
-                            {categoryLabels[first.category]}
-                          </div>
+                          {/* IN STOCK HIGHLIGHT BAR */}
+                          {isInStock && (
+                            <div style={{
+                              backgroundColor: '#ECFDF5',
+                              border: '1px solid #A7F3D0',
+                              borderRadius: '10px',
+                              padding: '8px 12px',
+                              marginBottom: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}>
+                              <span style={{ fontSize: '16px' }}>✅</span>
+                              <div>
+                                <div style={{
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  color: '#065F46'
+                                }}>
+                                  В наличии
+                                </div>
+                                <div style={{
+                                  fontSize: '11px',
+                                  color: '#34D399'
+                                }}>
+                                  {totalQuantity} шт. готово к продаже
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
-                          {/* Action buttons */}
+                          {/* ACTION BUTTONS */}
                           <div style={{
                             display: 'flex',
-                            gap: '8px',
-                            borderTop: '1px solid #F1F5F9',
-                            paddingTop: '10px',
+                            gap: '8px'
                           }}>
                             <button
                               onClick={() => toggleGroup(key)}
                               style={{
                                 flex: 1,
-                                padding: '6px',
-                                backgroundColor: '#F8FAFC',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
+                                padding: '9px',
+                                border: '1.5px solid #E2E8F0',
+                                borderRadius: '10px',
+                                backgroundColor: 'white',
                                 color: '#475569',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                transition: 'all 0.15s'
                               }}
                             >
                               📋 Варианты
@@ -1014,12 +1159,17 @@ const Catalog: React.FC = () => {
                             <button
                               onClick={() => setEditProduct(first)}
                               style={{
-                                padding: '6px 10px',
-                                backgroundColor: '#EFF6FF',
-                                border: '1px solid #BFDBFE',
-                                borderRadius: '8px',
-                                fontSize: '16px',
+                                width: '36px',
+                                height: '36px',
+                                border: '1.5px solid #E2E8F0',
+                                borderRadius: '10px',
+                                backgroundColor: 'white',
                                 cursor: 'pointer',
+                                fontSize: '15px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s'
                               }}
                             >
                               ✏️
@@ -1027,12 +1177,17 @@ const Catalog: React.FC = () => {
                             <button
                               onClick={() => handleDelete(first.id)}
                               style={{
-                                padding: '6px 10px',
+                                width: '36px',
+                                height: '36px',
+                                border: 'none',
+                                borderRadius: '10px',
                                 backgroundColor: '#FEF2F2',
-                                border: '1px solid #FECACA',
-                                borderRadius: '8px',
-                                fontSize: '16px',
                                 cursor: 'pointer',
+                                fontSize: '15px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s'
                               }}
                             >
                               🗑️
