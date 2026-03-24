@@ -1121,7 +1121,7 @@ const Catalog: React.FC = () => {
                                 const variant = first.variants?.find(
                                   v => String(v.size) === String(size)
                                 );
-                                const qty = variant?.quantity ?? (first.quantity > 0 ? 1 : 0);
+                                const qty = variant?.quantity ?? (isInStock ? Math.max(first.quantity, 1) : 0);
                                 const hasStock = qty > 0;
 
                                 return (
@@ -1133,10 +1133,10 @@ const Catalog: React.FC = () => {
                                       gap: '3px',
                                       padding: '5px 10px',
                                       borderRadius: '8px',
-                                      backgroundColor: hasStock ? '#ECFDF5' : '#FEF2F2',
+                                      backgroundColor: hasStock ? '#ECFDF5' : '#F8FAFC',
                                       border: hasStock
                                         ? '1.5px solid #6EE7B7'
-                                        : '1.5px solid #FCA5A5',
+                                        : '1.5px solid #E2E8F0',
                                       cursor: 'default',
                                       transition: 'all 0.15s'
                                     }}
@@ -1144,7 +1144,7 @@ const Catalog: React.FC = () => {
                                     <span style={{
                                       fontSize: '9px',
                                       fontWeight: '700',
-                                      color: hasStock ? '#6EE7B7' : '#FCA5A5',
+                                      color: hasStock ? '#6EE7B7' : '#94A3B8',
                                       letterSpacing: '0.5px'
                                     }}>
                                       EU
@@ -1152,7 +1152,7 @@ const Catalog: React.FC = () => {
                                     <span style={{
                                       fontSize: '13px',
                                       fontWeight: '800',
-                                      color: hasStock ? '#065F46' : '#991B1B',
+                                      color: hasStock ? '#065F46' : '#94A3B8',
                                       letterSpacing: '0.3px'
                                     }}>
                                       {size}
@@ -1161,7 +1161,7 @@ const Catalog: React.FC = () => {
                                       <span style={{
                                         fontSize: '9px',
                                         fontWeight: '800',
-                                        backgroundColor: hasStock ? '#10B981' : '#EF4444',
+                                        backgroundColor: hasStock ? '#10B981' : '#94A3B8',
                                         color: 'white',
                                         borderRadius: '4px',
                                         padding: '0 3px',

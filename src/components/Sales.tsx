@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, Users, Trash2, AlertTriangle } from 'lucide-react';
-import { doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, increment, addDoc, collection, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
@@ -330,76 +330,6 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
   );
 };
 
-interface CancelModalProps {
-  sale: Sale;
-  onConfirm: (reason: string) => void;
-  onCancel: () => void;
-}
-
-const CancelModal: React.FC<CancelModalProps> = ({ sale, onConfirm, onCancel }) => {
-  const [reason, setReason] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reason.trim()) {
-      alert('Укажите причину отказа');
-      return;
-    }
-    onConfirm(reason.trim());
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Отменить продажу</h2>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="bg-gray-50 rounded-lg p-4 space-y-1 text-sm">
-            <div><span className="text-gray-500">Товар:</span> <span className="font-medium">{sale.productName}</span></div>
-            {sale.customer && <div><span className="text-gray-500">Клиент:</span> <span className="font-medium">{sale.customer}</span></div>}
-            <div><span className="text-gray-500">Сумма:</span> <span className="font-semibold text-gray-900">{sale.total.toLocaleString('ru-RU')} Br</span></div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Причина отказа *
-            </label>
-            <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="Не подошел размер"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-            <span>⚠️</span>
-            <span>Товар будет автоматически возвращён на склад ({sale.quantity} шт.)</span>
-          </div>
-          <div className="flex justify-end space-x-3 pt-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Назад
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Отменить продажу
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
 interface EditSaleModalProps {
   sale: Sale;
   products: Product[];
@@ -652,6 +582,8 @@ const Sales: React.FC = () => {
   const [period, setPeriod] = useState<Period>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [cancelSale, setCancelSale] = useState<Sale | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const [deleteConfirmSale, setDeleteConfirmSale] = useState<Sale | null>(null);
   const [editSaleData, setEditSaleData] = useState<Sale | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -863,20 +795,80 @@ const Sales: React.FC = () => {
     const sale = sales.find((s) => s.id === saleId);
     if (!sale) return;
 
-    await updateDoc(doc(db, 'sales', saleId), {
-      status: 'cancelled',
-      cancellationReason: reason,
-      cancelledAt: new Date().toISOString(),
-    });
-
-    // Atomically return stock to product using increment
-    if (sale.productId) {
-      await updateDoc(doc(db, 'products', sale.productId), {
-        quantity: increment(sale.quantity),
-        status: 'available',
+    setCancelLoading(true);
+    try {
+      // 1. Mark sale as cancelled
+      await updateDoc(doc(db, 'sales', saleId), {
+        status: 'cancelled',
+        cancellationReason: reason,
+        cancelledAt: new Date().toISOString(),
       });
+
+      // 2. Return item to catalog
+      if (sale.productId) {
+        try {
+          const productRef = doc(db, 'products', sale.productId);
+          const productSnap = await getDoc(productRef);
+
+          if (productSnap.exists()) {
+            await updateDoc(productRef, {
+              quantity: increment(sale.quantity),
+              status: 'available',
+            });
+          } else {
+            await createReturnedProduct(sale);
+          }
+        } catch (e) {
+          console.log('Product not found, creating new');
+          await createReturnedProduct(sale);
+        }
+      } else {
+        await createReturnedProduct(sale);
+      }
+
+      setCancelSale(null);
+      setCancelReason('');
+
+      // Toast notification
+      setToast('↩️ Продажа отменена. Товар возвращён в каталог!');
+      setTimeout(() => setToast(null), 3000);
+    } catch (err: any) {
+      console.error('ERROR:', err);
+      alert('Ошибка: ' + err.message);
+    } finally {
+      setCancelLoading(false);
     }
-    setCancelSale(null);
+  };
+
+  // Helper: create new product entry when original not found
+  const createReturnedProduct = async (sale: Sale) => {
+    const newProduct: any = {
+      sku: (sale as any).productSku || '',
+      brand: '',
+      model: sale.productName || '',
+      size: '',
+      color: '',
+      quantity: sale.quantity || 1,
+      purchasePrice: sale.purchasePrice || 0,
+      retailPrice: sale.price || 0,
+      dateAdded: new Date().toISOString().split('T')[0],
+      supplier: '',
+      category: 'sport' as const,
+      status: 'available' as const,
+      location: '',
+      minStock: 2,
+      returnedFromSale: true,
+      originalSaleId: sale.id,
+      returnedAt: new Date().toISOString(),
+      notes: 'Возврат от клиента ' + (sale.customer || '') + '. Дата: ' + new Date().toLocaleDateString('ru-RU'),
+    };
+
+    if ((sale as any).productImage) {
+      newProduct.images = [(sale as any).productImage];
+    }
+
+    await addDoc(collection(db, 'products'), newProduct);
+    console.log('✅ New product created from return');
   };
 
   const handleDeleteSale = async (sale: Sale) => {
@@ -1570,31 +1562,56 @@ const Sales: React.FC = () => {
                         {/* Cancel - if pending or completed */}
                         {(status === 'pending' || status === 'completed') && (
                           <button
-                            onClick={() => setCancelSale(sale)}
+                            onClick={() => {
+                              setCancelReason('');
+                              setCancelSale(sale);
+                            }}
                             style={{
-                              width: '40px',
-                              height: '40px',
-                              border: 'none',
+                              padding: '7px 12px',
                               borderRadius: '10px',
-                              backgroundColor: '#FEE2E2',
+                              border: '1.5px solid #FECACA',
+                              backgroundColor: '#FEF2F2',
                               color: '#EF4444',
-                              fontSize: '16px',
+                              fontSize: '12px',
+                              fontWeight: '700',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
+                              gap: '4px',
                               transition: 'all 0.15s',
+                              whiteSpace: 'nowrap' as const,
                             }}
                             onMouseEnter={e => {
-                              e.currentTarget.style.backgroundColor = '#FECACA';
+                              e.currentTarget.style.backgroundColor = '#EF4444';
+                              e.currentTarget.style.color = 'white';
+                              e.currentTarget.style.borderColor = '#EF4444';
                             }}
                             onMouseLeave={e => {
-                              e.currentTarget.style.backgroundColor = '#FEE2E2';
+                              e.currentTarget.style.backgroundColor = '#FEF2F2';
+                              e.currentTarget.style.color = '#EF4444';
+                              e.currentTarget.style.borderColor = '#FECACA';
                             }}
                           >
-                            🗑
+                            ↩️ Возврат
                           </button>
+                        )}
+
+                        {/* Cancelled badge */}
+                        {status === 'cancelled' && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            backgroundColor: '#FEF2F2',
+                            border: '1px solid #FECACA',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            color: '#EF4444',
+                          }}>
+                            ↩️ Возврат
+                          </div>
                         )}
 
                         {/* Delete permanently - only if cancelled */}
@@ -1641,11 +1658,291 @@ const Sales: React.FC = () => {
       )}
 
       {cancelSale && (
-        <CancelModal
-          sale={cancelSale}
-          onConfirm={(reason) => handleCancelSale(cancelSale.id, reason)}
-          onCancel={() => setCancelSale(null)}
-        />
+        <div
+          onClick={() => setCancelSale(null)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0,
+            right: 0, bottom: 0,
+            backgroundColor: 'rgba(15,23,42,0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '28px',
+              width: '100%',
+              maxWidth: '420px',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+            }}
+          >
+            {/* HEADER */}
+            <div style={{
+              background: 'linear-gradient(135deg,#EF4444,#F87171)',
+              padding: '24px',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-20px', right: '-20px',
+                width: '100px', height: '100px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                pointerEvents: 'none',
+              }} />
+
+              <button
+                onClick={() => setCancelSale(null)}
+                style={{
+                  position: 'absolute',
+                  top: '16px', right: '16px',
+                  width: '32px', height: '32px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >×</button>
+
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>↩️</div>
+              <h2 style={{
+                margin: '0 0 4px',
+                fontSize: '20px',
+                fontWeight: '800',
+                color: 'white',
+              }}>
+                Отмена продажи
+              </h2>
+              <p style={{
+                margin: 0,
+                fontSize: '13px',
+                color: 'rgba(255,255,255,0.8)',
+              }}>
+                Товар вернётся в каталог
+              </p>
+            </div>
+
+            {/* BODY */}
+            <div style={{ padding: '24px' }}>
+
+              {/* SALE INFO */}
+              <div style={{
+                padding: '14px',
+                backgroundColor: '#F8FAFC',
+                borderRadius: '16px',
+                marginBottom: '20px',
+                border: '1px solid #F1F5F9',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  alignItems: 'center',
+                }}>
+                  {(cancelSale as any).productImage && (
+                    <img
+                      src={(cancelSale as any).productImage}
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '10px',
+                        objectFit: 'cover',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      color: '#1E293B',
+                      marginBottom: '4px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {cancelSale.productName || 'Товар'}
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                    }}>
+                      {cancelSale.customer && (
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#64748B',
+                          fontWeight: '600',
+                        }}>
+                          👤 {cancelSale.customer}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '800',
+                      color: '#EF4444',
+                    }}>
+                      -{cancelSale.total || 0} Br
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#94A3B8',
+                    }}>
+                      возврат суммы
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* WARNING */}
+              <div style={{
+                padding: '12px 14px',
+                backgroundColor: '#FFFBEB',
+                borderRadius: '12px',
+                border: '1px solid #FDE68A',
+                marginBottom: '16px',
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'flex-start',
+              }}>
+                <span style={{ fontSize: '18px', flexShrink: 0 }}>⚠️</span>
+                <div style={{
+                  fontSize: '13px',
+                  color: '#92400E',
+                  lineHeight: '1.5',
+                }}>
+                  Продажа будет отмечена как <b>отменена</b> и товар автоматически вернётся в каталог как <b>в наличии</b>.
+                </div>
+              </div>
+
+              {/* REASON */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#374151',
+                  marginBottom: '6px',
+                }}>
+                  📝 ПРИЧИНА ВОЗВРАТА
+                </label>
+                <div style={{
+                  display: 'flex',
+                  gap: '6px',
+                  flexWrap: 'wrap',
+                  marginBottom: '10px',
+                }}>
+                  {['Клиент передумал', 'Не подошёл размер', 'Брак/дефект', 'Другая причина'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setCancelReason(r)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: '1.5px solid',
+                        borderColor: cancelReason === r ? '#EF4444' : '#E2E8F0',
+                        backgroundColor: cancelReason === r ? '#FEF2F2' : 'white',
+                        color: cancelReason === r ? '#EF4444' : '#64748B',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                  rows={2}
+                  placeholder="Или введи свою причину..."
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    resize: 'none',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box' as const,
+                  }}
+                />
+              </div>
+
+              {/* BUTTONS */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setCancelSale(null)}
+                  style={{
+                    flex: 1,
+                    padding: '13px',
+                    borderRadius: '14px',
+                    border: '1.5px solid #E2E8F0',
+                    backgroundColor: 'white',
+                    color: '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Назад
+                </button>
+                <button
+                  onClick={() => {
+                    if (!cancelReason.trim()) {
+                      alert('Укажите причину возврата');
+                      return;
+                    }
+                    handleCancelSale(cancelSale.id, cancelReason.trim());
+                  }}
+                  disabled={cancelLoading}
+                  style={{
+                    flex: 2,
+                    padding: '13px',
+                    borderRadius: '14px',
+                    border: 'none',
+                    background: cancelLoading
+                      ? '#E2E8F0'
+                      : 'linear-gradient(135deg,#EF4444,#F87171)',
+                    color: cancelLoading ? '#94A3B8' : 'white',
+                    fontSize: '15px',
+                    fontWeight: '800',
+                    cursor: cancelLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: cancelLoading
+                      ? 'none'
+                      : '0 4px 14px rgba(239,68,68,0.4)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {cancelLoading ? '⏳ Отменяем...' : '↩️ Подтвердить возврат'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {deleteConfirmSale && (
