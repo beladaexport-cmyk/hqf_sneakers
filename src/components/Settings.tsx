@@ -233,7 +233,7 @@ const Settings: React.FC = () => {
   );
 
   return (
-    <div style={{maxWidth:'900px', margin:'0 auto', padding:'24px'}}>
+    <div style={{maxWidth:'900px', margin:'0 auto', padding:'16px'}}>
 
       <div style={{
         display:'flex',

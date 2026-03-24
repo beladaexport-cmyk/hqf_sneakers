@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, X, Mail, Users, Trash2, AlertTriangle } from 'lucide-react';
+import { X, Mail, Users, Trash2, AlertTriangle } from 'lucide-react';
 import { doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
@@ -643,13 +643,6 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
 
 type StatusFilter = 'all' | SaleStatus;
 
-const statusFilterLabels: Record<StatusFilter, string> = {
-  all: 'Все',
-  completed: 'Завершённые',
-  pending: 'В процессе',
-  cancelled: 'Отменённые',
-};
-
 const Sales: React.FC = () => {
   const { data: products } = useFirestore<Product>('products');
   const { data: sales, add: addSale, update: updateSale } = useFirestore<Sale>('sales');
@@ -761,10 +754,6 @@ const Sales: React.FC = () => {
 
   const completedSales = periodFiltered.filter((s) => (s.status ?? 'completed') === 'completed');
   const totalRevenue = completedSales.reduce((sum, s) => sum + s.total, 0);
-  const cancelledCount = periodFiltered.filter((s) => s.status === 'cancelled').length;
-  const cancellationRate = periodFiltered.length > 0
-    ? Math.round((cancelledCount / periodFiltered.length) * 100)
-    : 0;
   const totalProfit = completedSales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
 
   const getSaleProductImage = (sale: Sale): string | null => {
@@ -904,14 +893,39 @@ const Sales: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-900">Продажи</h2>
+      <div style={{
+        display:'flex',
+        justifyContent:'space-between',
+        alignItems:'center',
+        marginBottom:'14px',
+        gap:'10px',
+        padding:'16px 16px 0'
+      }}>
+        <h1 style={{
+          margin:0,
+          fontSize:'22px',
+          fontWeight:'800',
+          color:'#0F172A'
+        }}>
+          🛍️ Продажи
+        </h1>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          style={{
+            padding:'10px 14px',
+            background:'linear-gradient(135deg,#10B981,#34D399)',
+            color:'white',
+            border:'none',
+            borderRadius:'12px',
+            fontSize:'13px',
+            fontWeight:'700',
+            cursor:'pointer',
+            whiteSpace:'nowrap',
+            flexShrink:0,
+            boxShadow:'0 4px 12px rgba(16,185,129,0.35)'
+          }}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Оформить продажу
+          + Продажа
         </button>
       </div>
 
@@ -933,70 +947,138 @@ const Sales: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={{
-          backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px',
-          border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px'
-        }}>
-          <span style={{ fontSize: '24px' }}>💰</span>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: '#1E293B' }}>
-              {totalRevenue.toLocaleString('ru-RU')} Br
+      <div style={{
+        display:'grid',
+        gridTemplateColumns:'repeat(3,1fr)',
+        gap:'10px',
+        marginBottom:'16px'
+      }}>
+        {[
+          {
+            icon:'💰',
+            value:totalRevenue||0,
+            label:'Выручка',
+            unit:'Br',
+            color:'#10B981',
+            bg:'#F0FDF4',
+            border:'#A7F3D0'
+          },
+          {
+            icon:'📈',
+            value:totalProfit||0,
+            label:'Прибыль',
+            unit:'Br',
+            color:'#6366F1',
+            bg:'#EEF2FF',
+            border:'#C7D2FE',
+            plus:true
+          },
+          {
+            icon:'🛍️',
+            value:filteredSales?.length||0,
+            label:'Продаж',
+            unit:'',
+            color:'#F59E0B',
+            bg:'#FFFBEB',
+            border:'#FDE68A'
+          }
+        ].map(s=>(
+          <div
+            key={s.label}
+            style={{
+              backgroundColor:s.bg,
+              border:`1.5px solid ${s.border}`,
+              borderRadius:'14px',
+              padding:'12px 8px',
+              textAlign:'center'
+            }}
+          >
+            <div style={{
+              fontSize:'20px',
+              marginBottom:'4px'
+            }}>
+              {s.icon}
             </div>
-            <div style={{ fontSize: '11px', color: '#94A3B8' }}>Выручка</div>
-          </div>
-        </div>
-        <div style={{
-          backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px',
-          border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px'
-        }}>
-          <span style={{ fontSize: '24px' }}>📈</span>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: '#10B981' }}>
-              +{totalProfit.toLocaleString('ru-RU')} Br
+            <div style={{
+              fontSize:'16px',
+              fontWeight:'800',
+              color:s.color,
+              lineHeight:1,
+              marginBottom:'3px'
+            }}>
+              {s.plus && s.value>0
+                ? '+' : ''}
+              {s.value}
+              {s.unit && (
+                <span style={{
+                  fontSize:'10px',
+                  marginLeft:'2px'
+                }}>
+                  {s.unit}
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: '11px', color: '#94A3B8' }}>Прибыль</div>
-          </div>
-        </div>
-        <div style={{
-          backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px',
-          border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '10px'
-        }}>
-          <span style={{ fontSize: '24px' }}>🛍️</span>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: '#3B82F6' }}>
-              {filteredSales.length}
-            </div>
-            <div style={{ fontSize: '11px', color: '#94A3B8' }}>Продаж</div>
-          </div>
-        </div>
-        {cancelledCount > 0 && (
-          <div style={{
-            backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px',
-            border: '1px solid #FEE2E2', display: 'flex', alignItems: 'center', gap: '10px'
-          }}>
-            <span style={{ fontSize: '24px' }}>❌</span>
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: '700', color: '#EF4444' }}>
-                {cancelledCount} ({cancellationRate}%)
-              </div>
-              <div style={{ fontSize: '11px', color: '#94A3B8' }}>Отказов</div>
+            <div style={{
+              fontSize:'10px',
+              color:'#94A3B8',
+              fontWeight:'600'
+            }}>
+              {s.label}
             </div>
           </div>
-        )}
+        ))}
       </div>
 
       {/* Status Filter */}
-      <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 w-fit">
-        {(Object.keys(statusFilterLabels) as StatusFilter[]).map((s) => (
+      <div style={{
+        display:'flex',
+        gap:'6px',
+        overflowX:'auto',
+        paddingBottom:'4px',
+        marginBottom:'14px',
+        scrollbarWidth:'none',
+        WebkitOverflowScrolling:'touch'
+      }}>
+        <style>{`
+          .filter-scroll::-webkit-scrollbar{
+            display:none;
+          }
+        `}</style>
+        {[
+          {key:'all',label:'Все'},
+          {key:'completed',label:'✅ Готово'},
+          {key:'pending',label:'⏳ Процесс'},
+          {key:'cancelled',label:'❌ Отменена'}
+        ].map(tab=>(
           <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              statusFilter === s ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            key={tab.key}
+            onClick={()=>
+              setStatusFilter(tab.key as StatusFilter)
+            }
+            style={{
+              padding:'8px 14px',
+              borderRadius:'20px',
+              border:'none',
+              backgroundColor:
+                statusFilter===tab.key
+                  ? '#6366F1'
+                  : 'white',
+              color:
+                statusFilter===tab.key
+                  ? 'white'
+                  : '#64748B',
+              fontSize:'12px',
+              fontWeight:'600',
+              cursor:'pointer',
+              whiteSpace:'nowrap',
+              flexShrink:0,
+              boxShadow:
+                statusFilter===tab.key
+                  ? '0 4px 12px rgba(99,102,241,0.35)'
+                  : '0 1px 4px rgba(0,0,0,0.08)'
+            }}
           >
-            {statusFilterLabels[s]}
+            {tab.label}
           </button>
         ))}
       </div>
