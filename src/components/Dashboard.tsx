@@ -165,7 +165,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* STAT CARDS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))',
+        gridTemplateColumns: 'repeat(4,1fr)',
         gap: '16px',
         marginBottom: '24px'
       }}>
@@ -259,7 +259,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 {stat.label}
               </div>
               <div style={{
-                fontSize: '24px',
+                fontSize: '28px',
                 fontWeight: '800',
                 color: '#0F172A',
                 letterSpacing: '-0.5px',
@@ -283,9 +283,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* MAIN GRID */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))',
+        gridTemplateColumns: '1fr 1fr',
         gap: '20px',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        alignItems: 'stretch'
       }}>
 
         {/* LEFT — DETAILS */}
@@ -294,7 +295,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           borderRadius: '20px',
           padding: '24px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-          border: '1px solid #F1F5F9'
+          border: '1px solid #F1F5F9',
+          height: '100%'
         }}>
           <h3 style={{
             margin: '0 0 20px 0',
@@ -309,30 +311,35 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </h3>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))',
+            gridTemplateColumns: 'repeat(2,1fr)',
             gap: '12px'
           }}>
             {[
-              { label: 'Выручка', value: monthRevenue, icon: '💵', color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0' },
-              { label: 'Себестоимость', value: monthCost, icon: '🏷️', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A' },
-              { label: 'Валовая прибыль', value: grossProfit, icon: '📈', color: '#6366F1', bg: '#EEF2FF', border: '#C7D2FE' },
-              { label: 'Расходы', value: monthExpenses, icon: '📉', color: '#EF4444', bg: '#FEF2F2', border: '#FECACA' },
+              { label: 'ВЫРУЧКА', value: monthRevenue || 0, icon: '💵', color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0', wide: false },
+              { label: 'СЕБЕСТОИМОСТЬ', value: monthCost || 0, icon: '🏷️', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', wide: false },
+              { label: 'ВАЛОВАЯ ПРИБЫЛЬ', value: grossProfit || 0, icon: '📈', color: '#6366F1', bg: '#EEF2FF', border: '#C7D2FE', wide: false },
+              { label: 'РАСХОДЫ', value: monthExpenses || 0, icon: '📉', color: '#EF4444', bg: '#FEF2F2', border: '#FECACA', wide: false },
               {
-                label: 'Чистая прибыль',
-                value: netProfit,
-                icon: netProfit >= 0 ? '🏆' : '⚠️',
-                color: netProfit >= 0 ? '#10B981' : '#EF4444',
-                bg: netProfit >= 0 ? '#F0FDF4' : '#FEF2F2',
-                border: netProfit >= 0 ? '#A7F3D0' : '#FECACA'
+                label: 'ЧИСТАЯ ПРИБЫЛЬ',
+                value: netProfit || 0,
+                icon: (netProfit || 0) >= 0 ? '🏆' : '⚠️',
+                color: (netProfit || 0) >= 0 ? '#10B981' : '#EF4444',
+                bg: (netProfit || 0) >= 0 ? '#F0FDF4' : '#FEF2F2',
+                border: (netProfit || 0) >= 0 ? '#A7F3D0' : '#FECACA',
+                wide: true
               }
             ].map(item => (
               <div
                 key={item.label}
                 style={{
+                  gridColumn: item.wide ? '1 / -1' : 'auto',
                   backgroundColor: item.bg,
-                  border: `1px solid ${item.border}`,
+                  border: `1.5px solid ${item.border}`,
                   borderRadius: '14px',
                   padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
                   transition: 'all 0.15s'
                 }}
                 onMouseEnter={e => {
@@ -344,24 +351,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <div style={{ fontSize: '22px', marginBottom: '8px' }}>{item.icon}</div>
-                <div style={{
-                  fontSize: '11px',
-                  color: '#94A3B8',
-                  fontWeight: '600',
-                  marginBottom: '6px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  {item.label}
-                </div>
-                <div style={{
-                  fontSize: '20px',
-                  fontWeight: '800',
-                  color: item.color,
-                  letterSpacing: '-0.3px'
-                }}>
-                  {item.value} Br
+                <div style={{ fontSize: '28px', flexShrink: 0 }}>{item.icon}</div>
+                <div>
+                  <div style={{
+                    fontSize: '10px',
+                    color: '#94A3B8',
+                    fontWeight: '700',
+                    letterSpacing: '0.5px',
+                    marginBottom: '4px'
+                  }}>
+                    {item.label}
+                  </div>
+                  <div style={{
+                    fontSize: item.wide ? '22px' : '18px',
+                    fontWeight: '800',
+                    color: item.color,
+                    letterSpacing: '-0.3px'
+                  }}>
+                    {item.value} Br
+                  </div>
                 </div>
               </div>
             ))}
@@ -374,7 +382,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           borderRadius: '20px',
           padding: '24px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-          border: '1px solid #F1F5F9'
+          border: '1px solid #F1F5F9',
+          height: '100%'
         }}>
           <h3 style={{
             margin: '0 0 20px 0',
