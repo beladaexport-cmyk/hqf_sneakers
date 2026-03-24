@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, X, Layers, ChevronRight, ChevronDown } from 'lucide-react';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product } from '../types';
@@ -521,6 +521,19 @@ const Catalog: React.FC = () => {
   });
   const [showReservedOnly, setShowReservedOnly] = useState(false);
 
+  const [sellModal, setSellModal] = useState<{ show: boolean; product: Product | null }>({ show: false, product: null });
+  const [sellForm, setSellForm] = useState({
+    customerName: '',
+    customerInstagram: '',
+    selectedSize: '',
+    price: '',
+    purchasePrice: '',
+    paymentMethod: 'наличные',
+    notes: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [sellLoading, setSellLoading] = useState(false);
+
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups(prev => {
       const next = new Set(prev);
@@ -568,6 +581,84 @@ const Catalog: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Удалить этот товар?')) {
       await remove(id);
+    }
+  };
+
+  const openSellModal = (product: Product) => {
+    const firstSize = Array.isArray(product.sizes) ? product.sizes[0] || '' : (product as any).size || '';
+    setSellForm({
+      customerName: '',
+      customerInstagram: '',
+      selectedSize: String(firstSize),
+      price: String(product.retailPrice || (product as any).sellingPrice || (product as any).salePrice || ''),
+      purchasePrice: String(product.purchasePrice || (product as any).costPrice || (product as any).buyPrice || ''),
+      paymentMethod: 'наличные',
+      notes: '',
+      date: new Date().toISOString().split('T')[0]
+    });
+    setSellModal({ show: true, product });
+  };
+
+  const handleSell = async () => {
+    if (!sellModal.product) return;
+    if (!sellForm.price) { alert('Укажи цену продажи!'); return; }
+    if (!sellForm.customerName) { alert('Укажи имя покупателя!'); return; }
+
+    setSellLoading(true);
+    try {
+      const product = sellModal.product;
+      const salePrice = Number(sellForm.price);
+      const purchasePrice = Number(sellForm.purchasePrice);
+      const profit = salePrice - purchasePrice;
+
+      const newSale = {
+        productName: product.model || (product as any).productName || '',
+        productId: product.id || '',
+        brand: product.brand || '',
+        size: sellForm.selectedSize || (product as any).size || '',
+        image: (Array.isArray(product.images) && product.images[0]) || (product as any).photo || '',
+        price: salePrice,
+        sellingPrice: salePrice,
+        purchasePrice: purchasePrice,
+        profit: profit,
+        costPrice: purchasePrice,
+        customerName: sellForm.customerName,
+        customerInstagram: sellForm.customerInstagram,
+        buyer: sellForm.customerName,
+        client: sellForm.customerName,
+        paymentMethod: sellForm.paymentMethod,
+        date: new Date(sellForm.date),
+        createdAt: new Date(),
+        notes: sellForm.notes,
+        status: 'завершена',
+        fromCatalog: true,
+        supplier: product.supplier || (product as any).supplierName || ''
+      };
+
+      await addDoc(collection(db, 'sales'), newSale);
+
+      const currentQty = Number(product.quantity || 1);
+      const newQty = Math.max(0, currentQty - 1);
+
+      await updateDoc(doc(db, 'products', product.id), {
+        quantity: newQty,
+        inStock: newQty > 0,
+        lastSoldAt: new Date()
+      });
+
+      setSellModal({ show: false, product: null });
+
+      const t = document.createElement('div');
+      t.style.cssText = `position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#10B981,#34D399);color:white;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:700;z-index:99999;box-shadow:0 6px 24px rgba(16,185,129,0.45);white-space:nowrap;pointer-events:none;`;
+      t.textContent = '✅ Продажа ' + salePrice + ' Br записана!';
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 2500);
+
+    } catch (err: any) {
+      console.error('ERROR:', err);
+      alert('Ошибка: ' + err.message);
+    } finally {
+      setSellLoading(false);
     }
   };
 
@@ -1180,25 +1271,50 @@ const Catalog: React.FC = () => {
                           {/* ACTION BUTTONS */}
                           <div style={{
                             display: 'flex',
-                            gap: '8px'
+                            gap: '6px',
+                            marginTop: '10px',
+                            flexWrap: 'wrap'
                           }}>
+                            <button
+                              onClick={() => openSellModal(first)}
+                              style={{
+                                flex: 1,
+                                minWidth: '90px',
+                                padding: '9px 8px',
+                                borderRadius: '12px',
+                                border: 'none',
+                                background: 'linear-gradient(135deg,#10B981,#34D399)',
+                                color: 'white',
+                                fontSize: '13px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              💰 Продать
+                            </button>
                             <button
                               onClick={() => toggleGroup(key)}
                               style={{
                                 flex: 1,
-                                padding: '9px',
+                                minWidth: '80px',
+                                padding: '9px 8px',
+                                borderRadius: '12px',
                                 border: '1.5px solid #E2E8F0',
-                                borderRadius: '10px',
                                 backgroundColor: 'white',
-                                color: '#475569',
+                                color: '#64748B',
                                 fontSize: '12px',
                                 fontWeight: '600',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: '4px',
-                                transition: 'all 0.15s'
+                                gap: '4px'
                               }}
                             >
                               📋 Варианты
@@ -1206,17 +1322,17 @@ const Catalog: React.FC = () => {
                             <button
                               onClick={() => setEditProduct(first)}
                               style={{
-                                width: '36px',
-                                height: '36px',
-                                border: '1.5px solid #E2E8F0',
+                                width: '34px',
+                                height: '34px',
                                 borderRadius: '10px',
+                                border: '1px solid #E2E8F0',
                                 backgroundColor: 'white',
                                 cursor: 'pointer',
-                                fontSize: '15px',
+                                fontSize: '14px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                transition: 'all 0.15s'
+                                flexShrink: 0
                               }}
                             >
                               ✏️
@@ -1224,17 +1340,17 @@ const Catalog: React.FC = () => {
                             <button
                               onClick={() => handleDelete(first.id)}
                               style={{
-                                width: '36px',
-                                height: '36px',
-                                border: 'none',
+                                width: '34px',
+                                height: '34px',
                                 borderRadius: '10px',
+                                border: 'none',
                                 backgroundColor: '#FEF2F2',
                                 cursor: 'pointer',
-                                fontSize: '15px',
+                                fontSize: '14px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                transition: 'all 0.15s'
+                                flexShrink: 0
                               }}
                             >
                               🗑️
@@ -1836,6 +1952,348 @@ const Catalog: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* SELL MODAL */}
+      {sellModal.show && sellModal.product && (
+        <div
+          onClick={() => setSellModal({ show: false, product: null })}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15,23,42,0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '28px',
+              width: '100%',
+              maxWidth: '480px',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.3)'
+            }}
+          >
+            {/* HEADER */}
+            <div style={{
+              background: 'linear-gradient(135deg,#10B981,#059669)',
+              borderRadius: '28px 28px 0 0',
+              padding: '24px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <button
+                onClick={() => setSellModal({ show: false, product: null })}
+                style={{
+                  position: 'absolute',
+                  top: '16px', right: '16px',
+                  width: '32px', height: '32px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1
+                }}
+              >×</button>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <div style={{
+                  width: '64px', height: '64px',
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {((Array.isArray(sellModal.product.images) && sellModal.product.images[0]) || (sellModal.product as any).photo) ? (
+                    <img
+                      src={(Array.isArray(sellModal.product.images) && sellModal.product.images[0]) || (sellModal.product as any).photo || ''}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: '28px' }}>👟</span>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: '4px' }}>
+                    💰 ЗАПИСАТЬ ПРОДАЖУ
+                  </div>
+                  <div style={{ fontSize: '17px', fontWeight: '800', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {sellModal.product.model || (sellModal.product as any).productName || 'Товар'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* BODY */}
+            <div style={{ padding: '20px 24px 24px' }}>
+
+              {/* SIZE */}
+              {Array.isArray(sellModal.product.sizes) && sellModal.product.sizes.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>
+                    📏 РАЗМЕР
+                  </label>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {sellModal.product.sizes.map((s: string) => (
+                      <button
+                        key={s}
+                        onClick={() => setSellForm(p => ({ ...p, selectedSize: String(s) }))}
+                        style={{
+                          padding: '7px 14px',
+                          borderRadius: '8px',
+                          border: '1.5px solid',
+                          borderColor: sellForm.selectedSize === String(s) ? '#10B981' : '#E2E8F0',
+                          backgroundColor: sellForm.selectedSize === String(s) ? '#F0FDF4' : 'white',
+                          color: sellForm.selectedSize === String(s) ? '#10B981' : '#64748B',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        EU {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* CUSTOMER */}
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                  👤 ПОКУПАТЕЛЬ *
+                </label>
+                <input
+                  type="text"
+                  value={sellForm.customerName}
+                  onChange={e => setSellForm(p => ({ ...p, customerName: e.target.value }))}
+                  placeholder="Имя или @instagram"
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    fontSize: '14px', outline: 'none',
+                    boxSizing: 'border-box', fontFamily: 'inherit'
+                  }}
+                  onFocus={e => { e.target.style.borderColor = '#10B981'; }}
+                  onBlur={e => { e.target.style.borderColor = '#E2E8F0'; }}
+                />
+              </div>
+
+              {/* INSTAGRAM */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                  📸 INSTAGRAM (необязательно)
+                </label>
+                <input
+                  type="text"
+                  value={sellForm.customerInstagram}
+                  onChange={e => setSellForm(p => ({ ...p, customerInstagram: e.target.value }))}
+                  placeholder="@username"
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    fontSize: '14px', outline: 'none',
+                    boxSizing: 'border-box', fontFamily: 'inherit'
+                  }}
+                  onFocus={e => { e.target.style.borderColor = '#E1306C'; }}
+                  onBlur={e => { e.target.style.borderColor = '#E2E8F0'; }}
+                />
+              </div>
+
+              {/* PRICES */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                    💰 ЦЕНА ПРОДАЖИ *
+                  </label>
+                  <input
+                    type="number"
+                    value={sellForm.price}
+                    onChange={e => setSellForm(p => ({ ...p, price: e.target.value }))}
+                    placeholder="0"
+                    style={{
+                      width: '100%', padding: '11px 14px',
+                      border: '1.5px solid #A7F3D0', borderRadius: '12px',
+                      fontSize: '16px', fontWeight: '800', color: '#10B981',
+                      outline: 'none', boxSizing: 'border-box',
+                      backgroundColor: '#F0FDF4', fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                    🏷️ ЗАКУПКА
+                  </label>
+                  <input
+                    type="number"
+                    value={sellForm.purchasePrice}
+                    onChange={e => setSellForm(p => ({ ...p, purchasePrice: e.target.value }))}
+                    placeholder="0"
+                    style={{
+                      width: '100%', padding: '11px 14px',
+                      border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                      fontSize: '16px', fontWeight: '700', color: '#374151',
+                      outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* PROFIT PREVIEW */}
+              {sellForm.price && sellForm.purchasePrice && (() => {
+                const p = Number(sellForm.price) - Number(sellForm.purchasePrice);
+                return (
+                  <div style={{
+                    padding: '12px 16px',
+                    backgroundColor: p >= 0 ? '#F0FDF4' : '#FEF2F2',
+                    borderRadius: '12px',
+                    border: '1.5px solid',
+                    borderColor: p >= 0 ? '#A7F3D0' : '#FECACA',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
+                      🔥 Прибыль:
+                    </span>
+                    <span style={{ fontSize: '22px', fontWeight: '900', color: p >= 0 ? '#10B981' : '#EF4444' }}>
+                      {p >= 0 ? '+' : ''}{p} Br
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* PAYMENT */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>
+                  💳 СПОСОБ ОПЛАТЫ
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' }}>
+                  {[
+                    { key: 'наличные', icon: '💵', label: 'Наличные' },
+                    { key: 'перевод', icon: '📱', label: 'Перевод' },
+                    { key: 'карта', icon: '💳', label: 'Карта' }
+                  ].map(m => (
+                    <button
+                      key={m.key}
+                      onClick={() => setSellForm(p => ({ ...p, paymentMethod: m.key }))}
+                      style={{
+                        padding: '10px 6px',
+                        borderRadius: '12px',
+                        border: '1.5px solid',
+                        borderColor: sellForm.paymentMethod === m.key ? '#10B981' : '#E2E8F0',
+                        backgroundColor: sellForm.paymentMethod === m.key ? '#F0FDF4' : 'white',
+                        color: sellForm.paymentMethod === m.key ? '#10B981' : '#64748B',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column' as const,
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <span style={{ fontSize: '20px' }}>{m.icon}</span>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* DATE */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                  📅 ДАТА ПРОДАЖИ
+                </label>
+                <input
+                  type="date"
+                  value={sellForm.date}
+                  onChange={e => setSellForm(p => ({ ...p, date: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    fontSize: '14px', outline: 'none',
+                    boxSizing: 'border-box', fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+
+              {/* NOTES */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                  📝 ЗАМЕТКА
+                </label>
+                <textarea
+                  value={sellForm.notes}
+                  onChange={e => setSellForm(p => ({ ...p, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Дополнительная информация..."
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    fontSize: '14px', outline: 'none', resize: 'none',
+                    fontFamily: 'inherit', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* ACTION BUTTONS */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setSellModal({ show: false, product: null })}
+                  style={{
+                    flex: 1, padding: '13px', borderRadius: '14px',
+                    border: '1.5px solid #E2E8F0', backgroundColor: 'white',
+                    color: '#64748B', fontSize: '14px', fontWeight: '600', cursor: 'pointer'
+                  }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleSell}
+                  disabled={sellLoading}
+                  style={{
+                    flex: 2, padding: '13px', borderRadius: '14px',
+                    border: 'none',
+                    background: sellLoading ? '#E2E8F0' : 'linear-gradient(135deg,#10B981,#34D399)',
+                    color: sellLoading ? '#94A3B8' : 'white',
+                    fontSize: '15px', fontWeight: '800',
+                    cursor: sellLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    boxShadow: sellLoading ? 'none' : '0 4px 14px rgba(16,185,129,0.4)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {sellLoading ? '⏳ Сохраняем...' : '💰 Записать продажу'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
