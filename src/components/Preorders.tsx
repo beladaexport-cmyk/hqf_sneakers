@@ -268,6 +268,21 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
     alreadyExists: false
   });
 
+  const [sellModal, setSellModal] = useState<{ show: boolean; preorder: Preorder | null }>({
+    show: false,
+    preorder: null
+  });
+  const [sellForm, setSellForm] = useState({
+    customerName: '',
+    customerInstagram: '',
+    price: '',
+    purchasePrice: '',
+    paymentMethod: 'наличные',
+    notes: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [sellLoading, setSellLoading] = useState(false);
+
   const filtered = statusFilter === 'all'
     ? preorders
     : preorders.filter((p) => p.status === statusFilter);
@@ -428,6 +443,106 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
   const handleDelete = async (id: string) => {
     if (window.confirm('Удалить предзаказ?')) {
       await remove(id);
+    }
+  };
+
+  const showToast = (message: string) => {
+    const t = document.createElement('div');
+    t.style.cssText = `
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, #10B981, #34D399);
+      color: white; padding: 12px 24px; border-radius: 30px;
+      font-size: 14px; font-weight: 700; z-index: 99999;
+      box-shadow: 0 6px 24px rgba(16,185,129,0.45);
+      white-space: nowrap; pointer-events: none;
+    `;
+    t.textContent = message;
+    document.body.appendChild(t);
+    setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => t.remove(), 300);
+    }, 2500);
+  };
+
+  const openSellModal = (preorder: Preorder) => {
+    const forWhoRaw = preorder.forWho || '';
+    let buyerName = forWhoRaw;
+    if (forWhoRaw.includes('instagram.com/')) {
+      const parts = forWhoRaw.split('instagram.com/');
+      const username = parts[1]?.split('/')[0]?.split('?')[0] || '';
+      buyerName = username ? `@${username}` : forWhoRaw;
+    }
+
+    setSellForm({
+      customerName: buyerName,
+      customerInstagram: forWhoRaw,
+      price: String(preorder.retailPrice || ''),
+      purchasePrice: String(preorder.purchasePrice || ''),
+      paymentMethod: 'наличные',
+      notes: `Продажа из предзаказа.${buyerName ? ` Покупатель: ${buyerName}` : ''}`,
+      date: new Date().toISOString().split('T')[0]
+    });
+
+    setSellModal({ show: true, preorder });
+  };
+
+  const handleSellFromPreorder = async () => {
+    if (!sellModal.preorder) return;
+    if (!sellForm.price) {
+      alert('Укажи цену продажи!');
+      return;
+    }
+
+    setSellLoading(true);
+    try {
+      const preorder = sellModal.preorder;
+      const salePrice = Number(sellForm.price);
+      const purchasePrice = Number(sellForm.purchasePrice);
+      const profit = salePrice - purchasePrice;
+
+      const newSale = {
+        productId: preorder.catalogProductId || preorder.id,
+        productSku: `PRE-${preorder.id.slice(0, 6).toUpperCase()}`,
+        productName: preorder.modelName || '',
+        productImage: preorder.image || '',
+        quantity: 1,
+        price: salePrice,
+        purchasePrice: purchasePrice,
+        total: salePrice,
+        profit: profit,
+        date: sellForm.date,
+        customer: sellForm.customerName,
+        deliveryMethod: 'in_person',
+        status: 'completed',
+        comment: sellForm.notes,
+        fromPreorder: true,
+        preorderId: preorder.id,
+        supplier: preorder.supplier || '',
+        paymentMethod: sellForm.paymentMethod,
+        createdAt: new Date().toISOString()
+      };
+
+      const saleRef = await addDoc(collection(db, 'sales'), newSale);
+      console.log('✅ Sale created:', saleRef.id);
+
+      await updateDoc(doc(db, 'preorders', preorder.id), {
+        status: 'sold',
+        soldAt: new Date().toISOString(),
+        saleId: saleRef.id,
+        soldPrice: salePrice,
+        soldTo: sellForm.customerName
+      });
+      console.log('✅ Preorder updated to sold');
+
+      setSellModal({ show: false, preorder: null });
+      showToast(`✅ Продажа на ${salePrice} Br записана!`);
+    } catch (err: unknown) {
+      console.error('❌ Error creating sale:', err);
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      alert('Ошибка: ' + msg);
+    } finally {
+      setSellLoading(false);
     }
   };
 
@@ -602,6 +717,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           {key:'all',label:'Все'},
           {key:'pending',label:'⏳ Ожидается'},
           {key:'arrived',label:'✅ Пришло'},
+          {key:'sold',label:'💰 Продано'},
           {key:'cancelled',label:'❌ Отменён'}
         ].map(tab=>(
           <button
@@ -670,7 +786,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           }).map((p) => {
             const isArrived = p.status === 'arrived';
             const isCancelled = p.status === 'cancelled';
-            const isPending = !isArrived && !isCancelled;
+            const isSold = p.status === 'sold';
+            const isPending = !isArrived && !isCancelled && !isSold;
             const sizeDisplay = p.sizeEU || null;
             const mainImage = p.image || null;
 
@@ -683,12 +800,12 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                 overflow: 'hidden',
                 boxShadow: isPending
                   ? '0 4px 20px rgba(251,191,36,0.15)'
-                  : isArrived
+                  : (isArrived || isSold)
                   ? '0 4px 20px rgba(16,185,129,0.12)'
                   : '0 2px 8px rgba(0,0,0,0.06)',
                 border: isPending
                   ? '2px solid #FDE68A'
-                  : isArrived
+                  : (isArrived || isSold)
                   ? '2px solid #A7F3D0'
                   : '2px solid #FECACA',
                 transition: 'all 0.25s ease'
@@ -707,7 +824,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   height: '190px',
                   backgroundColor: isPending
                     ? '#FFFBEB'
-                    : isArrived
+                    : (isArrived || isSold)
                     ? '#F0FDF4'
                     : '#FEF2F2',
                   display: 'flex',
@@ -756,7 +873,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   fontSize: '11px',
                   fontWeight: '800',
                   backdropFilter: 'blur(8px)',
-                  backgroundColor: isPending
+                  backgroundColor: isSold
+                    ? 'rgba(16,185,129,0.92)'
+                    : isPending
                     ? 'rgba(251,191,36,0.92)'
                     : isArrived
                     ? 'rgba(16,185,129,0.92)'
@@ -764,7 +883,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   color: 'white',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                 }}>
-                  {isPending
+                  {isSold
+                    ? '💰 Продано'
+                    : isPending
                     ? '⏳ Ожидается'
                     : isArrived
                     ? '✅ Пришло'
@@ -845,7 +966,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   height: '3px',
                   background: isPending
                     ? 'linear-gradient(90deg, #F59E0B, #FCD34D)'
-                    : isArrived
+                    : (isArrived || isSold)
                     ? 'linear-gradient(90deg, #10B981, #34D399)'
                     : 'linear-gradient(90deg, #EF4444, #FCA5A5)'
                 }} />
@@ -1079,21 +1200,61 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                 {/* ACTION BUTTONS */}
                 <div style={{
                   display: 'flex',
-                  gap: '8px'
+                  gap: '6px',
+                  flexWrap: 'wrap',
+                  marginTop: '10px'
                 }}>
+                  {!isSold && (
+                    <button
+                      onClick={() => openSellModal(p)}
+                      style={{
+                        flex: 1,
+                        minWidth: '100px',
+                        padding: '10px 8px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg,#10B981,#34D399)',
+                        color: 'white',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        boxShadow: '0 4px 12px rgba(16,185,129,0.35)',
+                        transition: 'all 0.15s'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(16,185,129,0.45)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(16,185,129,0.35)';
+                      }}
+                    >
+                      💰 Продать
+                    </button>
+                  )}
                   {isPending && (
                     <button
                       onClick={() => handleArrived(p)}
                       style={{
                         flex: 1,
-                        padding: '10px',
+                        minWidth: '90px',
+                        padding: '10px 8px',
                         border: 'none',
-                        borderRadius: '10px',
+                        borderRadius: '12px',
                         backgroundColor: '#D1FAE5',
                         color: '#065F46',
                         fontSize: '12px',
                         fontWeight: '700',
                         cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
                         transition: 'all 0.15s'
                       }}
                     >
@@ -1103,19 +1264,20 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   <button
                     onClick={() => setEditPreorder(p)}
                     style={{
-                      flex: 1,
-                      padding: '10px',
-                      border: '1.5px solid #E2E8F0',
+                      width: '38px',
+                      height: '38px',
                       borderRadius: '10px',
+                      border: '1px solid #E2E8F0',
                       backgroundColor: 'white',
-                      color: '#475569',
-                      fontSize: '12px',
-                      fontWeight: '600',
                       cursor: 'pointer',
-                      transition: 'all 0.15s'
+                      fontSize: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}
                   >
-                    ✏️ Изменить
+                    ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(p.id)}
@@ -1477,6 +1639,330 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               >
                 👟 Открыть каталог
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SELL MODAL */}
+      {sellModal.show && sellModal.preorder && (
+        <div
+          onClick={() => setSellModal({ show: false, preorder: null })}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15,23,42,0.65)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '20px', backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white', borderRadius: '28px',
+              width: '100%', maxWidth: '460px', maxHeight: '90vh',
+              overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+              position: 'relative'
+            }}
+          >
+            {/* HEADER */}
+            <div style={{
+              background: 'linear-gradient(135deg,#10B981,#34D399)',
+              borderRadius: '28px 28px 0 0', padding: '24px',
+              position: 'relative', overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'absolute', top: '-20px', right: '-20px',
+                width: '100px', height: '100px', borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.1)'
+              }}/>
+              <button
+                onClick={() => setSellModal({ show: false, preorder: null })}
+                style={{
+                  position: 'absolute', top: '16px', right: '16px',
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  border: 'none', backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'white', cursor: 'pointer', fontSize: '18px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                ×
+              </button>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>💰</div>
+              <h2 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: '800', color: 'white' }}>
+                Записать продажу
+              </h2>
+              <p style={{ margin: 0, fontSize: '14px', color: 'rgba(255,255,255,0.8)' }}>
+                {sellModal.preorder.modelName || 'Товар'}
+              </p>
+            </div>
+
+            {/* BODY */}
+            <div style={{ padding: '24px' }}>
+
+              {/* PRODUCT INFO */}
+              <div style={{
+                display: 'flex', gap: '12px', padding: '14px',
+                backgroundColor: '#F8FAFC', borderRadius: '16px',
+                marginBottom: '20px', border: '1px solid #F1F5F9'
+              }}>
+                {sellModal.preorder.image && (
+                  <img
+                    src={sellModal.preorder.image}
+                    alt=""
+                    style={{
+                      width: '60px', height: '60px', borderRadius: '10px',
+                      objectFit: 'cover', flexShrink: 0
+                    }}
+                  />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '15px', fontWeight: '700', color: '#1E293B',
+                    marginBottom: '4px', overflow: 'hidden',
+                    textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                  }}>
+                    {sellModal.preorder.modelName || 'Товар'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', gap: '8px' }}>
+                    {sellModal.preorder.sizeEU && <span>EU {sellModal.preorder.sizeEU}</span>}
+                    {sellModal.preorder.supplier && <span>{sellModal.preorder.supplier}</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* CUSTOMER NAME */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{
+                  display: 'block', fontSize: '12px', fontWeight: '700',
+                  color: '#374151', marginBottom: '6px', letterSpacing: '0.3px'
+                }}>
+                  👤 ПОКУПАТЕЛЬ
+                </label>
+                <input
+                  type="text"
+                  value={sellForm.customerName}
+                  onChange={e => setSellForm(prev => ({ ...prev, customerName: e.target.value }))}
+                  placeholder="Имя или @instagram"
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* INSTAGRAM LINK */}
+              {sellModal.preorder.forWho && (
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{
+                    display: 'block', fontSize: '12px', fontWeight: '700',
+                    color: '#374151', marginBottom: '6px'
+                  }}>
+                    📸 INSTAGRAM ПОКУПАТЕЛЯ
+                  </label>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '10px 14px', backgroundColor: '#FFF0F5',
+                    borderRadius: '12px', border: '1px solid #FBCFE8'
+                  }}>
+                    <span style={{ fontSize: '16px' }}>📸</span>
+                    <a
+                      href={
+                        sellModal.preorder.forWho.startsWith('http')
+                          ? sellModal.preorder.forWho
+                          : `https://instagram.com/${sellModal.preorder.forWho}`
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '13px', color: '#E1306C', fontWeight: '600',
+                        textDecoration: 'none', overflow: 'hidden',
+                        textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1
+                      }}
+                    >
+                      {sellForm.customerName || sellModal.preorder.forWho}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* PRICES ROW */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr',
+                gap: '12px', marginBottom: '14px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block', fontSize: '12px', fontWeight: '700',
+                    color: '#374151', marginBottom: '6px'
+                  }}>
+                    💰 ЦЕНА ПРОДАЖИ (Br)
+                  </label>
+                  <input
+                    type="number"
+                    value={sellForm.price}
+                    onChange={e => setSellForm(prev => ({ ...prev, price: e.target.value }))}
+                    placeholder="0"
+                    style={{
+                      width: '100%', padding: '11px 14px',
+                      border: '1.5px solid #A7F3D0', borderRadius: '12px',
+                      fontSize: '16px', fontWeight: '700', color: '#10B981',
+                      outline: 'none', boxSizing: 'border-box', backgroundColor: '#F0FDF4'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block', fontSize: '12px', fontWeight: '700',
+                    color: '#374151', marginBottom: '6px'
+                  }}>
+                    🏷️ ЗАКУПКА (Br)
+                  </label>
+                  <input
+                    type="number"
+                    value={sellForm.purchasePrice}
+                    onChange={e => setSellForm(prev => ({ ...prev, purchasePrice: e.target.value }))}
+                    placeholder="0"
+                    style={{
+                      width: '100%', padding: '11px 14px',
+                      border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                      fontSize: '16px', fontWeight: '700', color: '#374151',
+                      outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* PROFIT PREVIEW */}
+              {sellForm.price && sellForm.purchasePrice && (
+                <div style={{
+                  padding: '12px 16px',
+                  backgroundColor: (Number(sellForm.price) - Number(sellForm.purchasePrice)) >= 0 ? '#F0FDF4' : '#FEF2F2',
+                  borderRadius: '12px',
+                  border: '1.5px solid',
+                  borderColor: (Number(sellForm.price) - Number(sellForm.purchasePrice)) >= 0 ? '#A7F3D0' : '#FECACA',
+                  marginBottom: '14px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
+                    🔥 Прибыль с продажи:
+                  </span>
+                  <span style={{
+                    fontSize: '18px', fontWeight: '800',
+                    color: (Number(sellForm.price) - Number(sellForm.purchasePrice)) >= 0 ? '#10B981' : '#EF4444'
+                  }}>
+                    {(Number(sellForm.price) - Number(sellForm.purchasePrice)) >= 0 ? '+' : ''}
+                    {Number(sellForm.price) - Number(sellForm.purchasePrice)} Br
+                  </span>
+                </div>
+              )}
+
+              {/* PAYMENT METHOD */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{
+                  display: 'block', fontSize: '12px', fontWeight: '700',
+                  color: '#374151', marginBottom: '6px'
+                }}>
+                  💳 СПОСОБ ОПЛАТЫ
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[
+                    { key: 'наличные', icon: '💵', label: 'Наличные' },
+                    { key: 'перевод', icon: '📱', label: 'Перевод' },
+                    { key: 'карта', icon: '💳', label: 'Карта' }
+                  ].map(m => (
+                    <button
+                      key={m.key}
+                      onClick={() => setSellForm(prev => ({ ...prev, paymentMethod: m.key }))}
+                      style={{
+                        flex: 1, padding: '8px 4px', borderRadius: '10px',
+                        border: '1.5px solid',
+                        borderColor: sellForm.paymentMethod === m.key ? '#10B981' : '#E2E8F0',
+                        backgroundColor: sellForm.paymentMethod === m.key ? '#F0FDF4' : 'white',
+                        cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+                        color: sellForm.paymentMethod === m.key ? '#10B981' : '#64748B',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        gap: '3px', transition: 'all 0.15s'
+                      }}
+                    >
+                      <span style={{ fontSize: '18px' }}>{m.icon}</span>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* DATE */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block', fontSize: '12px', fontWeight: '700',
+                  color: '#374151', marginBottom: '6px'
+                }}>
+                  📅 ДАТА ПРОДАЖИ
+                </label>
+                <input
+                  type="date"
+                  value={sellForm.date}
+                  onChange={e => setSellForm(prev => ({ ...prev, date: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* NOTES */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block', fontSize: '12px', fontWeight: '700',
+                  color: '#374151', marginBottom: '6px'
+                }}>
+                  📝 ЗАМЕТКА
+                </label>
+                <textarea
+                  value={sellForm.notes}
+                  onChange={e => setSellForm(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Дополнительная информация..."
+                  style={{
+                    width: '100%', padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    fontSize: '14px', outline: 'none', resize: 'none',
+                    fontFamily: 'inherit', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* ACTION BUTTONS */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setSellModal({ show: false, preorder: null })}
+                  style={{
+                    flex: 1, padding: '13px', borderRadius: '14px',
+                    border: '1.5px solid #E2E8F0', backgroundColor: 'white',
+                    color: '#64748B', fontSize: '14px', fontWeight: '600', cursor: 'pointer'
+                  }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleSellFromPreorder}
+                  disabled={sellLoading}
+                  style={{
+                    flex: 2, padding: '13px', borderRadius: '14px', border: 'none',
+                    background: sellLoading ? '#E2E8F0' : 'linear-gradient(135deg,#10B981,#34D399)',
+                    color: sellLoading ? '#94A3B8' : 'white',
+                    fontSize: '15px', fontWeight: '800',
+                    cursor: sellLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    boxShadow: sellLoading ? 'none' : '0 4px 14px rgba(16,185,129,0.4)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {sellLoading ? '⏳ Сохраняем...' : '💰 Записать продажу'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
