@@ -1275,6 +1275,7 @@ const Catalog: React.FC = () => {
                             marginTop: '10px',
                             flexWrap: 'wrap'
                           }}>
+                            {isInStock && (
                             <button
                               onClick={() => openSellModal(first)}
                               style={{
@@ -1298,6 +1299,7 @@ const Catalog: React.FC = () => {
                             >
                               💰 Продать
                             </button>
+                            )}
                             <button
                               onClick={() => toggleGroup(key)}
                               style={{
