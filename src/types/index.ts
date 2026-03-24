@@ -79,6 +79,13 @@ export interface Preorder {
   forWho?: string;
   catalogProductId?: string;
   addedToCatalog?: boolean;
+  isClone?: boolean;
+  originalPreorderId?: string;
+  originalName?: string;
+  clonedAt?: string;
+  cloneIds?: string[];
+  hasClones?: boolean;
+  clonesCount?: number;
 }
 
 export type DeliveryMethod = 'mail' | 'in_person' | 'courier';

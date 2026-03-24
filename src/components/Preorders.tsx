@@ -283,6 +283,19 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
   });
   const [sellLoading, setSellLoading] = useState(false);
 
+  const [cloneModal, setCloneModal] = useState<{ show: boolean; preorder: Preorder | null }>({
+    show: false,
+    preorder: null
+  });
+  const [cloneForm, setCloneForm] = useState({
+    size: '',
+    forWho: '',
+    purchasePrice: '',
+    sellingPrice: '',
+    notes: ''
+  });
+  const [cloneLoading, setCloneLoading] = useState(false);
+
   const filtered = statusFilter === 'all'
     ? preorders
     : preorders.filter((p) => p.status === statusFilter);
@@ -485,6 +498,108 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
     });
 
     setSellModal({ show: true, preorder });
+  };
+
+  const openCloneModal = (preorder: Preorder) => {
+    setCloneForm({
+      size: '',
+      forWho: '',
+      purchasePrice: String(preorder.purchasePrice || ''),
+      sellingPrice: String(preorder.retailPrice || ''),
+      notes: ''
+    });
+    setCloneModal({ show: true, preorder });
+  };
+
+  const handleClonePreorder = async () => {
+    if (!cloneModal.preorder) return;
+    if (!cloneForm.size) {
+      alert('Укажи размер!');
+      return;
+    }
+    if (!cloneForm.forWho) {
+      alert('Укажи для кого!');
+      return;
+    }
+
+    setCloneLoading(true);
+    try {
+      const original = cloneModal.preorder;
+
+      const forWhoRaw = cloneForm.forWho || '';
+      let buyerTag = forWhoRaw;
+      if (forWhoRaw.includes('instagram.com/')) {
+        const u = forWhoRaw.split('instagram.com/')[1]?.split('/')[0]?.split('?')[0];
+        if (u) buyerTag = `@${u}`;
+      }
+
+      const newPreorder = {
+        modelId: original.modelId || '',
+        modelName: original.modelName || '',
+        brand: original.modelName?.split(' ')[0] || '',
+        image: original.image || '',
+        supplier: original.supplier || '',
+        sizeId: '',
+        sizeEU: cloneForm.size,
+        quantity: 1,
+        purchasePrice: Number(cloneForm.purchasePrice || 0),
+        retailPrice: Number(cloneForm.sellingPrice || 0),
+        expectedDate: original.expectedDate || new Date().toISOString().split('T')[0],
+        status: 'pending' as const,
+        forWho: cloneForm.forWho,
+        notes: cloneForm.notes || '',
+        createdAt: new Date().toISOString(),
+        isClone: true,
+        originalPreorderId: original.id,
+        originalName: original.modelName || '',
+        clonedAt: new Date().toISOString()
+      };
+
+      const docRef = await addDoc(
+        collection(db, 'preorders'),
+        sanitizeForFirestore(newPreorder as unknown as Record<string, unknown>)
+      );
+      console.log('✅ Clone created:', docRef.id);
+
+      const existingClones = Array.isArray(original.cloneIds)
+        ? original.cloneIds
+        : [];
+
+      await updateDoc(
+        doc(db, 'preorders', original.id),
+        {
+          cloneIds: [...existingClones, docRef.id],
+          hasClones: true,
+          clonesCount: existingClones.length + 1
+        }
+      );
+
+      setCloneModal({ show: false, preorder: null });
+
+      const t = document.createElement('div');
+      t.style.cssText = `
+        position:fixed;top:80px;left:50%;transform:translateX(-50%);
+        background:linear-gradient(135deg,#6366F1,#8B5CF6);
+        color:white;padding:12px 24px;border-radius:30px;
+        font-size:14px;font-weight:700;z-index:99999;
+        box-shadow:0 6px 24px rgba(99,102,241,0.45);
+        white-space:nowrap;pointer-events:none;
+      `;
+      t.textContent = '✅ Доп. заказ EU ' + cloneForm.size + ' для ' + buyerTag + ' добавлен!';
+      document.body.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 0.3s';
+        setTimeout(() => t.remove(), 300);
+      }, 3000);
+
+    } catch (err: unknown) {
+      console.error('ERROR:', err);
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      alert('Ошибка: ' + msg);
+    } finally {
+      setCloneLoading(false);
+    }
   };
 
   const handleSellFromPreorder = async () => {
@@ -988,6 +1103,42 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   {p.modelName}
                 </div>
 
+                {/* Clone badges */}
+                {p.hasClones && (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    backgroundColor: '#EEF2FF',
+                    border: '1px solid #C7D2FE',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#6366F1',
+                    marginBottom: '6px'
+                  }}>
+                    +{p.clonesCount || 1} доп.
+                  </div>
+                )}
+                {p.isClone && (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 10px',
+                    backgroundColor: '#F5F3FF',
+                    border: '1px solid #DDD6FE',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#7C3AED',
+                    marginBottom: '6px'
+                  }}>
+                    🔗 Доп. заказ
+                  </div>
+                )}
+
                 {/* Supplier row */}
                 <div style={{
                   display: 'flex',
@@ -1261,6 +1412,38 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                       ✅ Пришло
                     </button>
                   )}
+                  <button
+                    onClick={() => openCloneModal(p)}
+                    style={{
+                      padding: '9px 10px',
+                      borderRadius: '12px',
+                      border: '1.5px solid #C7D2FE',
+                      backgroundColor: '#EEF2FF',
+                      color: '#6366F1',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s',
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap' as const
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.backgroundColor = '#6366F1';
+                      e.currentTarget.style.color = 'white';
+                      e.currentTarget.style.borderColor = '#6366F1';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = '#EEF2FF';
+                      e.currentTarget.style.color = '#6366F1';
+                      e.currentTarget.style.borderColor = '#C7D2FE';
+                    }}
+                  >
+                    ➕ Заказ
+                  </button>
                   <button
                     onClick={() => setEditPreorder(p)}
                     style={{
@@ -1961,6 +2144,431 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   }}
                 >
                   {sellLoading ? '⏳ Сохраняем...' : '💰 Записать продажу'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CLONE PREORDER MODAL */}
+      {cloneModal.show && cloneModal.preorder && (
+        <div
+          onClick={() => setCloneModal({ show: false, preorder: null })}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15,23,42,0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '28px',
+              width: '100%',
+              maxWidth: '460px',
+              maxHeight: '92vh',
+              overflowY: 'auto' as const,
+              boxShadow: '0 24px 64px rgba(0,0,0,0.3)'
+            }}
+          >
+            {/* HEADER */}
+            <div style={{
+              background: 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+              borderRadius: '28px 28px 0 0',
+              padding: '24px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-30px', right: '-30px',
+                width: '120px', height: '120px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                pointerEvents: 'none' as const
+              }} />
+
+              <button
+                onClick={() => setCloneModal({ show: false, preorder: null })}
+                style={{
+                  position: 'absolute',
+                  top: '16px', right: '16px',
+                  width: '32px', height: '32px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >×</button>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <div style={{
+                  width: '60px', height: '60px',
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {cloneModal.preorder.image ? (
+                    <img
+                      src={cloneModal.preorder.image}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' as const }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: '26px' }}>👟</span>
+                  )}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '11px',
+                    color: 'rgba(255,255,255,0.7)',
+                    fontWeight: '600',
+                    marginBottom: '4px',
+                    letterSpacing: '0.5px'
+                  }}>
+                    ➕ ДОПОЛНИТЕЛЬНЫЙ ЗАКАЗ
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '800',
+                    color: 'white',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap' as const
+                  }}>
+                    {cloneModal.preorder.modelName || 'Модель'}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: 'rgba(255,255,255,0.7)',
+                    marginTop: '2px'
+                  }}>
+                    Оригинал: EU {cloneModal.preorder.sizeEU || '?'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* BODY */}
+            <div style={{ padding: '20px 24px 24px' }}>
+
+              {/* SIZE INPUT */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#374151',
+                  marginBottom: '8px',
+                  letterSpacing: '0.3px'
+                }}>
+                  📏 НОВЫЙ РАЗМЕР *
+                </label>
+
+                <div style={{
+                  display: 'flex',
+                  gap: '6px',
+                  flexWrap: 'wrap' as const,
+                  marginBottom: '10px'
+                }}>
+                  {['36','37','38','39','40','41','42','43','44','45','46','47'].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setCloneForm(prev => ({ ...prev, size: s }))}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        border: '1.5px solid',
+                        borderColor: cloneForm.size === s ? '#6366F1' : '#E2E8F0',
+                        backgroundColor: cloneForm.size === s ? '#EEF2FF' : 'white',
+                        color: cloneForm.size === s ? '#6366F1' : '#64748B',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  value={cloneForm.size}
+                  onChange={e => setCloneForm(prev => ({ ...prev, size: e.target.value }))}
+                  placeholder="Или введи вручную: 42.5"
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box' as const,
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.15s'
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = '#6366F1';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = '#E2E8F0';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              {/* FOR WHO */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#374151',
+                  marginBottom: '6px',
+                  letterSpacing: '0.3px'
+                }}>
+                  👤 ДЛЯ КОГО * (Instagram ссылка)
+                </label>
+                <input
+                  type="text"
+                  value={cloneForm.forWho}
+                  onChange={e => setCloneForm(prev => ({ ...prev, forWho: e.target.value }))}
+                  placeholder="https://instagram.com/username"
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box' as const,
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.15s'
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = '#E1306C';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(225,48,108,0.08)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = '#E2E8F0';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+                {cloneForm.forWho.includes('instagram.com/') && (
+                  <div style={{
+                    marginTop: '6px',
+                    padding: '6px 10px',
+                    backgroundColor: '#EEF2FF',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#6366F1',
+                    fontWeight: '600'
+                  }}>
+                    👤 {(() => {
+                      const u = cloneForm.forWho.split('instagram.com/')[1]?.split('/')[0]?.split('?')[0];
+                      return u ? `@${u}` : cloneForm.forWho;
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              {/* PRICES */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+                marginBottom: '14px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    🏷️ ЗАКУПКА (Br)
+                  </label>
+                  <input
+                    type="number"
+                    value={cloneForm.purchasePrice}
+                    onChange={e => setCloneForm(prev => ({ ...prev, purchasePrice: e.target.value }))}
+                    placeholder="0"
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      border: '1.5px solid #E2E8F0',
+                      borderRadius: '12px',
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      color: '#374151',
+                      outline: 'none',
+                      boxSizing: 'border-box' as const,
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    💰 ПРОДАЖА (Br)
+                  </label>
+                  <input
+                    type="number"
+                    value={cloneForm.sellingPrice}
+                    onChange={e => setCloneForm(prev => ({ ...prev, sellingPrice: e.target.value }))}
+                    placeholder="0"
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      border: '1.5px solid #A7F3D0',
+                      borderRadius: '12px',
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      color: '#10B981',
+                      outline: 'none',
+                      boxSizing: 'border-box' as const,
+                      backgroundColor: '#F0FDF4',
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* PROFIT PREVIEW */}
+              {cloneForm.sellingPrice && cloneForm.purchasePrice && (() => {
+                const profit = Number(cloneForm.sellingPrice) - Number(cloneForm.purchasePrice);
+                return (
+                  <div style={{
+                    padding: '12px 16px',
+                    backgroundColor: profit >= 0 ? '#F0FDF4' : '#FEF2F2',
+                    borderRadius: '12px',
+                    border: '1.5px solid',
+                    borderColor: profit >= 0 ? '#A7F3D0' : '#FECACA',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{
+                      fontSize: '13px',
+                      color: '#64748B',
+                      fontWeight: '600'
+                    }}>
+                      🔥 Потенциал:
+                    </span>
+                    <span style={{
+                      fontSize: '20px',
+                      fontWeight: '900',
+                      color: profit >= 0 ? '#10B981' : '#EF4444'
+                    }}>
+                      {profit >= 0 ? '+' : ''}{profit} Br
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* NOTES */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  📝 ЗАМЕТКА
+                </label>
+                <textarea
+                  value={cloneForm.notes}
+                  onChange={e => setCloneForm(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Дополнительная информация..."
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    border: '1.5px solid #E2E8F0',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    resize: 'none' as const,
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box' as const
+                  }}
+                />
+              </div>
+
+              {/* BUTTONS */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setCloneModal({ show: false, preorder: null })}
+                  style={{
+                    flex: 1,
+                    padding: '13px',
+                    borderRadius: '14px',
+                    border: '1.5px solid #E2E8F0',
+                    backgroundColor: 'white',
+                    color: '#64748B',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleClonePreorder}
+                  disabled={cloneLoading}
+                  style={{
+                    flex: 2,
+                    padding: '13px',
+                    borderRadius: '14px',
+                    border: 'none',
+                    background: cloneLoading ? '#E2E8F0' : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+                    color: cloneLoading ? '#94A3B8' : 'white',
+                    fontSize: '15px',
+                    fontWeight: '800',
+                    cursor: cloneLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: cloneLoading ? 'none' : '0 4px 14px rgba(99,102,241,0.4)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {cloneLoading ? '⏳ Добавляем...' : '➕ Добавить заказ'}
                 </button>
               </div>
             </div>
