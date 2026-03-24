@@ -261,6 +261,46 @@ function AppContent() {
               🔔
             </div>
 
+            {/* PC/MOBILE TOGGLE */}
+            <button
+              onClick={toggleView}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 12px',
+                borderRadius: '10px',
+                border: '1.5px solid',
+                borderColor: isDesktopMode ? '#E2E8F0' : '#C7D2FE',
+                backgroundColor: !isDesktopMode ? '#EEF2FF' : 'white',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: !isDesktopMode ? '#6366F1' : '#64748B',
+                transition: 'all 0.2s',
+                flexShrink: 0
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#EEF2FF';
+                e.currentTarget.style.borderColor = '#C7D2FE';
+                e.currentTarget.style.color = '#6366F1';
+              }}
+              onMouseLeave={e => {
+                const isMob = !isDesktopMode;
+                e.currentTarget.style.backgroundColor = isMob ? '#EEF2FF' : 'white';
+                e.currentTarget.style.borderColor = isMob ? '#C7D2FE' : '#E2E8F0';
+                e.currentTarget.style.color = isMob ? '#6366F1' : '#64748B';
+              }}
+              title="Переключить вид"
+            >
+              <span style={{ fontSize: '16px' }}>
+                {isDesktopMode ? '📱' : '🖥️'}
+              </span>
+              <span>
+                {isDesktopMode ? 'Моб.' : 'ПК'}
+              </span>
+            </button>
+
             {/* Logout button */}
             <button
               onClick={handleLogout}
