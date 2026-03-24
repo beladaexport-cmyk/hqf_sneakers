@@ -42,10 +42,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
-  const monthCost = monthSalesData.reduce((s, e) => s + Number(e.purchasePrice || 0) * e.quantity, 0);
+  const monthCost = monthSalesData.reduce((sum, sale) => {
+    const cost = Number(
+      sale.purchasePrice ||
+      (sale as any).costPrice ||
+      (sale as any).buyPrice ||
+      (sale as any).cost ||
+      0
+    );
+    return sum + cost * sale.quantity;
+  }, 0);
   const monthExpenses = adExpenses + deliveryExpenses + otherExpenses;
   const grossProfit = monthRevenue - monthCost;
   const netProfit = grossProfit - monthExpenses;
+
+  // === COST DEBUG ===
+  console.log('=== COST DEBUG ===');
+  console.log('Current month:', currentMonth);
+  console.log('All sales count:', sales.length, '| Filtered monthSalesData count:', monthSalesData.length);
+  monthSalesData.forEach((s, i) => {
+    console.log(
+      `Sale ${i + 1}:`, s.productName,
+      '| price:', s.price,
+      '| purchasePrice:', s.purchasePrice,
+      '| total:', s.total,
+      '| quantity:', s.quantity,
+      '| profit:', s.profit,
+      '| date:', s.date,
+      '| status:', s.status
+    );
+  });
+  console.log('monthRevenue:', monthRevenue, '| monthCost:', monthCost, '| grossProfit:', grossProfit, '| monthExpenses:', monthExpenses, '| netProfit:', netProfit);
   const totalProducts = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
 
   const recentSales = [...sales]
