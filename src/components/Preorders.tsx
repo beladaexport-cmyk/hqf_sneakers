@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { doc, updateDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
+import { sanitizeForFirestore } from '../utils/sanitizeFirestore';
 import { Preorder, PreorderStatus } from '../types';
 import { SIZE_OPTIONS } from '../utils/sizeChart';
 import { useViewMode } from '../contexts/ViewModeContext';
@@ -287,8 +288,13 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
   };
 
   const handleArrived = async (preorder: Preorder) => {
+    console.log('=== handleArrived START ===');
+    console.log('preorder object:', preorder);
+    console.log('preorder keys:', Object.keys(preorder));
+
     try {
-      // 1. Update preorder status
+      // STEP 1: Update preorder status
+      console.log('Step 1: Updating preorder status...');
       await updateDoc(
         doc(db, 'preorders', preorder.id),
         {
@@ -296,9 +302,11 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           arrivedAt: new Date().toISOString()
         }
       );
+      console.log('✅ Step 1 done: Status updated to arrived');
 
-      // 2. Extract Instagram username
+      // STEP 2: Extract Instagram username / buyer tag
       const forWhoRaw = preorder.forWho || '';
+      console.log('Step 2: forWhoRaw:', forWhoRaw);
 
       let buyerTag = forWhoRaw;
       if (forWhoRaw.includes('instagram.com/')) {
@@ -308,15 +316,20 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
       } else if (forWhoRaw.startsWith('http')) {
         buyerTag = forWhoRaw;
       }
+      console.log('buyerTag:', buyerTag);
 
-      // 3. Check if already in catalog
+      // STEP 3: Check if already in catalog
+      console.log('Step 3: Checking if already in catalog...');
+      console.log('Querying products where preorderId ==', preorder.id);
       const q = query(
         collection(db, 'products'),
         where('preorderId', '==', preorder.id)
       );
       const existing = await getDocs(q);
+      console.log('Existing docs count:', existing.size);
 
       if (!existing.empty) {
+        console.log('⚠️ Already in catalog, showing modal');
         setArrivedModal({
           show: true,
           preorder,
@@ -327,11 +340,14 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
         return;
       }
 
-      // 4. Build product object
+      // STEP 4: Build product object
+      const productName = preorder.modelName || 'Без названия';
+      console.log('Step 4: Building product. Name:', productName);
+
       const newProduct = {
         sku: `PRE-${preorder.id.slice(0, 6).toUpperCase()}`,
-        brand: '',
-        model: preorder.modelName || '',
+        brand: preorder.modelName?.split(' ')[0] || '',
+        model: productName,
         size: preorder.sizeEU || '',
         sizes: preorder.sizeEU ? [preorder.sizeEU] : [],
         color: '',
@@ -341,8 +357,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
         images: preorder.image ? [preorder.image] : [],
         supplier: preorder.supplier || '',
         quantity: preorder.quantity || 1,
-        category: 'sport',
-        status: 'available',
+        category: 'sport' as const,
+        status: 'available' as const,
         location: '',
         minStock: 1,
         dateAdded: new Date().toISOString().split('T')[0],
@@ -350,7 +366,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
         // BUYER INFO
         forWho: forWhoRaw,
         buyerTag: buyerTag,
-        isReserved: buyerTag ? true : false,
+        isReserved: !!buyerTag,
         reservedFor: buyerTag || '',
 
         // META
@@ -363,13 +379,20 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           : `Прибыло ${new Date().toLocaleDateString('ru-RU')}`,
       };
 
-      // 5. Add to catalog
+      // Sanitize to remove any undefined values that Firestore would reject
+      const sanitizedProduct = sanitizeForFirestore(newProduct as unknown as Record<string, unknown>);
+      console.log('Step 4 done. Sanitized product:', sanitizedProduct);
+
+      // STEP 5: Save to catalog (products collection)
+      console.log('Step 5: Saving to Firestore collection: products');
       const docRef = await addDoc(
         collection(db, 'products'),
-        newProduct
+        sanitizedProduct
       );
+      console.log('✅ Step 5 done: Product added! ID:', docRef.id);
 
-      // 6. Update preorder
+      // STEP 6: Update preorder with catalog reference
+      console.log('Step 6: Updating preorder with catalogProductId...');
       await updateDoc(
         doc(db, 'preorders', preorder.id),
         {
@@ -377,8 +400,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           addedToCatalog: true
         }
       );
+      console.log('✅ Step 6 done: Preorder updated');
 
-      // 7. Show success modal
+      // STEP 7: Show success modal
       setArrivedModal({
         show: true,
         preorder,
@@ -387,10 +411,17 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
         alreadyExists: false
       });
 
+      console.log('=== handleArrived DONE ===');
+
     } catch (err: unknown) {
-      console.error(err);
+      console.error('❌ ERROR in handleArrived:', err);
+      if (err instanceof Error) {
+        console.error('Error name:', err.name);
+        console.error('Error message:', err.message);
+        console.error('Error stack:', err.stack);
+      }
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      alert('Ошибка: ' + msg);
+      alert('❌ Ошибка при добавлении в каталог:\n' + msg);
     }
   };
 
