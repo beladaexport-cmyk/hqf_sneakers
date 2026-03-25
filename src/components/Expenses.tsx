@@ -4,6 +4,16 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Expense } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
 
+function toDateStr(d: unknown): string {
+  if (!d) return '';
+  if (typeof d === 'string') return d;
+  if (d instanceof Date) return d.toISOString().slice(0, 10);
+  if (typeof d === 'object' && d !== null && 'toDate' in d)
+    return (d as any).toDate().toISOString().slice(0, 10);
+  if (typeof d === 'number') return new Date(d).toISOString().slice(0, 10);
+  return String(d);
+}
+
 type Period = 'all' | 'today' | 'week' | 'month';
 type ExpenseType = Expense['type'] | 'all';
 
@@ -32,7 +42,7 @@ function filterByPeriod(expenses: Expense[], period: Period): Expense[] {
   } else if (period === 'month') {
     cutoff.setMonth(now.getMonth() - 1);
   }
-  return expenses.filter((e) => new Date(e.date) >= cutoff);
+  return expenses.filter((e) => new Date(toDateStr(e.date) || '2000-01-01') >= cutoff);
 }
 
 const emptyExpense: Omit<Expense, 'id'> = {
@@ -420,7 +430,7 @@ const Expenses: React.FC = () => {
                 gap:'6px',
                 alignItems:'center'
               }}>
-                <span>📅 {expense.date}</span>
+                <span>📅 {toDateStr(expense.date)}</span>
                 <span style={{
                   padding:'1px 6px',
                   borderRadius:'4px',
