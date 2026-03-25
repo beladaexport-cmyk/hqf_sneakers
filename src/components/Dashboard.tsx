@@ -3,6 +3,15 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useViewMode } from '../contexts/ViewModeContext';
 import { Product, Sale, Expense } from '../types';
 
+function toDateStr(d: unknown): string {
+  if (!d) return '';
+  if (typeof d === 'string') return d;
+  if (d instanceof Date) return d.toISOString().slice(0, 10);
+  if (typeof d === 'object' && d !== null && 'toDate' in d) return (d as any).toDate().toISOString().slice(0, 10);
+  if (typeof d === 'number') return new Date(d).toISOString().slice(0, 10);
+  return String(d);
+}
+
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
 }
@@ -28,7 +37,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   // Monthly calculations
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthSalesData = sales.filter(s => {
-    if (!s.date || !s.date.startsWith(currentMonth)) return false;
+    if (!s.date || !toDateStr(s.date).startsWith(currentMonth)) return false;
     // Exclude cancelled/returned sales
     const isCancelled =
       s.status === 'cancelled' ||
@@ -42,15 +51,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   });
 
   const adExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type === 'advertising')
+    .filter(e => toDateStr(e.date).startsWith(currentMonth) && e.type === 'advertising')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const deliveryExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type === 'delivery')
+    .filter(e => toDateStr(e.date).startsWith(currentMonth) && e.type === 'delivery')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const otherExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type !== 'advertising' && e.type !== 'delivery')
+    .filter(e => toDateStr(e.date).startsWith(currentMonth) && e.type !== 'advertising' && e.type !== 'delivery')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
@@ -69,7 +78,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const netProfit = grossProfit - monthExpenses;
 
   // === COST DEBUG ===
-  const cancelledThisMonth = sales.filter(s => s.date && s.date.startsWith(currentMonth) && (
+  const cancelledThisMonth = sales.filter(s => s.date && toDateStr(s.date).startsWith(currentMonth) && (
     s.status === 'cancelled' || (s.status as string) === 'отменена' || (s.status as string) === 'возврат' || (s as any).cancelled === true || !!s.cancelledAt
   ));
   console.log('=== COST DEBUG ===');
@@ -742,7 +751,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     color: '#94A3B8',
                     marginTop: '2px'
                   }}>
-                    {new Date(sale.date).toLocaleDateString('ru-RU')}
+                    {new Date(toDateStr(sale.date) || '2000-01-01').toLocaleDateString('ru-RU')}
                   </div>
                 </div>
 
