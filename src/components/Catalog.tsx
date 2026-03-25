@@ -118,12 +118,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Размер *</label>
-              <input
+              <select
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={form.size}
                 onChange={(e) => set('size', e.target.value)}
                 required
-              />
+              >
+                <option value="">Выберите размер</option>
+                {SIZE_OPTIONS.map((eu) => (
+                  <option key={eu} value={eu}>
+                    EU {eu}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Цвет</label>
@@ -1832,8 +1839,8 @@ const Catalog: React.FC = () => {
                 gap: '4px',
                 marginTop: '8px',
               }}>
-                {[35, 35.5, 36, 36.5, 37, 37.5, 38, 38.5, 39, 39.5, 40, 40.5,
-                  41, 41.5, 42, 42.5, 43, 43.5, 44, 44.5, 45, 45.5, 46, 47, 48]
+                {[36, 36.5, 37, 37.5, 38, 38.5, 39, 39.5, 40, 40.5,
+                  41, 41.5, 42, 42.5, 43, 43.5, 44, 44.5, 45, 45.5, 46, 46.5]
                   .filter(s => !selectedProduct?.sizes?.includes(String(s)))
                   .map(s => (
                     <button
