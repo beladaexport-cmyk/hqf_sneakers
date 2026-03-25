@@ -741,6 +741,25 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
       });
       console.log('✅ Preorder updated to sold');
 
+      // Update catalog product if exists (mark as sold / qty 0)
+      if (preorder.catalogProductId) {
+        try {
+          await updateDoc(
+            doc(db, 'products', preorder.catalogProductId),
+            {
+              quantity: 0,
+              inStock: false,
+              status: 'sold_out',
+              soldAt: new Date().toISOString(),
+              soldViaPreorder: true
+            }
+          );
+          console.log('✅ Catalog product marked sold');
+        } catch (e) {
+          console.warn('Could not update catalog:', e);
+        }
+      }
+
       setSellModal({ show: false, preorder: null });
       showToast(`✅ Продажа на ${salePrice} Br записана!`);
     } catch (err: unknown) {
@@ -1225,6 +1244,23 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     🔗 Доп. заказ
                   </div>
                 )}
+                {p.catalogProductId && (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    backgroundColor: '#EEF2FF',
+                    border: '1px solid #C7D2FE',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#6366F1',
+                    marginBottom: '6px'
+                  }}>
+                    📦 В каталоге
+                  </div>
+                )}
 
                 {/* Supplier row */}
                 <div style={{
@@ -1531,6 +1567,74 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   >
                     ➕ Заказ
                   </button>
+                  {isArrived && !p.catalogProductId && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          // Manually add arrived preorder to catalog
+                          const productName = p.modelName || 'Без названия';
+                          const newProduct = {
+                            sku: `PRE-${p.id.slice(0, 6).toUpperCase()}`,
+                            brand: p.modelName?.split(' ')[0] || '',
+                            model: productName,
+                            size: p.sizeEU || '',
+                            sizes: p.sizeEU ? [p.sizeEU] : [],
+                            color: '',
+                            purchasePrice: Number(p.purchasePrice || 0),
+                            retailPrice: Number(p.retailPrice || 0),
+                            image: p.image || '',
+                            images: p.image ? [p.image] : [],
+                            supplier: p.supplier || '',
+                            quantity: p.quantity || 1,
+                            category: 'sport' as const,
+                            status: 'available' as const,
+                            location: '',
+                            minStock: 1,
+                            dateAdded: new Date().toISOString().split('T')[0],
+                            forWho: p.forWho || '',
+                            preorderId: p.id,
+                            addedFromPreorder: true,
+                            addedAt: new Date().toISOString(),
+                          };
+                          const sanitized = sanitizeForFirestore(newProduct as unknown as Record<string, unknown>);
+                          const docRef = await addDoc(collection(db, 'products'), sanitized);
+                          await updateDoc(doc(db, 'preorders', p.id), {
+                            catalogProductId: docRef.id,
+                            addedToCatalog: true
+                          });
+                          showToast('📦 Добавлено в каталог!');
+                        } catch (e: unknown) {
+                          const msg = e instanceof Error ? e.message : 'Unknown error';
+                          alert('Ошибка: ' + msg);
+                        }
+                      }}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '12px',
+                        border: '1.5px solid #C7D2FE',
+                        backgroundColor: '#EEF2FF',
+                        color: '#6366F1',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.15s',
+                        whiteSpace: 'nowrap' as const
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.backgroundColor = '#6366F1';
+                        e.currentTarget.style.color = 'white';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.backgroundColor = '#EEF2FF';
+                        e.currentTarget.style.color = '#6366F1';
+                      }}
+                    >
+                      📦 В каталог
+                    </button>
+                  )}
                   <button
                     onClick={() => setEditPreorder(p)}
                     style={{
