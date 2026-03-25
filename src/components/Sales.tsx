@@ -160,7 +160,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
               <option value="">— Выберите товар —</option>
               {available.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
+                  {p.brand} {p.model} р.{p.size} — {(Number(p.retailPrice) || 0).toLocaleString('ru-RU')} Br
                   (ост: {p.quantity})
                 </option>
               ))}
@@ -299,13 +299,13 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Цена за шт:</span>
                   <span className="font-medium">
-                    {selectedProduct.retailPrice.toLocaleString('ru-RU')} Br
+                    {(Number(selectedProduct.retailPrice) || 0).toLocaleString('ru-RU')} Br
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-gray-600">Итого:</span>
                   <span className="text-xl font-bold text-green-600">
-                    {total.toLocaleString('ru-RU')} Br
+                    {(Number(total) || 0).toLocaleString('ru-RU')} Br
                   </span>
                 </div>
                 {deliveryMethod === 'mail' && (
@@ -446,7 +446,7 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
               )}
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
+                  {p.brand} {p.model} р.{p.size} — {(Number(p.retailPrice) || 0).toLocaleString('ru-RU')} Br
                 </option>
               ))}
             </select>
@@ -548,13 +548,13 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Прибыль:</span>
               <span className={`font-semibold ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {calculatedProfit.toLocaleString('ru-RU')} Br
+                {(Number(calculatedProfit) || 0).toLocaleString('ru-RU')} Br
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Итого:</span>
               <span className="text-xl font-bold text-green-600">
-                {calculatedTotal.toLocaleString('ru-RU')} Br
+                {(Number(calculatedTotal) || 0).toLocaleString('ru-RU')} Br
               </span>
             </div>
           </div>
@@ -697,8 +697,8 @@ const Sales: React.FC = () => {
     : periodFiltered.filter((s) => (s.status ?? 'completed') === statusFilter);
 
   const completedSales = periodFiltered.filter((s) => (s.status ?? 'completed') === 'completed');
-  const totalRevenue = completedSales.reduce((sum, s) => sum + s.total, 0);
-  const totalProfit = completedSales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
+  const totalRevenue = completedSales.reduce((sum, s) => sum + (Number(s.total) || 0), 0);
+  const totalProfit = completedSales.reduce((sum, s) => sum + (Number(s.profit) || 0), 0);
 
   const getSaleProductImage = (sale: Sale): string | null => {
     // Try 0: direct image stored on the sale record
@@ -1438,7 +1438,7 @@ const Sales: React.FC = () => {
                             color: isCancelled ? '#94A3B8' : '#1E293B',
                             textDecoration: isCancelled ? 'line-through' : 'none',
                           }}>
-                            {sale.price.toLocaleString('ru-RU')} Br
+                            {(Number(sale.price) || 0).toLocaleString('ru-RU')} Br
                           </div>
                           <div style={{
                             fontSize: '9px',
@@ -1462,7 +1462,7 @@ const Sales: React.FC = () => {
                             fontWeight: '800',
                             color: isCancelled ? '#94A3B8' : '#10B981',
                           }}>
-                            +{(sale.profit ?? 0).toLocaleString('ru-RU')} Br
+                            +{(Number(sale.profit ?? 0)).toLocaleString('ru-RU')} Br
                           </div>
                           <div style={{
                             fontSize: '9px',
@@ -1487,7 +1487,7 @@ const Sales: React.FC = () => {
                             color: isCancelled ? '#94A3B8' : '#6366F1',
                             textDecoration: isCancelled ? 'line-through' : 'none',
                           }}>
-                            {sale.total.toLocaleString('ru-RU')} Br
+                            {(Number(sale.total) || 0).toLocaleString('ru-RU')} Br
                           </div>
                           <div style={{
                             fontSize: '9px',
