@@ -107,8 +107,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   const recentSales = [...sales]
     .sort((a, b) => {
-      const da = new Date(a.date || 0);
-      const db = new Date(b.date || 0);
+      const da = new Date(toDateStr(a.date) || '2000-01-01');
+      const db = new Date(toDateStr(b.date) || '2000-01-01');
       return db.getTime() - da.getTime();
     })
     .slice(0, 10);
@@ -751,7 +751,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     color: '#94A3B8',
                     marginTop: '2px'
                   }}>
-                    {new Date(toDateStr(sale.date) || '2000-01-01').toLocaleDateString('ru-RU')}
+                    {(() => { try { const d = toDateStr(sale.date); return d ? new Date(d).toLocaleDateString('ru-RU') : '—'; } catch { return '—'; } })()}
                   </div>
                 </div>
 
