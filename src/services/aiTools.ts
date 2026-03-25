@@ -14,6 +14,16 @@ import { db } from '../config/firebase';
 import { Product, Sale } from '../types';
 import { sanitizeForFirestore } from '../utils/sanitizeFirestore';
 
+function toDateStr(d: unknown): string {
+  if (!d) return '';
+  if (typeof d === 'string') return d;
+  if (d instanceof Date) return d.toISOString().slice(0, 10);
+  if (typeof d === 'object' && d !== null && 'toDate' in d)
+    return (d as any).toDate().toISOString().slice(0, 10);
+  if (typeof d === 'number') return new Date(d).toISOString().slice(0, 10);
+  return String(d);
+}
+
 export interface ToolResult {
   success: boolean;
   message: string;
@@ -300,7 +310,7 @@ export async function generateReport(reportType: string, period?: string): Promi
 
         const sales = allSales.filter(s => {
           if (s.status !== 'completed') return false;
-          if (period && period !== 'all' && s.date) return new Date(s.date) >= startDate;
+          if (period && period !== 'all' && s.date) return new Date(toDateStr(s.date) || '2000-01-01') >= startDate;
           return true;
         });
 
@@ -668,7 +678,7 @@ export async function getSalesStatistics(period: 'today' | 'week' | 'month' | 'a
     const snapshot = await getDocs(collection(db, 'sales'));
     const sales = snapshot.docs
       .map(d => d.data() as Sale)
-      .filter(s => s.status === 'completed' && new Date(s.date) >= cutoff);
+      .filter(s => s.status === 'completed' && new Date(toDateStr(s.date) || '2000-01-01') >= cutoff);
 
     const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
     const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
@@ -798,7 +808,7 @@ export async function searchSales(params: {
 
     if (startDate || endDate) {
       sales = sales.filter(s => {
-        const saleDate = new Date(s.date);
+        const saleDate = new Date(toDateStr(s.date) || '2000-01-01');
         if (startDate && saleDate < new Date(startDate)) return false;
         if (endDate && saleDate > new Date(endDate)) return false;
         return true;
@@ -824,7 +834,7 @@ export async function searchSales(params: {
 
     const result = sales.map(s => ({
       id: s.id,
-      date: new Date(s.date).toLocaleDateString('ru-RU'),
+      date: new Date(toDateStr(s.date) || '2000-01-01').toLocaleDateString('ru-RU'),
       product: s.productName,
       article: s.productModelArticle || s.productSku,
       color: s.productColor,
