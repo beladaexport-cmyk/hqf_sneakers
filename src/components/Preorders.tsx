@@ -8,6 +8,60 @@ import { Preorder, PreorderStatus } from '../types';
 import { SIZE_OPTIONS } from '../utils/sizeChart';
 import { useViewMode } from '../contexts/ViewModeContext';
 
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onload = (e) => {
+      const img = document.createElement('img');
+      img.src = e.target?.result as string;
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round(height * MAX_SIZE / width);
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round(width * MAX_SIZE / height);
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('No canvas context')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let compressed = canvas.toDataURL('image/jpeg', 0.6);
+
+        // If still too big (>900KB), compress more aggressively
+        if (compressed.length > 900 * 1024) {
+          const MAX2 = 200;
+          let w2 = width, h2 = height;
+          if (w2 > h2) { if (w2 > MAX2) { h2 = Math.round(h2 * MAX2 / w2); w2 = MAX2; } }
+          else { if (h2 > MAX2) { w2 = Math.round(w2 * MAX2 / h2); h2 = MAX2; } }
+          canvas.width = w2;
+          canvas.height = h2;
+          ctx.drawImage(img, 0, 0, w2, h2);
+          compressed = canvas.toDataURL('image/jpeg', 0.5);
+        }
+
+        console.log('Image compressed:', Math.round(compressed.length / 1024), 'KB');
+        resolve(compressed);
+      };
+    };
+  });
+};
+
 const emptyPreorder: Omit<Preorder, 'id' | 'createdAt'> = {
   modelId: '',
   modelName: '',
@@ -112,17 +166,21 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
               id="newPreorderPhoto"
               accept="image/*"
               style={{ display: 'none' }}
-              onChange={e => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  setForm(prev => ({
-                    ...prev,
-                    image: event.target?.result as string
-                  }));
-                };
-                reader.readAsDataURL(file);
+                if (!file.type.startsWith('image/')) return;
+                try {
+                  const compressed = await compressImage(file);
+                  setForm(prev => ({ ...prev, image: compressed }));
+                } catch (err) {
+                  console.error('Image compress error:', err);
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    setForm(prev => ({ ...prev, image: event.target?.result as string }));
+                  };
+                  reader.readAsDataURL(file);
+                }
               }}
             />
           </div>
@@ -315,7 +373,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
   const totalExpectedRevenue = pending.reduce((sum, p) => sum + p.retailPrice * p.quantity, 0);
 
   const handleAdd = async (data: Omit<Preorder, 'id' | 'createdAt'>) => {
-    await add({ ...data, image: data.image || undefined, createdAt: new Date().toISOString() });
+    // Safety: strip image if it's too large for Firestore (>800KB)
+    const safeImage = (data.image && data.image.length > 800000) ? '' : (data.image || undefined);
+    await add({ ...data, image: safeImage, createdAt: new Date().toISOString() });
     setShowForm(false);
   };
 
@@ -702,17 +762,13 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
     if (!file || !photoTargetPreorder) return;
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64Image = event.target?.result as string;
-        const preorderRef = doc(db, 'preorders', photoTargetPreorder.id);
-        await updateDoc(preorderRef, {
-          image: base64Image,
-          updatedAt: new Date().toISOString(),
-        });
-        setPhotoTargetPreorder(null);
-      };
-      reader.readAsDataURL(file);
+      const compressed = await compressImage(file);
+      const preorderRef = doc(db, 'preorders', photoTargetPreorder.id);
+      await updateDoc(preorderRef, {
+        image: compressed,
+        updatedAt: new Date().toISOString(),
+      });
+      setPhotoTargetPreorder(null);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       alert(`Ошибка загрузки: ${msg}`);
