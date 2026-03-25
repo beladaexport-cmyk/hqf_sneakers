@@ -48,7 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     if (isCancelled) return false;
     // Only include completed sales (default to completed if no status)
     return (s.status ?? 'completed') === 'completed';
-  });
+  }).filter(s => Number(s.total || 0) > 0);
 
   const adExpenses = expenses
     .filter(e => toDateStr(e.date).startsWith(currentMonth) && e.type === 'advertising')
@@ -63,19 +63,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
-  const monthCost = monthSalesData.reduce((sum, sale) => {
-    const cost = Number(
-      sale.purchasePrice ||
-      (sale as any).costPrice ||
-      (sale as any).buyPrice ||
-      (sale as any).cost ||
-      0
-    );
-    return sum + cost * sale.quantity;
-  }, 0);
   const monthExpenses = adExpenses + deliveryExpenses + otherExpenses;
-  const grossProfit = monthRevenue - monthCost;
-  const netProfit = grossProfit - monthExpenses;
+  const netProfit = monthRevenue - monthExpenses;
 
   // === COST DEBUG ===
   const cancelledThisMonth = sales.filter(s => s.date && toDateStr(s.date).startsWith(currentMonth) && (
@@ -102,10 +91,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       '| cancelledAt:', s.cancelledAt
     );
   });
-  console.log('monthRevenue:', monthRevenue, '| monthCost:', monthCost, '| grossProfit:', grossProfit, '| monthExpenses:', monthExpenses, '| netProfit:', netProfit);
+  console.log('monthRevenue:', monthRevenue, '| monthExpenses:', monthExpenses, '| netProfit:', netProfit);
   const totalProducts = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
 
   const recentSales = [...sales]
+    .filter(s => Number(s.total || 0) > 0 || s.status === 'cancelled' || (s.status as string) === 'отменена' || (s.status as string) === 'возврат' || (s as any).cancelled === true || !!s.cancelledAt)
     .sort((a, b) => {
       const da = new Date(toDateStr(a.date) || '2000-01-01');
       const db = new Date(toDateStr(b.date) || '2000-01-01');
@@ -395,8 +385,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           }}>
             {[
               { label: 'ВЫРУЧКА', value: monthRevenue || 0, icon: '💵', color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0', wide: false },
-              { label: 'СЕБЕСТОИМОСТЬ', value: monthCost || 0, icon: '🏷️', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', wide: false },
-              { label: 'ВАЛОВАЯ ПРИБЫЛЬ', value: grossProfit || 0, icon: '📈', color: '#6366F1', bg: '#EEF2FF', border: '#C7D2FE', wide: false },
               { label: 'РАСХОДЫ', value: monthExpenses || 0, icon: '📉', color: '#EF4444', bg: '#FEF2F2', border: '#FECACA', wide: false },
               {
                 label: 'ЧИСТАЯ ПРИБЫЛЬ',
