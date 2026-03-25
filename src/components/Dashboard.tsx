@@ -581,6 +581,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {recentSales.slice(0, 5).map(sale => {
             const img = sale.productImage;
             const isDone = sale.status === 'completed';
+            const isCancelled =
+              sale.status === 'cancelled' ||
+              (sale as any).cancelled === true ||
+              (sale.status as string) === 'отменена' ||
+              (sale.status as string) === 'возврат';
+
             return (
               <div
                 key={sale.id}
@@ -589,20 +595,41 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   alignItems: 'center',
                   gap: '14px',
                   padding: '12px 16px',
-                  backgroundColor: '#F8FAFC',
+                  backgroundColor: isCancelled ? '#FFF5F5' : '#F8FAFC',
                   borderRadius: '14px',
-                  border: '1px solid #F1F5F9',
-                  transition: 'all 0.15s'
+                  border: '1px solid',
+                  borderColor: isCancelled ? '#FECACA' : '#F1F5F9',
+                  transition: 'all 0.15s',
+                  opacity: isCancelled ? 0.85 : 1,
+                  position: 'relative' as const,
+                  overflow: 'hidden'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = '#F1F5F9';
-                  e.currentTarget.style.transform = 'translateX(3px)';
+                  if (!isCancelled) {
+                    e.currentTarget.style.backgroundColor = '#F1F5F9';
+                    e.currentTarget.style.transform = 'translateX(3px)';
+                  }
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.backgroundColor = '#F8FAFC';
-                  e.currentTarget.style.transform = 'translateX(0)';
+                  if (!isCancelled) {
+                    e.currentTarget.style.backgroundColor = '#F8FAFC';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }
                 }}
               >
+                {/* Cancelled red stripe */}
+                {isCancelled && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '4px',
+                    height: '100%',
+                    backgroundColor: '#EF4444',
+                    borderRadius: '4px 0 0 4px'
+                  }} />
+                )}
+
                 <div style={{
                   width: '48px',
                   height: '48px',
@@ -614,7 +641,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   overflow: 'hidden',
                   flexShrink: 0,
                   border: '1px solid #E2E8F0',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                  filter: isCancelled ? 'grayscale(60%)' : 'none'
                 }}>
                   {img ? (
                     <img
@@ -635,12 +663,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <div style={{
                     fontSize: '14px',
                     fontWeight: '700',
-                    color: '#1E293B',
+                    color: isCancelled ? '#9CA3AF' : '#1E293B',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     marginBottom: '3px',
-                    maxWidth: isMobileView ? '120px' : 'none'
+                    maxWidth: isMobileView ? '120px' : 'none',
+                    textDecoration: isCancelled ? 'line-through' : 'none'
                   }}>
                     {sale.productName}
                   </div>
@@ -661,14 +690,29 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       {sale.customer || 'Покупатель'}
                     </span>
                   </div>
+                  {isCancelled && sale.cancellationReason && (
+                    <div style={{
+                      marginTop: '4px',
+                      fontSize: '11px',
+                      color: '#EF4444',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>↩️</span>
+                      {sale.cancellationReason}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{
                     fontSize: '16px',
                     fontWeight: '800',
-                    color: '#10B981',
-                    letterSpacing: '-0.3px'
+                    color: isCancelled ? '#9CA3AF' : '#10B981',
+                    letterSpacing: '-0.3px',
+                    textDecoration: isCancelled ? 'line-through' : 'none'
                   }}>
                     {sale.total} Br
                   </div>
@@ -681,17 +725,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                <div style={{
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  flexShrink: 0,
-                  backgroundColor: isDone ? '#D1FAE5' : '#FEF3C7',
-                  color: isDone ? '#065F46' : '#92400E'
-                }}>
-                  {isDone ? '✅ Готово' : '⏳ В процессе'}
-                </div>
+                {isCancelled ? (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    backgroundColor: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    color: '#EF4444',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}>
+                    ↩️ Возврат
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    flexShrink: 0,
+                    backgroundColor: isDone ? '#D1FAE5' : '#FEF3C7',
+                    color: isDone ? '#065F46' : '#92400E'
+                  }}>
+                    {isDone ? '✅ Готово' : '⏳ В процессе'}
+                  </div>
+                )}
               </div>
             );
           })}
