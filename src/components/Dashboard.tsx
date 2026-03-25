@@ -27,7 +27,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   // Monthly calculations
   const currentMonth = new Date().toISOString().slice(0, 7);
-  const monthSalesData = sales.filter(s => s.date && s.date.startsWith(currentMonth) && (s.status ?? 'completed') === 'completed');
+  const monthSalesData = sales.filter(s => {
+    if (!s.date || !s.date.startsWith(currentMonth)) return false;
+    // Exclude cancelled/returned sales
+    const isCancelled =
+      s.status === 'cancelled' ||
+      (s.status as string) === 'отменена' ||
+      (s.status as string) === 'возврат' ||
+      (s as any).cancelled === true ||
+      !!s.cancelledAt;
+    if (isCancelled) return false;
+    // Only include completed sales (default to completed if no status)
+    return (s.status ?? 'completed') === 'completed';
+  });
 
   const adExpenses = expenses
     .filter(e => e.date.startsWith(currentMonth) && e.type === 'advertising')
@@ -57,19 +69,28 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const netProfit = grossProfit - monthExpenses;
 
   // === COST DEBUG ===
+  const cancelledThisMonth = sales.filter(s => s.date && s.date.startsWith(currentMonth) && (
+    s.status === 'cancelled' || (s.status as string) === 'отменена' || (s.status as string) === 'возврат' || (s as any).cancelled === true || !!s.cancelledAt
+  ));
   console.log('=== COST DEBUG ===');
   console.log('Current month:', currentMonth);
-  console.log('All sales count:', sales.length, '| Filtered monthSalesData count:', monthSalesData.length);
+  console.log('All sales count:', sales.length, '| Active this month:', monthSalesData.length, '| Cancelled this month:', cancelledThisMonth.length);
   monthSalesData.forEach((s, i) => {
     console.log(
-      `Sale ${i + 1}:`, s.productName,
+      `Active Sale ${i + 1}:`, s.productName,
       '| price:', s.price,
       '| purchasePrice:', s.purchasePrice,
       '| total:', s.total,
       '| quantity:', s.quantity,
-      '| profit:', s.profit,
-      '| date:', s.date,
       '| status:', s.status
+    );
+  });
+  cancelledThisMonth.forEach((s, i) => {
+    console.log(
+      `Cancelled ${i + 1}:`, s.productName,
+      '| purchasePrice:', s.purchasePrice,
+      '| status:', s.status,
+      '| cancelledAt:', s.cancelledAt
     );
   });
   console.log('monthRevenue:', monthRevenue, '| monthCost:', monthCost, '| grossProfit:', grossProfit, '| monthExpenses:', monthExpenses, '| netProfit:', netProfit);
