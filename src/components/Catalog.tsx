@@ -958,12 +958,8 @@ const Catalog: React.FC = () => {
                   const totalQuantity = items.reduce((s, p) => s + p.quantity, 0);
                   const isInStock = totalQuantity > 0;
                   const sizes = items.map(p => p.size);
-                  const prices = items.map(p => p.retailPrice);
-                  const minPrice = Math.min(...prices);
-                  const maxPrice = Math.max(...prices);
-                  const priceRange = minPrice === maxPrice
-                    ? `${minPrice.toLocaleString('ru-RU')} Br`
-                    : `${minPrice.toLocaleString('ru-RU')}–${maxPrice.toLocaleString('ru-RU')} Br`;
+
+
                   const mainImage = first.images?.[0] || null;
                   return (
                     <div key={key}>
@@ -1285,22 +1281,70 @@ const Catalog: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* PRICE + CATEGORY ROW */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            marginBottom: '12px'
-                          }}>
-                            <div style={{
-                              fontSize: '20px',
-                              fontWeight: '800',
-                              color: '#0F172A',
-                              letterSpacing: '-0.5px'
-                            }}>
-                              {priceRange}
-                            </div>
-                            <div style={{
+                          {/* PRICE BLOCK */}
+                          {(() => {
+                            const buyPrice = Math.min(...items.map(p => Number(p.purchasePrice) || 0));
+                            const sellPrice = Math.min(...items.map(p => Number(p.retailPrice) || 0));
+                            const profit = sellPrice - buyPrice;
+                            const profitColor = profit >= 0 ? '#10B981' : '#EF4444';
+                            const profitBg = profit >= 0 ? '#F0FDF4' : '#FEF2F2';
+                            const profitBorder = profit >= 0 ? '#A7F3D0' : '#FECACA';
+                            return (
+                              <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr 1fr',
+                                gap: '6px',
+                                marginBottom: '12px',
+                              }}>
+                                <div style={{
+                                  backgroundColor: '#F8FAFC',
+                                  borderRadius: '10px',
+                                  padding: '8px 6px',
+                                  textAlign: 'center',
+                                  border: '1px solid #E2E8F0',
+                                }}>
+                                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#64748B' }}>
+                                    {buyPrice > 0 ? buyPrice.toLocaleString('ru-RU') : '—'} Br
+                                  </div>
+                                  <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                                    ЗАКУПКА
+                                  </div>
+                                </div>
+                                <div style={{
+                                  backgroundColor: profitBg,
+                                  borderRadius: '10px',
+                                  padding: '8px 6px',
+                                  textAlign: 'center',
+                                  border: `1px solid ${profitBorder}`,
+                                }}>
+                                  <div style={{ fontSize: '14px', fontWeight: '800', color: profitColor }}>
+                                    {buyPrice > 0 ? `${profit >= 0 ? '+' : ''}${profit.toLocaleString('ru-RU')} Br` : '—'}
+                                  </div>
+                                  <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                                    ПРИБЫЛЬ
+                                  </div>
+                                </div>
+                                <div style={{
+                                  backgroundColor: '#EEF2FF',
+                                  borderRadius: '10px',
+                                  padding: '8px 6px',
+                                  textAlign: 'center',
+                                  border: '1px solid #C7D2FE',
+                                }}>
+                                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#6366F1' }}>
+                                    {sellPrice > 0 ? sellPrice.toLocaleString('ru-RU') : '—'} Br
+                                  </div>
+                                  <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                                    ПРОДАЖА
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* CATEGORY BADGE */}
+                          <div style={{ marginBottom: '12px', textAlign: 'right' }}>
+                            <span style={{
                               fontSize: '11px',
                               fontWeight: '600',
                               color: '#94A3B8',
@@ -1310,7 +1354,7 @@ const Catalog: React.FC = () => {
                               border: '1px solid #E2E8F0'
                             }}>
                               {categoryLabels[first.category] || 'Лайфстайл'}
-                            </div>
+                            </span>
                           </div>
 
                           {/* IN STOCK HIGHLIGHT BAR */}
