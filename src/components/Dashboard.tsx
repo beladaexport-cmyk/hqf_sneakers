@@ -7,6 +7,12 @@ interface DashboardProps {
   onNavigate?: (tab: string) => void;
 }
 
+const getDateString = (date: string | Date | undefined | null): string => {
+  if (!date) return '';
+  if (typeof date === 'string') return date;
+  return new Date(date).toISOString();
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { isMobileView } = useViewMode();
   const { data: products, loading: loadingProducts } = useFirestore<Product>('products');
@@ -28,7 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   // Monthly calculations
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthSalesData = sales.filter(s => {
-    if (!s.date || !s.date.startsWith(currentMonth)) return false;
+    if (!s.date || !getDateString(s.date).startsWith(currentMonth)) return false;
     // Exclude cancelled/returned sales
     const isCancelled =
       s.status === 'cancelled' ||
@@ -42,15 +48,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   });
 
   const adExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type === 'advertising')
+    .filter(e => getDateString(e.date).startsWith(currentMonth) && e.type === 'advertising')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const deliveryExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type === 'delivery')
+    .filter(e => getDateString(e.date).startsWith(currentMonth) && e.type === 'delivery')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const otherExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type !== 'advertising' && e.type !== 'delivery')
+    .filter(e => getDateString(e.date).startsWith(currentMonth) && e.type !== 'advertising' && e.type !== 'delivery')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
