@@ -79,7 +79,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       !!s.cancelledAt;
     if (isCancelled) return false;
     // Only include completed sales (default to completed if no status)
-    return (s.status ?? 'completed') === 'completed';
+    const st = (s.status ?? 'completed').toLowerCase();
+    return st === 'completed' || st === 'завершена';
   });
 
   const monthlyExpenses = expenses.filter(exp => {
@@ -142,7 +143,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             (s as any).cancelled === true ||
             !!s.cancelledAt;
           if (isCancelled) return false;
-          if ((s.status ?? 'completed') !== 'completed') return false;
+          const cst = (s.status ?? 'completed').toLowerCase();
+          if (cst !== 'completed' && cst !== 'завершена') return false;
           return sd.slice(0, 10) === key;
         })
         .reduce((sum, s) => sum + Number(s.total || 0), 0);
@@ -809,7 +811,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         }}>
           {recentSales.slice(0, 5).map(sale => {
             const img = sale.productImage;
-            const isDone = sale.status === 'completed';
+            const isDone = sale.status === 'completed' || (sale.status as string) === 'завершена';
             const isCancelled =
               sale.status === 'cancelled' ||
               (sale as any).cancelled === true ||
@@ -943,7 +945,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     letterSpacing: '-0.3px',
                     textDecoration: isCancelled ? 'line-through' : 'none'
                   }}>
-                    {sale.total} Br
+                    {(Number(sale.total) || 0)} Br
                   </div>
                   <div style={{
                     fontSize: '11px',

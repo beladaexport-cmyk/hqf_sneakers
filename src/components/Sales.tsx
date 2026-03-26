@@ -9,6 +9,15 @@ import { safeDate, safeNumber } from '../utils/helpers';
 
 type Period = 'all' | 'today' | 'week' | 'month';
 
+const normalizeStatus = (status: any): SaleStatus => {
+  if (!status) return 'completed';
+  const s = String(status).toLowerCase();
+  if (s === 'завершена' || s === 'completed') return 'completed';
+  if (s === 'в процессе' || s === 'pending' || s === 'inprocess') return 'pending';
+  if (s === 'отменена' || s === 'cancelled' || s === 'возврат') return 'cancelled';
+  return 'completed';
+};
+
 const periodLabels: Record<Period, string> = {
   all: 'Все время',
   today: 'Сегодня',
@@ -58,10 +67,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('📝 Form submitted');
-
     if (isSubmitting) {
-      console.log('⏳ Already submitting, ignoring...');
       return;
     }
 
@@ -591,33 +597,6 @@ const Sales: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const imageFixRanRef = useRef(false);
 
-  // Debug: log all sales and products data for diagnostics
-  useEffect(() => {
-    if (sales.length > 0) {
-      console.log('=== ALL SALES DATA ===');
-      sales.forEach(sale => {
-        console.log({
-          id: sale.id,
-          productName: sale.productName,
-          productId: sale.productId,
-          productImage: sale.productImage ? 'HAS productImage' : 'NO productImage',
-          allFields: Object.keys(sale)
-        });
-      });
-    }
-    if (products.length > 0) {
-      console.log('=== ALL PRODUCTS DATA ===');
-      products.forEach(p => {
-        console.log({
-          id: p.id,
-          brand: p.brand,
-          model: p.model,
-          images: p.images?.length ? `HAS ${p.images.length} images` : 'NO images',
-          allFields: Object.keys(p)
-        });
-      });
-    }
-  }, [sales, products]);
 
   // One-time fix: patch sales missing productImage from catalog or sibling sales
   useEffect(() => {
@@ -673,7 +652,6 @@ const Sales: React.FC = () => {
 
         try {
           await updateDoc(doc(db, 'sales', sale.id), { productImage: img });
-          console.log(`Fixed image for: ${sale.productName}`);
         } catch (e) {
           console.error(`Failed to fix image for: ${sale.id}`, e);
         }
@@ -685,14 +663,14 @@ const Sales: React.FC = () => {
 
   const periodFiltered = filterByPeriod([...sales].reverse(), period);
   const filteredSales = periodFiltered
-    .filter(s => statusFilter === 'all' || (s.status ?? 'completed') === statusFilter)
+    .filter(s => statusFilter === 'all' || normalizeStatus(s.status) === statusFilter)
     .filter(s =>
       !search ||
       (s.productName || '').toLowerCase().includes(search.toLowerCase()) ||
       (s.customer || '').toLowerCase().includes(search.toLowerCase())
     );
 
-  const completedSales = periodFiltered.filter((s) => (s.status ?? 'completed') === 'completed');
+  const completedSales = periodFiltered.filter((s) => normalizeStatus(s.status) === 'completed');
   const totalRevenue = completedSales.reduce((sum, s) => sum + safeNumber(s.total), 0);
   const totalProfit = completedSales.reduce((sum, s) => sum + safeNumber(s.profit), 0);
 
@@ -760,7 +738,6 @@ const Sales: React.FC = () => {
 
   const handleSale = async (data: Omit<Sale, 'id'>) => {
     try {
-      console.log('🛒 Starting sale creation:', data);
 
       // Ensure productImage is saved from catalog if not already set
       let saleData = { ...data };
@@ -773,17 +750,14 @@ const Sales: React.FC = () => {
       }
 
       await addSale(saleData);
-      console.log('✅ Sale created successfully');
 
       const product = products.find((p) => p.id === data.productId);
       if (product?.id) {
-        console.log('📦 Updating product quantity:', product.id);
         const remainingQty = product.quantity - data.quantity;
         await updateDoc(doc(db, 'products', product.id), {
           quantity: increment(-data.quantity),
           ...(remainingQty <= 0 ? { status: 'sold_out' } : {}),
         });
-        console.log('✅ Product updated successfully');
       }
 
       setShowForm(false);
@@ -825,7 +799,6 @@ const Sales: React.FC = () => {
             await createReturnedProduct(sale);
           }
         } catch (e) {
-          console.log('Product not found, creating new');
           await createReturnedProduct(sale);
         }
       } else {
@@ -874,7 +847,6 @@ const Sales: React.FC = () => {
     }
 
     await addDoc(collection(db, 'products'), newProduct);
-    console.log('✅ New product created from return');
   };
 
   const handleDeleteSale = async (sale: Sale) => {
@@ -1173,7 +1145,12 @@ const Sales: React.FC = () => {
             };
             const aOrder = order[a.status?.toLowerCase() ?? 'completed'] ?? 1;
             const bOrder = order[b.status?.toLowerCase() ?? 'completed'] ?? 1;
-            return aOrder - bOrder;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            try {
+              const aTime = new Date(safeDate(a.date) || 0).getTime();
+              const bTime = new Date(safeDate(b.date) || 0).getTime();
+              return bTime - aTime;
+            } catch { return 0; }
           });
 
           if (sortedSales.length === 0) {
@@ -1533,7 +1510,7 @@ const Sales: React.FC = () => {
                             fontWeight: '800',
                             color: isCancelled ? '#94A3B8' : '#10B981',
                           }}>
-                            +{(sale.profit ?? 0).toLocaleString('ru-RU')} Br
+                            +{safeNumber(sale.profit).toLocaleString('ru-RU')} Br
                           </div>
                           <div style={{
                             fontSize: '9px',
