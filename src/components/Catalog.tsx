@@ -631,21 +631,61 @@ const Catalog: React.FC = () => {
     return matchesSearch && matchesSupplier && matchesReserved;
   });
 
+  const sanitizeImages = (images: string[]): string[] => {
+    if (!images || !Array.isArray(images)) return [];
+    return images.filter(img => {
+      if (!img) return false;
+      if (img.startsWith('data:')) return false;
+      return img.startsWith('http://') || img.startsWith('https://');
+    });
+  };
+
+  const checkDocumentSize = (data: any): boolean => {
+    const jsonString = JSON.stringify(data);
+    const sizeInBytes = new Blob([jsonString]).size;
+    const limitBytes = 900000;
+
+    if (sizeInBytes > limitBytes) {
+      alert(
+        `Размер документа ${Math.round(sizeInBytes / 1024)} КБ ` +
+        `превышает лимит 900 КБ.\n` +
+        `Пожалуйста уменьши количество фотографий.`
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleAdd = async (data: Omit<Product, 'id'>) => {
-    await add(data);
+    const cleanData = {
+      ...data,
+      images: sanitizeImages(data.images || []),
+    };
+    if (!checkDocumentSize(cleanData)) return;
+    await add(cleanData);
     setShowForm(false);
   };
 
   const handleBulkAdd = async (items: Omit<Product, 'id'>[]) => {
     for (const item of items) {
-      await add(item);
+      const cleanItem = {
+        ...item,
+        images: sanitizeImages(item.images || []),
+      };
+      if (!checkDocumentSize(cleanItem)) return;
+      await add(cleanItem);
     }
     setShowBulkForm(false);
   };
 
   const handleEdit = async (data: Omit<Product, 'id'>) => {
     if (!editProduct?.id) return;
-    await update(editProduct.id, data);
+    const cleanData = {
+      ...data,
+      images: sanitizeImages(data.images || []),
+    };
+    if (!checkDocumentSize(cleanData)) return;
+    await update(editProduct.id, cleanData);
     setEditProduct(null);
   };
 
