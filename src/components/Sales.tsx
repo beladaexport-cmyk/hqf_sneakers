@@ -6,6 +6,17 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
 
+const safeDate = (val: unknown): string => {
+  if (!val) return '';
+  try {
+    const d = new Date(val as string);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString();
+  } catch {
+    return '';
+  }
+};
+
 type Period = 'all' | 'today' | 'week' | 'month';
 
 const periodLabels: Record<Period, string> = {
@@ -26,7 +37,7 @@ function filterByPeriod(sales: Sale[], period: Period): Sale[] {
   } else if (period === 'month') {
     cutoff.setMonth(now.getMonth() - 1);
   }
-  return sales.filter((s) => new Date(s.date) >= cutoff);
+  return sales.filter((s) => new Date(safeDate(s.date) || Date.now()) >= cutoff);
 }
 
 interface SaleFormProps {
@@ -338,7 +349,7 @@ interface EditSaleModalProps {
 }
 
 const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, onCancel }) => {
-  const [date, setDate] = useState(sale.date ? (typeof sale.date === 'string' ? sale.date : new Date(sale.date).toISOString()).split('T')[0] : '');
+  const [date, setDate] = useState(sale.date ? (safeDate(sale.date) || new Date().toISOString()).split('T')[0] : '');
   const [productId, setProductId] = useState(sale.productId);
   const [customer, setCustomer] = useState(sale.customer || '');
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(sale.deliveryMethod ?? 'in_person');
@@ -1255,7 +1266,7 @@ const Sales: React.FC = () => {
                         backdropFilter: 'blur(8px)',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
                       }}>
-                        {new Date(sale.date).toLocaleDateString('ru-RU')}
+                        {new Date(safeDate(sale.date) || Date.now()).toLocaleDateString('ru-RU')}
                       </div>
 
                       {/* SIZE BADGE - bottom left */}

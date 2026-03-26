@@ -4,6 +4,17 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Expense } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
 
+const safeDate = (val: unknown): string => {
+  if (!val) return '';
+  try {
+    const d = new Date(val as string);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString();
+  } catch {
+    return '';
+  }
+};
+
 type Period = 'all' | 'today' | 'week' | 'month';
 type ExpenseType = Expense['type'] | 'all';
 
@@ -32,7 +43,7 @@ function filterByPeriod(expenses: Expense[], period: Period): Expense[] {
   } else if (period === 'month') {
     cutoff.setMonth(now.getMonth() - 1);
   }
-  return expenses.filter((e) => new Date(e.date) >= cutoff);
+  return expenses.filter((e) => new Date(safeDate(e.date) || Date.now()) >= cutoff);
 }
 
 const emptyExpense: Omit<Expense, 'id'> = {

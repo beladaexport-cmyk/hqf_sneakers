@@ -110,9 +110,12 @@ export interface Sale {
   quantity: number;
   price: number;
   purchasePrice: number;
+  purchase_price?: number;
   total: number;
   profit: number;
   date: string;
+  sale_date?: string;
+  created_at?: string;
   customer?: string;
   deliveryMethod: DeliveryMethod;
   deliveryDetails?: DeliveryDetails;
@@ -128,6 +131,7 @@ export interface Expense {
   amount: number;
   description: string;
   date: string;
+  created_at?: string;
   notes?: string;
 }
 
