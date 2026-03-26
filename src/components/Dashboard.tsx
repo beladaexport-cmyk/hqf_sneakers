@@ -55,8 +55,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
   const monthExpenses = adExpenses + deliveryExpenses + otherExpenses;
-  const grossProfit = monthRevenue;
-  const netProfit = monthRevenue - monthExpenses;
+  const grossProfit = monthSalesData.reduce((sum, sale) => sum + (Number(sale.price || 0) - Number(sale.purchasePrice ?? 0)), 0);
+  const netProfit = grossProfit - monthExpenses;
   const totalProducts = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
 
   const recentSales = [...sales]
