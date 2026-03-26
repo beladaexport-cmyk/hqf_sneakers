@@ -5,17 +5,7 @@ import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
-
-const safeDate = (val: unknown): string => {
-  if (!val) return '';
-  try {
-    const d = new Date(val as string);
-    if (isNaN(d.getTime())) return '';
-    return d.toISOString();
-  } catch {
-    return '';
-  }
-};
+import { safeDate } from '../utils/helpers';
 
 type Period = 'all' | 'today' | 'week' | 'month';
 
@@ -588,7 +578,7 @@ type StatusFilter = 'all' | SaleStatus;
 const Sales: React.FC = () => {
   const { isMobileView } = useViewMode();
   const { data: products } = useFirestore<Product>('products');
-  const { data: sales, add: addSale, update: updateSale } = useFirestore<Sale>('sales');
+  const { data: sales, add: addSale, update: updateSale, error } = useFirestore<Sale>('sales');
   const [showForm, setShowForm] = useState(false);
   const [period, setPeriod] = useState<Period>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -597,6 +587,7 @@ const Sales: React.FC = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [deleteConfirmSale, setDeleteConfirmSale] = useState<Sale | null>(null);
   const [editSaleData, setEditSaleData] = useState<Sale | null>(null);
+  const [search, setSearch] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const imageFixRanRef = useRef(false);
 
@@ -693,9 +684,13 @@ const Sales: React.FC = () => {
   }, [sales, products]);
 
   const periodFiltered = filterByPeriod([...sales].reverse(), period);
-  const filteredSales = statusFilter === 'all'
-    ? periodFiltered
-    : periodFiltered.filter((s) => (s.status ?? 'completed') === statusFilter);
+  const filteredSales = periodFiltered
+    .filter(s => statusFilter === 'all' || (s.status ?? 'completed') === statusFilter)
+    .filter(s =>
+      !search ||
+      (s.productName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (s.customer || '').toLowerCase().includes(search.toLowerCase())
+    );
 
   const completedSales = periodFiltered.filter((s) => (s.status ?? 'completed') === 'completed');
   const totalRevenue = completedSales.reduce((sum, s) => sum + s.total, 0);
@@ -895,8 +890,46 @@ const Sales: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const exportToCSV = () => {
+    const headers = ['Дата', 'Товар', 'Размер', 'Цена продажи', 'Закупочная цена', 'Прибыль', 'Статус', 'Покупатель'];
+    const rows = filteredSales.map(s => [
+      (safeDate(s.sale_date || s.date || s.created_at) || '').slice(0, 10),
+      s.productName || '',
+      (s.productName?.match(/\((\d+\.?\d*)\)/)?.[1]) || '',
+      s.price || 0,
+      s.purchasePrice || 0,
+      (Number(s.price) || 0) - (Number(s.purchasePrice) || 0),
+      s.status || '',
+      s.customer || ''
+    ]);
+    const csv = [headers, ...rows].map(row => row.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `продажи_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4">
+      {error && (
+        <div style={{
+          padding: '12px 16px',
+          backgroundColor: '#FEF2F2',
+          border: '1.5px solid #FECACA',
+          borderRadius: '12px',
+          color: '#DC2626',
+          fontSize: '14px',
+          fontWeight: '600',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          ⚠️ Ошибка загрузки: {error}
+        </div>
+      )}
       {/* Header */}
       <div style={{
         display:'flex',
@@ -914,24 +947,41 @@ const Sales: React.FC = () => {
         }}>
           🛍️ Продажи
         </h1>
-        <button
-          onClick={() => setShowForm(true)}
-          style={{
-            padding:'10px 14px',
-            background:'linear-gradient(135deg,#10B981,#34D399)',
-            color:'white',
-            border:'none',
-            borderRadius:'12px',
-            fontSize:'13px',
-            fontWeight:'700',
-            cursor:'pointer',
-            whiteSpace:'nowrap',
-            flexShrink:0,
-            boxShadow:'0 4px 12px rgba(16,185,129,0.35)'
-          }}
-        >
-          + Продажа
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <button
+            onClick={exportToCSV}
+            style={{
+              padding:'10px 14px',
+              backgroundColor:'#10B981',
+              color:'white',
+              border:'none',
+              borderRadius:'12px',
+              fontSize:'13px',
+              fontWeight:'700',
+              cursor:'pointer',
+              whiteSpace:'nowrap',
+            }}
+          >
+            📥 CSV
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              padding:'10px 14px',
+              background:'linear-gradient(135deg,#10B981,#34D399)',
+              color:'white',
+              border:'none',
+              borderRadius:'12px',
+              fontSize:'13px',
+              fontWeight:'700',
+              cursor:'pointer',
+              whiteSpace:'nowrap',
+              boxShadow:'0 4px 12px rgba(16,185,129,0.35)'
+            }}
+          >
+            + Продажа
+          </button>
+        </div>
       </div>
 
       {/* Period Filter + Revenue */}
@@ -1086,6 +1136,26 @@ const Sales: React.FC = () => {
             {tab.label}
           </button>
         ))}
+      </div>
+
+      {/* Search */}
+      <div style={{ marginBottom: '14px' }}>
+        <input
+          type="text"
+          placeholder="🔍 Поиск по товару или покупателю..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px 16px',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: '14px',
+            fontSize: '14px',
+            outline: 'none',
+            backgroundColor: 'white',
+            boxSizing: 'border-box' as const,
+          }}
+        />
       </div>
 
       {/* Sales Cards */}
