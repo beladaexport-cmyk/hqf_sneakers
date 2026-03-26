@@ -5,7 +5,7 @@ import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
-import { safeDate } from '../utils/helpers';
+import { safeDate, safeNumber } from '../utils/helpers';
 
 type Period = 'all' | 'today' | 'week' | 'month';
 
@@ -51,9 +51,9 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
 
   const selectedProduct = available.find((p) => p.id === productId);
 
-  const total = selectedProduct ? selectedProduct.retailPrice * quantity : 0;
+  const total = selectedProduct ? safeNumber(selectedProduct.retailPrice) * quantity : 0;
   const profit = selectedProduct
-    ? (selectedProduct.retailPrice - selectedProduct.purchasePrice) * quantity
+    ? (safeNumber(selectedProduct.retailPrice) - safeNumber(selectedProduct.purchasePrice)) * quantity
     : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,8 +94,8 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
       productSku: selectedProduct.sku,
       productName: `${selectedProduct.brand} ${selectedProduct.model} (${selectedProduct.size})`,
       quantity,
-      price: selectedProduct.retailPrice,
-      purchasePrice: selectedProduct.purchasePrice,
+      price: safeNumber(selectedProduct.retailPrice),
+      purchasePrice: safeNumber(selectedProduct.purchasePrice),
       total,
       profit,
       date: new Date().toISOString(),
@@ -151,7 +151,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
               <option value="">— Выберите товар —</option>
               {available.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
+                  {p.brand} {p.model} р.{p.size} — {safeNumber(p.retailPrice).toLocaleString('ru-RU')} Br
                   (ост: {p.quantity})
                 </option>
               ))}
@@ -290,7 +290,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Цена за шт:</span>
                   <span className="font-medium">
-                    {selectedProduct.retailPrice.toLocaleString('ru-RU')} Br
+                    {safeNumber(selectedProduct.retailPrice).toLocaleString('ru-RU')} Br
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-1">
@@ -343,15 +343,15 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
   const [productId, setProductId] = useState(sale.productId);
   const [customer, setCustomer] = useState(sale.customer || '');
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(sale.deliveryMethod ?? 'in_person');
-  const [quantity, setQuantity] = useState(sale.quantity);
-  const [price, setPrice] = useState(sale.price);
+  const [quantity, setQuantity] = useState(safeNumber(sale.quantity) || 1);
+  const [price, setPrice] = useState(safeNumber(sale.price));
   const [status, setStatus] = useState<SaleStatus>(sale.status ?? 'completed');
   const [comment, setComment] = useState((sale as any).comment || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const selectedProduct = products.find((p) => p.id === productId);
-  const purchasePrice = selectedProduct ? selectedProduct.purchasePrice : sale.purchasePrice;
+  const purchasePrice = selectedProduct ? safeNumber(selectedProduct.purchasePrice) : safeNumber(sale.purchasePrice);
   const calculatedProfit = (price - purchasePrice) * quantity;
   const calculatedTotal = price * quantity;
 
@@ -429,7 +429,7 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
                 const newId = e.target.value;
                 setProductId(newId);
                 const p = products.find((pr) => pr.id === newId);
-                if (p) setPrice(p.retailPrice);
+                if (p) setPrice(safeNumber(p.retailPrice));
               }}
             >
               {!selectedProduct && (
@@ -437,7 +437,7 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
               )}
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.brand} {p.model} р.{p.size} — {p.retailPrice.toLocaleString('ru-RU')} Br
+                  {p.brand} {p.model} р.{p.size} — {safeNumber(p.retailPrice).toLocaleString('ru-RU')} Br
                 </option>
               ))}
             </select>
@@ -693,8 +693,8 @@ const Sales: React.FC = () => {
     );
 
   const completedSales = periodFiltered.filter((s) => (s.status ?? 'completed') === 'completed');
-  const totalRevenue = completedSales.reduce((sum, s) => sum + s.total, 0);
-  const totalProfit = completedSales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
+  const totalRevenue = completedSales.reduce((sum, s) => sum + safeNumber(s.total), 0);
+  const totalProfit = completedSales.reduce((sum, s) => sum + safeNumber(s.profit), 0);
 
   const getSaleProductImage = (sale: Sale): string | null => {
     // Try 0: direct image stored on the sale record
@@ -1509,7 +1509,7 @@ const Sales: React.FC = () => {
                             color: isCancelled ? '#94A3B8' : '#1E293B',
                             textDecoration: isCancelled ? 'line-through' : 'none',
                           }}>
-                            {sale.price.toLocaleString('ru-RU')} Br
+                            {safeNumber(sale.price).toLocaleString('ru-RU')} Br
                           </div>
                           <div style={{
                             fontSize: '9px',
@@ -1558,7 +1558,7 @@ const Sales: React.FC = () => {
                             color: isCancelled ? '#94A3B8' : '#6366F1',
                             textDecoration: isCancelled ? 'line-through' : 'none',
                           }}>
-                            {sale.total.toLocaleString('ru-RU')} Br
+                            {safeNumber(sale.total).toLocaleString('ru-RU')} Br
                           </div>
                           <div style={{
                             fontSize: '9px',
@@ -1879,7 +1879,7 @@ const Sales: React.FC = () => {
                       fontWeight: '800',
                       color: '#EF4444',
                     }}>
-                      -{cancelSale.total || 0} Br
+                      -{safeNumber(cancelSale.total)} Br
                     </div>
                     <div style={{
                       fontSize: '11px',
