@@ -154,18 +154,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Закупочная цена (Br)
-              </label>
-              <input
-                type="number"
-                min="0"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={form.purchasePrice}
-                onChange={(e) => set('purchasePrice', Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Розничная цена (Br)
               </label>
               <input
@@ -279,7 +267,7 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
   const [model, setModel] = useState('');
   const [color, setColor] = useState('');
   const [sku, setSku] = useState('');
-  const [purchasePrice, setPurchasePrice] = useState(0);
+  const [purchasePrice] = useState(0);
   const [retailPrice, setRetailPrice] = useState(0);
   const [supplier, setSupplier] = useState('');
   const [category, setCategory] = useState<Product['category']>('sport');
@@ -377,16 +365,6 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
                 placeholder="DC0774"
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Закупочная цена (Br)</label>
-              <input
-                type="number"
-                min="0"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={purchasePrice}
-                onChange={(e) => setPurchasePrice(Number(e.target.value))}
               />
             </div>
             <div>
@@ -1617,9 +1595,6 @@ const Catalog: React.FC = () => {
                                 </td>
                                 <td className="px-4 py-2 text-sm text-gray-700">
                                   {p.retailPrice.toLocaleString('ru-RU')} Br
-                                  <span className="ml-1 text-xs text-blue-600">
-                                    (+{(p.retailPrice - p.purchasePrice).toLocaleString('ru-RU')})
-                                  </span>
                                 </td>
                                 <td className="px-4 py-2 text-sm text-gray-600">{categoryLabels[p.category]}</td>
                                 <td className="px-4 py-2">
@@ -1921,35 +1896,6 @@ const Catalog: React.FC = () => {
               </div>
             </div>
 
-            {/* Purchase price */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                fontSize: '13px',
-                fontWeight: '600',
-                color: '#374151',
-                display: 'block',
-                marginBottom: '6px',
-              }}>
-                Закупочная цена (Br)
-              </label>
-              <input
-                type="number"
-                placeholder="150"
-                value={newSize.purchasePrice}
-                onChange={e => setNewSize(prev => ({ ...prev, purchasePrice: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  border: '2px solid #E2E8F0',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
             {/* Buttons */}
             <div style={{
               display: 'flex',
@@ -2180,49 +2126,7 @@ const Catalog: React.FC = () => {
                     }}
                   />
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
-                    🏷️ ЗАКУПКА
-                  </label>
-                  <input
-                    type="number"
-                    value={sellForm.purchasePrice}
-                    onChange={e => setSellForm(p => ({ ...p, purchasePrice: e.target.value }))}
-                    placeholder="0"
-                    style={{
-                      width: '100%', padding: '11px 14px',
-                      border: '1.5px solid #E2E8F0', borderRadius: '12px',
-                      fontSize: '16px', fontWeight: '700', color: '#374151',
-                      outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
-                    }}
-                  />
-                </div>
               </div>
-
-              {/* PROFIT PREVIEW */}
-              {sellForm.price && sellForm.purchasePrice && (() => {
-                const p = Number(sellForm.price) - Number(sellForm.purchasePrice);
-                return (
-                  <div style={{
-                    padding: '12px 16px',
-                    backgroundColor: p >= 0 ? '#F0FDF4' : '#FEF2F2',
-                    borderRadius: '12px',
-                    border: '1.5px solid',
-                    borderColor: p >= 0 ? '#A7F3D0' : '#FECACA',
-                    marginBottom: '14px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
-                      🔥 Прибыль:
-                    </span>
-                    <span style={{ fontSize: '22px', fontWeight: '900', color: p >= 0 ? '#10B981' : '#EF4444' }}>
-                      {p >= 0 ? '+' : ''}{p} Br
-                    </span>
-                  </div>
-                );
-              })()}
 
               {/* PAYMENT */}
               <div style={{ marginBottom: '14px' }}>
