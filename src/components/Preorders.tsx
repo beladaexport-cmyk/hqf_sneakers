@@ -226,16 +226,6 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Закупочная цена (Br)</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.purchasePrice}
-                  onChange={(e) => set('purchasePrice', Number(e.target.value))}
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Розничная цена (Br)</label>
                 <input
                   type="number"
@@ -1393,30 +1383,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   marginBottom: '14px'
                 }}>
                   <div style={{
-                    backgroundColor: '#F8FAFC',
-                    borderRadius: '10px',
-                    padding: '10px',
-                    textAlign: 'center',
-                    border: '1px solid #E2E8F0'
-                  }}>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '800',
-                      color: '#1E293B'
-                    }}>
-                      {p.purchasePrice ? p.purchasePrice.toLocaleString('ru-RU') : '—'} Br
-                    </div>
-                    <div style={{
-                      fontSize: '10px',
-                      color: '#94A3B8',
-                      fontWeight: '700',
-                      marginTop: '2px',
-                      letterSpacing: '0.5px'
-                    }}>
-                      ЗАКУПКА
-                    </div>
-                  </div>
-                  <div style={{
                     backgroundColor: '#F0FDF4',
                     borderRadius: '10px',
                     padding: '10px',
@@ -1441,35 +1407,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     </div>
                   </div>
                 </div>
-
-                {/* PROFIT PILL */}
-                {p.retailPrice > 0 && p.purchasePrice > 0 && (
-                  <div style={{
-                    backgroundColor: '#EEF2FF',
-                    border: '1px solid #C7D2FE',
-                    borderRadius: '10px',
-                    padding: '8px 12px',
-                    marginBottom: '12px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{
-                      fontSize: '12px',
-                      color: '#6366F1',
-                      fontWeight: '600'
-                    }}>
-                      💰 Потенциал
-                    </span>
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: '800',
-                      color: '#4F46E5'
-                    }}>
-                      +{(p.retailPrice - p.purchasePrice).toFixed(0)} Br
-                    </span>
-                  </div>
-                )}
 
                 {/* ACTION BUTTONS */}
                 <div style={{
@@ -1931,30 +1868,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     letterSpacing:'0.5px',
                     marginBottom:'4px'
                   }}>
-                    ЗАКУПКА
-                  </div>
-                  <div style={{
-                    fontSize:'16px',
-                    fontWeight:'800',
-                    color:'#374151'
-                  }}>
-                    {Number(arrivedModal.preorder?.purchasePrice || 0)} Br
-                  </div>
-                </div>
-                <div style={{
-                  padding:'10px',
-                  backgroundColor:'white',
-                  borderRadius:'10px',
-                  border:'1px solid #E2E8F0',
-                  textAlign:'center'
-                }}>
-                  <div style={{
-                    fontSize:'10px',
-                    color:'#94A3B8',
-                    fontWeight:'700',
-                    letterSpacing:'0.5px',
-                    marginBottom:'4px'
-                  }}>
                     ПРОДАЖА
                   </div>
                   <div style={{
@@ -2185,51 +2098,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     }}
                   />
                 </div>
-                <div>
-                  <label style={{
-                    display: 'block', fontSize: '12px', fontWeight: '700',
-                    color: '#374151', marginBottom: '6px'
-                  }}>
-                    🏷️ ЗАКУПКА (Br)
-                  </label>
-                  <input
-                    type="number"
-                    value={sellForm.purchasePrice}
-                    onChange={e => setSellForm(prev => ({ ...prev, purchasePrice: e.target.value }))}
-                    placeholder="0"
-                    style={{
-                      width: '100%', padding: '11px 14px',
-                      border: '1.5px solid #E2E8F0', borderRadius: '12px',
-                      fontSize: '16px', fontWeight: '700', color: '#374151',
-                      outline: 'none', boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
               </div>
-
-              {/* PROFIT PREVIEW */}
-              {sellForm.price && sellForm.purchasePrice && (
-                <div style={{
-                  padding: '12px 16px',
-                  backgroundColor: (Number(sellForm.price) - Number(sellForm.purchasePrice)) >= 0 ? '#F0FDF4' : '#FEF2F2',
-                  borderRadius: '12px',
-                  border: '1.5px solid',
-                  borderColor: (Number(sellForm.price) - Number(sellForm.purchasePrice)) >= 0 ? '#A7F3D0' : '#FECACA',
-                  marginBottom: '14px',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}>
-                  <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
-                    🔥 Прибыль с продажи:
-                  </span>
-                  <span style={{
-                    fontSize: '18px', fontWeight: '800',
-                    color: (Number(sellForm.price) - Number(sellForm.purchasePrice)) >= 0 ? '#10B981' : '#EF4444'
-                  }}>
-                    {(Number(sellForm.price) - Number(sellForm.purchasePrice)) >= 0 ? '+' : ''}
-                    {Number(sellForm.price) - Number(sellForm.purchasePrice)} Br
-                  </span>
-                </div>
-              )}
 
               {/* PAYMENT METHOD */}
               <div style={{ marginBottom: '14px' }}>
@@ -2744,35 +2613,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     color: '#374151',
                     marginBottom: '6px'
                   }}>
-                    🏷️ ЗАКУПКА (Br)
-                  </label>
-                  <input
-                    type="number"
-                    value={cloneForm.purchasePrice}
-                    onChange={e => setCloneForm(prev => ({ ...prev, purchasePrice: e.target.value }))}
-                    placeholder="0"
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      border: '1.5px solid #E2E8F0',
-                      borderRadius: '12px',
-                      fontSize: '15px',
-                      fontWeight: '700',
-                      color: '#374151',
-                      outline: 'none',
-                      boxSizing: 'border-box' as const,
-                      fontFamily: 'inherit'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    color: '#374151',
-                    marginBottom: '6px'
-                  }}>
                     💰 ПРОДАЖА (Br)
                   </label>
                   <input
@@ -2796,39 +2636,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   />
                 </div>
               </div>
-
-              {/* PROFIT PREVIEW */}
-              {cloneForm.sellingPrice && cloneForm.purchasePrice && (() => {
-                const profit = Number(cloneForm.sellingPrice) - Number(cloneForm.purchasePrice);
-                return (
-                  <div style={{
-                    padding: '12px 16px',
-                    backgroundColor: profit >= 0 ? '#F0FDF4' : '#FEF2F2',
-                    borderRadius: '12px',
-                    border: '1.5px solid',
-                    borderColor: profit >= 0 ? '#A7F3D0' : '#FECACA',
-                    marginBottom: '14px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span style={{
-                      fontSize: '13px',
-                      color: '#64748B',
-                      fontWeight: '600'
-                    }}>
-                      🔥 Потенциал:
-                    </span>
-                    <span style={{
-                      fontSize: '20px',
-                      fontWeight: '900',
-                      color: profit >= 0 ? '#10B981' : '#EF4444'
-                    }}>
-                      {profit >= 0 ? '+' : ''}{profit} Br
-                    </span>
-                  </div>
-                );
-              })()}
 
               {/* NOTES */}
               <div style={{ marginBottom: '20px' }}>

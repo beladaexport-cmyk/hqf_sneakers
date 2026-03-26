@@ -54,46 +54,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
-  const monthCost = monthSalesData.reduce((sum, sale) => {
-    const cost = Number(
-      sale.purchasePrice ||
-      (sale as any).costPrice ||
-      (sale as any).buyPrice ||
-      (sale as any).cost ||
-      0
-    );
-    return sum + cost * sale.quantity;
-  }, 0);
   const monthExpenses = adExpenses + deliveryExpenses + otherExpenses;
-  const grossProfit = monthRevenue - monthCost;
-  const netProfit = grossProfit - monthExpenses;
-
-  // === COST DEBUG ===
-  const cancelledThisMonth = sales.filter(s => s.date && s.date.startsWith(currentMonth) && (
-    s.status === 'cancelled' || (s.status as string) === 'отменена' || (s.status as string) === 'возврат' || (s as any).cancelled === true || !!s.cancelledAt
-  ));
-  console.log('=== COST DEBUG ===');
-  console.log('Current month:', currentMonth);
-  console.log('All sales count:', sales.length, '| Active this month:', monthSalesData.length, '| Cancelled this month:', cancelledThisMonth.length);
-  monthSalesData.forEach((s, i) => {
-    console.log(
-      `Active Sale ${i + 1}:`, s.productName,
-      '| price:', s.price,
-      '| purchasePrice:', s.purchasePrice,
-      '| total:', s.total,
-      '| quantity:', s.quantity,
-      '| status:', s.status
-    );
-  });
-  cancelledThisMonth.forEach((s, i) => {
-    console.log(
-      `Cancelled ${i + 1}:`, s.productName,
-      '| purchasePrice:', s.purchasePrice,
-      '| status:', s.status,
-      '| cancelledAt:', s.cancelledAt
-    );
-  });
-  console.log('monthRevenue:', monthRevenue, '| monthCost:', monthCost, '| grossProfit:', grossProfit, '| monthExpenses:', monthExpenses, '| netProfit:', netProfit);
+  const grossProfit = monthRevenue;
+  const netProfit = monthRevenue - monthExpenses;
   const totalProducts = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
 
   const recentSales = [...sales]
@@ -386,7 +349,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           }}>
             {[
               { label: 'ВЫРУЧКА', value: monthRevenue || 0, icon: '💵', color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0', wide: false },
-              { label: 'СЕБЕСТОИМОСТЬ', value: monthCost || 0, icon: '🏷️', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', wide: false },
               { label: 'ВАЛОВАЯ ПРИБЫЛЬ', value: grossProfit || 0, icon: '📈', color: '#6366F1', bg: '#EEF2FF', border: '#C7D2FE', wide: false },
               { label: 'РАСХОДЫ', value: monthExpenses || 0, icon: '📉', color: '#EF4444', bg: '#FEF2F2', border: '#FECACA', wide: false },
               {
