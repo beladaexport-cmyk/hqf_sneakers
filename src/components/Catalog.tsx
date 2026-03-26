@@ -154,6 +154,44 @@ const ProductForm: React.FC<ProductFormProps> = ({ initial, onSave, onCancel, ti
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Закупочная цена (Br) *
+              </label>
+              <input
+                type="number"
+                min="0"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="300"
+                value={form.purchasePrice}
+                onChange={(e) => set('purchasePrice', Number(e.target.value))}
+              />
+            </div>
+            {form.purchasePrice > 0 && form.retailPrice > 0 && (
+              <div style={{
+                padding: '10px 14px',
+                backgroundColor: (form.retailPrice - form.purchasePrice) >= 0 ? '#F0FDF4' : '#FEF2F2',
+                borderRadius: '10px',
+                border: '1.5px solid',
+                borderColor: (form.retailPrice - form.purchasePrice) >= 0 ? '#A7F3D0' : '#FECACA',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gridColumn: '1 / -1',
+              }}>
+                <div style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
+                  💰 Прибыль с пары:
+                </div>
+                <div style={{
+                  fontSize: '20px',
+                  fontWeight: '900',
+                  color: (form.retailPrice - form.purchasePrice) >= 0 ? '#10B981' : '#EF4444',
+                }}>
+                  {(form.retailPrice - form.purchasePrice) >= 0 ? '+' : ''}
+                  {form.retailPrice - form.purchasePrice} Br
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Розничная цена (Br)
               </label>
               <input
@@ -267,7 +305,7 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
   const [model, setModel] = useState('');
   const [color, setColor] = useState('');
   const [sku, setSku] = useState('');
-  const [purchasePrice] = useState(0);
+  const [purchasePrice, setPurchasePrice] = useState(0);
   const [retailPrice, setRetailPrice] = useState(0);
   const [supplier, setSupplier] = useState('');
   const [category, setCategory] = useState<Product['category']>('sport');
@@ -367,6 +405,42 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
                 onChange={(e) => setSku(e.target.value)}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Закупочная цена (Br) *</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="300"
+                value={purchasePrice}
+                onChange={(e) => setPurchasePrice(Number(e.target.value))}
+              />
+            </div>
+            {purchasePrice > 0 && retailPrice > 0 && (
+              <div style={{
+                padding: '10px 14px',
+                backgroundColor: (retailPrice - purchasePrice) >= 0 ? '#F0FDF4' : '#FEF2F2',
+                borderRadius: '10px',
+                border: '1.5px solid',
+                borderColor: (retailPrice - purchasePrice) >= 0 ? '#A7F3D0' : '#FECACA',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gridColumn: '1 / -1',
+              }}>
+                <div style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
+                  💰 Прибыль с пары:
+                </div>
+                <div style={{
+                  fontSize: '20px',
+                  fontWeight: '900',
+                  color: (retailPrice - purchasePrice) >= 0 ? '#10B981' : '#EF4444',
+                }}>
+                  {(retailPrice - purchasePrice) >= 0 ? '+' : ''}
+                  {retailPrice - purchasePrice} Br
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Розничная цена (Br)</label>
               <input
