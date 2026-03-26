@@ -351,14 +351,16 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(sale.deliveryMethod ?? 'in_person');
   const [quantity, setQuantity] = useState(safeNumber(sale.quantity) || 1);
   const [price, setPrice] = useState(safeNumber(sale.price));
+  const [purchasePriceEdit, setPurchasePriceEdit] = useState(
+    Number(sale.purchasePrice) || 0
+  );
   const [status, setStatus] = useState<SaleStatus>(sale.status ?? 'completed');
   const [comment, setComment] = useState((sale as any).comment || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const selectedProduct = products.find((p) => p.id === productId);
-  const purchasePrice = selectedProduct ? safeNumber(selectedProduct.purchasePrice) : safeNumber(sale.purchasePrice);
-  const calculatedProfit = (price - purchasePrice) * quantity;
+  const calculatedProfit = (price - purchasePriceEdit) * quantity;
   const calculatedTotal = price * quantity;
 
   const validate = (): boolean => {
@@ -383,7 +385,7 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
         deliveryMethod,
         quantity,
         price,
-        purchasePrice,
+        purchasePrice: purchasePriceEdit,
         profit: calculatedProfit,
         total: calculatedTotal,
         status,
@@ -435,7 +437,10 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
                 const newId = e.target.value;
                 setProductId(newId);
                 const p = products.find((pr) => pr.id === newId);
-                if (p) setPrice(safeNumber(p.retailPrice));
+                if (p) {
+                  setPrice(safeNumber(p.retailPrice));
+                  setPurchasePriceEdit(safeNumber(p.purchasePrice));
+                }
               }}
             >
               {!selectedProduct && (
@@ -516,6 +521,58 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
             />
             {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
           </div>
+
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#374151',
+              marginBottom: '5px'
+            }}>
+              Закупочная цена (Br)
+            </label>
+            <input
+              type="number"
+              min="0"
+              style={{
+                width: '100%',
+                border: '1px solid #D1D5DB',
+                borderRadius: '8px',
+                padding: '9px 12px',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box' as const,
+              }}
+              value={purchasePriceEdit}
+              onChange={(e) => setPurchasePriceEdit(Number(e.target.value))}
+            />
+          </div>
+
+          {price > 0 && purchasePriceEdit > 0 && (
+            <div style={{
+              padding: '12px 16px',
+              backgroundColor: (price - purchasePriceEdit) >= 0 ? '#F0FDF4' : '#FEF2F2',
+              borderRadius: '10px',
+              border: '1.5px solid',
+              borderColor: (price - purchasePriceEdit) >= 0 ? '#A7F3D0' : '#FECACA',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
+                Прибыль с пары:
+              </span>
+              <span style={{
+                fontSize: '20px',
+                fontWeight: '900',
+                color: (price - purchasePriceEdit) >= 0 ? '#10B981' : '#EF4444'
+              }}>
+                {(price - purchasePriceEdit) >= 0 ? '+' : ''}
+                {price - purchasePriceEdit} Br
+              </span>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
