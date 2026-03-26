@@ -7,10 +7,15 @@ interface DashboardProps {
   onNavigate?: (tab: string) => void;
 }
 
-const getDateString = (date: string | Date | undefined | null): string => {
-  if (!date) return '';
-  if (typeof date === 'string') return date;
-  return new Date(date).toISOString();
+const safeDate = (val: unknown): string => {
+  if (!val) return '';
+  try {
+    const d = new Date(val as string);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString();
+  } catch {
+    return '';
+  }
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
@@ -34,7 +39,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   // Monthly calculations
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthSalesData = sales.filter(s => {
-    if (!s.date || !getDateString(s.date).startsWith(currentMonth)) return false;
+    const d = safeDate(s.sale_date || s.date || s.created_at);
+    if (!d.startsWith(currentMonth)) return false;
     // Exclude cancelled/returned sales
     const isCancelled =
       s.status === 'cancelled' ||
@@ -47,28 +53,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     return (s.status ?? 'completed') === 'completed';
   });
 
-  const adExpenses = expenses
-    .filter(e => getDateString(e.date).startsWith(currentMonth) && e.type === 'advertising')
+  const monthlyExpenses = expenses.filter(exp => {
+    const d = safeDate(exp.date || exp.created_at);
+    return d.startsWith(currentMonth);
+  });
+
+  const adExpenses = monthlyExpenses
+    .filter(e => e.type === 'advertising')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
-  const deliveryExpenses = expenses
-    .filter(e => getDateString(e.date).startsWith(currentMonth) && e.type === 'delivery')
+  const deliveryExpenses = monthlyExpenses
+    .filter(e => e.type === 'delivery')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
-  const otherExpenses = expenses
-    .filter(e => getDateString(e.date).startsWith(currentMonth) && e.type !== 'advertising' && e.type !== 'delivery')
+  const otherExpenses = monthlyExpenses
+    .filter(e => e.type !== 'advertising' && e.type !== 'delivery')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
   const monthExpenses = adExpenses + deliveryExpenses + otherExpenses;
-  const grossProfit = monthSalesData.reduce((sum, sale) => sum + (Number(sale.price || 0) - Number(sale.purchasePrice ?? 0)), 0);
+  const grossProfit = monthSalesData.reduce((sum, sale) => {
+    const price = Number(sale.price) || 0;
+    const purchase = Number(sale.purchase_price ?? sale.purchasePrice ?? 0);
+    return sum + (price - purchase);
+  }, 0);
   const netProfit = grossProfit - monthExpenses;
   const totalProducts = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
 
   const recentSales = [...sales]
     .sort((a, b) => {
-      const da = new Date(a.date || 0);
-      const db = new Date(b.date || 0);
+      const da = new Date(safeDate(a.date) || 0);
+      const db = new Date(safeDate(b.date) || 0);
       return db.getTime() - da.getTime();
     })
     .slice(0, 10);
@@ -710,7 +725,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     color: '#94A3B8',
                     marginTop: '2px'
                   }}>
-                    {new Date(sale.date).toLocaleDateString('ru-RU')}
+                    {new Date(safeDate(sale.date) || Date.now()).toLocaleDateString('ru-RU')}
                   </div>
                 </div>
 
