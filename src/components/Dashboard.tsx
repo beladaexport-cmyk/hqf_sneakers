@@ -1,46 +1,75 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useFirestore } from '../hooks/useFirestore';
 import { useViewMode } from '../contexts/ViewModeContext';
 import { Product, Sale, Expense } from '../types';
+import { safeDate } from '../utils/helpers';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
 }
 
-const safeDate = (val: unknown): string => {
-  if (!val) return '';
-  try {
-    const d = new Date(val as string);
-    if (isNaN(d.getTime())) return '';
-    return d.toISOString();
-  } catch {
-    return '';
+type Period = 'week' | 'month' | 'year' | 'all';
+
+const getStartDate = (period: Period): Date | null => {
+  const now = new Date();
+  switch (period) {
+    case 'week': {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 7);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case 'month': {
+      const d = new Date(now.getFullYear(), now.getMonth(), 1);
+      return d;
+    }
+    case 'year': {
+      const d = new Date(now.getFullYear(), 0, 1);
+      return d;
+    }
+    case 'all':
+      return null;
   }
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { isMobileView } = useViewMode();
-  const { data: products, loading: loadingProducts } = useFirestore<Product>('products');
-  const { data: sales, loading: loadingSales } = useFirestore<Sale>('sales');
-  const { data: expenses, loading: loadingExpenses } = useFirestore<Expense>('expenses');
+  const { data: products, loading: loadingProducts, error: errorProducts } = useFirestore<Product>('products');
+  const { data: sales, loading: loadingSales, error: errorSales } = useFirestore<Sale>('sales');
+  const { data: expenses, loading: loadingExpenses, error: errorExpenses } = useFirestore<Expense>('expenses');
+  const [period, setPeriod] = useState<Period>('month');
 
-  if (loadingProducts || loadingSales || loadingExpenses) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px' }}>
-        <div style={{ color: '#94A3B8', fontSize: '15px' }}>Загрузка данных...</div>
+  if (loadingProducts || loadingSales || loadingExpenses) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-pulse space-y-4 w-full" style={{maxWidth:'800px',padding:'24px'}}>
+        <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+        <div className="grid grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
+          ))}
+        </div>
+        <div className="h-48 bg-gray-200 rounded-xl"></div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const anyError = errorProducts || errorSales || errorExpenses;
 
   const navigate = (tab: string) => {
     if (onNavigate) onNavigate(tab);
   };
 
-  // Monthly calculations
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  // Period-based filtering
+  const startDate = getStartDate(period);
+
   const monthSalesData = sales.filter(s => {
     const d = safeDate(s.sale_date || s.date || s.created_at);
-    if (!d.startsWith(currentMonth)) return false;
+    if (!d) return false;
+    if (startDate) {
+      const saleDate = new Date(d);
+      if (saleDate < startDate) return false;
+    }
     // Exclude cancelled/returned sales
     const isCancelled =
       s.status === 'cancelled' ||
@@ -55,7 +84,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   const monthlyExpenses = expenses.filter(exp => {
     const d = safeDate(exp.date || exp.created_at);
-    return d.startsWith(currentMonth);
+    if (!d) return false;
+    if (startDate) {
+      const expDate = new Date(d);
+      if (expDate < startDate) return false;
+    }
+    return true;
   });
 
   const adExpenses = monthlyExpenses
@@ -88,6 +122,45 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     })
     .slice(0, 10);
 
+  // Chart data: last 7 days
+  const chartData = (() => {
+    const days: { date: string; revenue: number }[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+      const dayRevenue = sales
+        .filter(s => {
+          const sd = safeDate(s.sale_date || s.date || s.created_at);
+          if (!sd) return false;
+          const isCancelled =
+            s.status === 'cancelled' ||
+            (s.status as string) === 'отменена' ||
+            (s.status as string) === 'возврат' ||
+            (s as any).cancelled === true ||
+            !!s.cancelledAt;
+          if (isCancelled) return false;
+          if ((s.status ?? 'completed') !== 'completed') return false;
+          return sd.slice(0, 10) === key;
+        })
+        .reduce((sum, s) => sum + Number(s.total || 0), 0);
+      days.push({ date: label, revenue: dayRevenue });
+    }
+    return days;
+  })();
+
+  // Low stock alerts
+  const lowStockItems = products.filter(p => (Number(p.quantity) || 0) < 2);
+
+  const periodLabels: Record<Period, string> = {
+    week: 'Неделя',
+    month: 'Месяц',
+    year: 'Год',
+    all: 'Всё время'
+  };
+
   return (
     <div style={{
       maxWidth: isMobileView ? '100%' : '1400px',
@@ -97,6 +170,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       boxSizing: 'border-box' as const,
       overflowX: 'hidden' as const
     }}>
+
+      {/* ERROR BANNER */}
+      {anyError && (
+        <div style={{
+          backgroundColor: '#FEF2F2',
+          border: '1px solid #FECACA',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#DC2626',
+          fontSize: '14px',
+          fontWeight: '600'
+        }}>
+          <span>⚠️</span>
+          <span>Ошибка загрузки данных: {errorProducts || errorSales || errorExpenses}</span>
+        </div>
+      )}
 
       {/* WELCOME BANNER */}
       <div style={{
@@ -205,6 +298,34 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
+      {/* PERIOD FILTER */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '20px',
+        flexWrap: 'wrap'
+      }}>
+        {(['week', 'month', 'year', 'all'] as Period[]).map(p => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '12px',
+              border: period === p ? '2px solid #6366F1' : '2px solid #E2E8F0',
+              backgroundColor: period === p ? '#EEF2FF' : 'white',
+              color: period === p ? '#6366F1' : '#64748B',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}
+          >
+            {periodLabels[p]}
+          </button>
+        ))}
+      </div>
+
       {/* STAT CARDS */}
       <div style={{
         display: 'grid',
@@ -224,7 +345,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             lightBg: '#EEF2FF'
           },
           {
-            label: 'Выручка за месяц',
+            label: 'Выручка за период',
             value: `${monthRevenue || 0}`,
             unit: 'Br',
             icon: '💰',
@@ -233,7 +354,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             lightBg: '#F0FDF4'
           },
           {
-            label: 'Расходы за месяц',
+            label: 'Расходы за период',
             value: `${monthExpenses || 0}`,
             unit: 'Br',
             icon: '📉',
@@ -333,6 +454,110 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         ))}
       </div>
 
+      {/* SALES CHART — Last 7 days */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '20px',
+        padding: '24px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+        border: '1px solid #F1F5F9',
+        marginBottom: '20px'
+      }}>
+        <h3 style={{
+          margin: '0 0 16px 0',
+          fontSize: '17px',
+          fontWeight: '800',
+          color: '#0F172A',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          📈 Выручка за последние 7 дней
+        </h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <defs>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+            <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'white',
+                border: '1px solid #E2E8F0',
+                borderRadius: '10px',
+                fontSize: '13px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              }}
+              formatter={(value) => `${value} Br`}
+            />
+            <Area
+              type="monotone"
+              dataKey="revenue"
+              stroke="#6366F1"
+              strokeWidth={2.5}
+              fillOpacity={1}
+              fill="url(#colorRevenue)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* LOW STOCK ALERTS */}
+      {lowStockItems.length > 0 && (
+        <div style={{
+          backgroundColor: '#FFFBEB',
+          border: '1.5px solid #FCD34D',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <div style={{
+            fontSize: '15px',
+            fontWeight: '800',
+            color: '#92400E',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span>⚠️</span> Мало на складе ({lowStockItems.length})
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {lowStockItems.slice(0, 10).map(p => (
+              <span
+                key={p.id}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  backgroundColor: '#FEF3C7',
+                  border: '1px solid #FCD34D',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: '#92400E'
+                }}
+              >
+                {p.brand} {p.model} ({p.size}) — {Number(p.quantity) || 0} шт.
+              </span>
+            ))}
+            {lowStockItems.length > 10 && (
+              <span style={{ fontSize: '12px', color: '#92400E', fontWeight: '600', padding: '4px 6px' }}>
+                ...и ещё {lowStockItems.length - 10}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* MAIN GRID */}
       <div style={{
         display: 'grid',
@@ -360,7 +585,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             alignItems: 'center',
             gap: '8px'
           }}>
-            📊 Детализация за месяц
+            📊 Детализация за период
           </h3>
           <div style={{
             display: 'grid',

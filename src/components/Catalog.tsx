@@ -488,7 +488,7 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
 
 const Catalog: React.FC = () => {
   const { isMobileView } = useViewMode();
-  const { data: products, loading, add, update, remove } = useFirestore<Product>('products');
+  const { data: products, loading, error, add, update, remove } = useFirestore<Product>('products');
   const [search, setSearch] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -505,6 +505,7 @@ const Catalog: React.FC = () => {
     purchasePrice: '' as string | number,
   });
   const [showReservedOnly, setShowReservedOnly] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const [sellModal, setSellModal] = useState<{ show: boolean; product: Product | null }>({ show: false, product: null });
   const [sellForm, setSellForm] = useState({
@@ -549,7 +550,8 @@ const Catalog: React.FC = () => {
       p.brand.toLowerCase().includes(q) ||
       p.model.toLowerCase().includes(q) ||
       p.sku.toLowerCase().includes(q) ||
-      (p.modelArticle?.toLowerCase().includes(q) ?? false);
+      (p.modelArticle?.toLowerCase().includes(q) ?? false) ||
+      String(p.size || '').toLowerCase().includes(q);
     const matchesSupplier = !selectedSupplier || (p.supplier || '') === selectedSupplier;
     const matchesReserved = !showReservedOnly || p.isReserved === true;
     return matchesSearch && matchesSupplier && matchesReserved;
@@ -573,10 +575,13 @@ const Catalog: React.FC = () => {
     setEditProduct(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Удалить этот товар?')) {
-      await remove(id);
-    }
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirm(id);
+  };
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    await remove(deleteConfirm);
+    setDeleteConfirm(null);
   };
 
   const openSellModal = (product: Product) => {
@@ -725,15 +730,71 @@ const Catalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Загрузка данных...</div>
+      <div className="space-y-4" style={{ padding: isMobileView ? '16px' : '24px' }}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="h-7 w-48 bg-gray-200 rounded-lg animate-pulse" />
+          <div className="flex gap-2">
+            <div className="h-10 w-56 bg-gray-200 rounded-lg animate-pulse" />
+            <div className="h-10 w-40 bg-gray-200 rounded-lg animate-pulse" />
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="h-10 flex-1 bg-gray-200 rounded-lg animate-pulse" />
+          <div className="h-10 w-48 bg-gray-200 rounded-lg animate-pulse" />
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+          gap: '16px',
+          padding: '16px 0',
+        }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} style={{
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              border: '2px solid #F1F5F9',
+            }}>
+              <div className="animate-pulse" style={{ height: '200px', backgroundColor: '#F1F5F9' }} />
+              <div style={{ padding: '14px 16px' }}>
+                <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse mb-3" />
+                <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse mb-3" />
+                <div className="flex gap-2 mb-3">
+                  <div className="h-7 w-14 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-7 w-14 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-7 w-14 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="h-6 w-24 bg-gray-200 rounded animate-pulse mb-3" />
+                <div className="flex gap-2">
+                  <div className="h-9 flex-1 bg-gray-200 rounded-xl animate-pulse" />
+                  <div className="h-9 flex-1 bg-gray-200 rounded-xl animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4" style={{ padding: isMobileView ? '16px' : '24px' }}>
-      {/* Header */}
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+          <span className="text-red-500 font-bold text-lg">!</span>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-800">Ошибка загрузки данных</p>
+            <p className="text-xs text-red-600">{error}</p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+          >
+            Обновить
+          </button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl font-semibold text-gray-900">
           Каталог товаров
@@ -1356,7 +1417,7 @@ const Catalog: React.FC = () => {
                               ✏️
                             </button>
                             <button
-                              onClick={() => handleDelete(first.id)}
+                              onClick={() => handleDeleteClick(first.id)}
                               style={{
                                 width: '34px',
                                 height: '34px',
@@ -1417,7 +1478,7 @@ const Catalog: React.FC = () => {
                                     ✏️
                                   </button>
                                   <button
-                                    onClick={() => handleDelete(p.id)}
+                                    onClick={() => handleDeleteClick(p.id)}
                                     style={{
                                       padding: '2px 6px',
                                       backgroundColor: '#FEF2F2',
@@ -1607,7 +1668,7 @@ const Catalog: React.FC = () => {
                                       <Edit2 className="w-4 h-4" />
                                     </button>
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(p.id); }}
                                       className="text-red-500 hover:text-red-700 transition-colors"
                                       title="Удалить"
                                     >
@@ -2370,6 +2431,100 @@ const Catalog: React.FC = () => {
                   {sellLoading ? '⏳ Сохраняем...' : '💰 Записать продажу'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div
+          onClick={() => setDeleteConfirm(null)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15,23,42,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              padding: '28px',
+              width: '100%',
+              maxWidth: '380px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{
+              width: '56px', height: '56px',
+              borderRadius: '50%',
+              backgroundColor: '#FEF2F2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+              fontSize: '28px',
+            }}>
+              🗑️
+            </div>
+            <h3 style={{
+              margin: '0 0 8px',
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#1E293B',
+            }}>
+              Удалить товар?
+            </h3>
+            <p style={{
+              margin: '0 0 24px',
+              fontSize: '14px',
+              color: '#64748B',
+            }}>
+              Это действие нельзя отменить. Товар будет удалён навсегда.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #E2E8F0',
+                  backgroundColor: 'white',
+                  color: '#64748B',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: '#EF4444',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
+                }}
+              >
+                Удалить
+              </button>
             </div>
           </div>
         </div>

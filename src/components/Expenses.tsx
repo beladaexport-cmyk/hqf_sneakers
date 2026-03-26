@@ -3,17 +3,7 @@ import { X } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Expense } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
-
-const safeDate = (val: unknown): string => {
-  if (!val) return '';
-  try {
-    const d = new Date(val as string);
-    if (isNaN(d.getTime())) return '';
-    return d.toISOString();
-  } catch {
-    return '';
-  }
-};
+import { safeDate } from '../utils/helpers';
 
 type Period = 'all' | 'today' | 'week' | 'month';
 type ExpenseType = Expense['type'] | 'all';
@@ -171,9 +161,10 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, ti
 
 const Expenses: React.FC = () => {
   const { isMobileView } = useViewMode();
-  const { data: expenses, loading, add, update, remove } = useFirestore<Expense>('expenses');
+  const { data: expenses, loading, error, add, update, remove } = useFirestore<Expense>('expenses');
   const [showForm, setShowForm] = useState(false);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>('month');
   const [typeFilter, setTypeFilter] = useState<ExpenseType>('all');
 
@@ -202,23 +193,55 @@ const Expenses: React.FC = () => {
     setEditExpense(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Удалить этот расход?')) {
-      await remove(id);
-    }
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirm(id);
+  };
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    await remove(deleteConfirm);
+    setDeleteConfirm(null);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Загрузка данных...</div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-pulse space-y-4 w-full">
+        <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+        <div className="grid grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
+          ))}
+        </div>
+        <div className="h-48 bg-gray-200 rounded-xl"></div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const exportToCSV = () => {
+    const headers = ['Дата', 'Тип', 'Сумма', 'Описание', 'Примечание'];
+    const rows = filtered.map(e => [
+      e.date || '',
+      e.type || '',
+      e.amount || 0,
+      e.description || '',
+      e.notes || ''
+    ]);
+    const csv = [headers, ...rows].map(row => row.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `расходы_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+          ⚠️ Ошибка загрузки данных. Проверьте соединение.
+        </div>
+      )}
       <div style={{
         display:'flex',
         justifyContent:'space-between',
@@ -244,6 +267,9 @@ const Expenses: React.FC = () => {
             Управление расходами
           </p>
         </div>
+        <button onClick={exportToCSV} style={{ padding:'10px 14px', backgroundColor:'#10B981', color:'white', border:'none', borderRadius:'12px', fontSize:'13px', fontWeight:'700', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+          📥 CSV
+        </button>
         <button
           onClick={() => setShowForm(true)}
           style={{
@@ -485,7 +511,7 @@ const Expenses: React.FC = () => {
                 }}
               >✏️</button>
               <button
-                onClick={()=>handleDelete(expense.id)}
+                onClick={()=>handleDeleteClick(expense.id)}
                 style={{
                   width:'32px',
                   height:'32px',
@@ -544,6 +570,19 @@ const Expenses: React.FC = () => {
           onSave={handleEdit}
           onCancel={() => setEditExpense(null)}
         />
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Удалить запись?</h3>
+            <p className="text-gray-500 mb-6">Это действие нельзя отменить.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">Отмена</button>
+              <button onClick={handleDeleteConfirm} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600">Удалить</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

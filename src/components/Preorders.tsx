@@ -296,7 +296,7 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
 
 const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate }) => {
   const { isMobileView } = useViewMode();
-  const { data: preorders, loading, add, update, remove } = useFirestore<Preorder>('preorders');
+  const { data: preorders, loading, error, add, update, remove } = useFirestore<Preorder>('preorders');
   const [showForm, setShowForm] = useState(false);
   const [editPreorder, setEditPreorder] = useState<Preorder | null>(null);
   const [statusFilter, setStatusFilter] = useState<PreorderStatus | 'all'>('all');
@@ -353,6 +353,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
     notes: ''
   });
   const [cloneLoading, setCloneLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const filtered = statusFilter === 'all'
     ? preorders
@@ -513,10 +514,13 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Удалить предзаказ?')) {
-      await remove(id);
-    }
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirm(id);
+  };
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    await remove(deleteConfirm);
+    setDeleteConfirm(null);
   };
 
   const showToast = (message: string) => {
@@ -787,16 +791,28 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
     e.target.value = '';
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Загрузка данных...</div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-pulse space-y-4 w-full">
+        <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+        <div className="grid grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
+          ))}
+        </div>
+        <div className="h-48 bg-gray-200 rounded-xl"></div>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="space-y-4" style={{ padding: isMobileView ? '16px' : '24px' }}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
+          <span>⚠️</span>
+          <span className="text-sm font-medium">Ошибка загрузки: {error}</span>
+        </div>
+      )}
       {/* Hidden file input for photo uploads */}
       <input
         type="file"
@@ -1591,7 +1607,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     ✏️
                   </button>
                   <button
-                    onClick={() => handleDelete(p.id)}
+                    onClick={() => handleDeleteClick(p.id)}
                     style={{
                       width: '38px',
                       height: '38px',
@@ -2709,6 +2725,103 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   {cloneLoading ? '⏳ Добавляем...' : '➕ Добавить заказ'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteConfirm && (
+        <div
+          onClick={() => setDeleteConfirm(null)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15,23,42,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '24px',
+              padding: '28px 24px',
+              maxWidth: '360px',
+              width: '100%',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #EF4444, #F87171)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '28px',
+              margin: '0 auto 16px',
+              boxShadow: '0 8px 24px rgba(239,68,68,0.35)'
+            }}>
+              🗑️
+            </div>
+            <h3 style={{
+              margin: '0 0 8px',
+              fontSize: '18px',
+              fontWeight: '800',
+              color: '#0F172A'
+            }}>
+              Удалить предзаказ?
+            </h3>
+            <p style={{
+              margin: '0 0 24px',
+              fontSize: '14px',
+              color: '#64748B',
+              lineHeight: '1.5'
+            }}>
+              Это действие нельзя отменить. Предзаказ будет удалён навсегда.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '14px',
+                  border: '1.5px solid #E2E8F0',
+                  backgroundColor: 'white',
+                  color: '#64748B',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #EF4444, #F87171)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(239,68,68,0.4)'
+                }}
+              >
+                Удалить
+              </button>
             </div>
           </div>
         </div>
