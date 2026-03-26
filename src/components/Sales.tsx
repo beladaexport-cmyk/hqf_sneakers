@@ -338,7 +338,7 @@ interface EditSaleModalProps {
 }
 
 const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, onCancel }) => {
-  const [date, setDate] = useState(sale.date ? sale.date.split('T')[0] : '');
+  const [date, setDate] = useState(sale.date ? (typeof sale.date === 'string' ? sale.date : new Date(sale.date).toISOString()).split('T')[0] : '');
   const [productId, setProductId] = useState(sale.productId);
   const [customer, setCustomer] = useState(sale.customer || '');
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(sale.deliveryMethod ?? 'in_person');
