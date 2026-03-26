@@ -1524,6 +1524,14 @@ const Sales: React.FC = () => {
                       )}
 
                       {/* PRICE STATS */}
+                      {(() => {
+                        const buyPrice = safeNumber(sale.purchasePrice);
+                        const sellPrice = safeNumber(sale.price);
+                        const profit = sellPrice - buyPrice;
+                        const profitColor = profit >= 0 ? '#10B981' : '#EF4444';
+                        const profitBg = profit >= 0 ? '#F0FDF4' : '#FEF2F2';
+                        const profitBorder = profit >= 0 ? '#A7F3D0' : '#FECACA';
+                        return (
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 1fr 1fr',
@@ -1540,10 +1548,10 @@ const Sales: React.FC = () => {
                           <div style={{
                             fontSize: '14px',
                             fontWeight: '800',
-                            color: isCancelled ? '#94A3B8' : '#1E293B',
+                            color: isCancelled ? '#94A3B8' : '#64748B',
                             textDecoration: isCancelled ? 'line-through' : 'none',
                           }}>
-                            {safeNumber(sale.price).toLocaleString('ru-RU')} Br
+                            {buyPrice > 0 ? `${buyPrice.toLocaleString('ru-RU')} Br` : '—'}
                           </div>
                           <div style={{
                             fontSize: '9px',
@@ -1552,22 +1560,22 @@ const Sales: React.FC = () => {
                             marginTop: '2px',
                             letterSpacing: '0.5px',
                           }}>
-                            ЦЕНА
+                            ЗАКУПКА
                           </div>
                         </div>
                         <div style={{
-                          backgroundColor: '#F0FDF4',
+                          backgroundColor: profitBg,
                           borderRadius: '10px',
                           padding: '8px 6px',
                           textAlign: 'center',
-                          border: '1px solid #A7F3D0',
+                          border: `1px solid ${profitBorder}`,
                         }}>
                           <div style={{
                             fontSize: '14px',
                             fontWeight: '800',
-                            color: isCancelled ? '#94A3B8' : '#10B981',
+                            color: isCancelled ? '#94A3B8' : profitColor,
                           }}>
-                            +{safeNumber(sale.profit).toLocaleString('ru-RU')} Br
+                            {buyPrice > 0 ? `${profit >= 0 ? '+' : ''}${profit.toLocaleString('ru-RU')} Br` : '—'}
                           </div>
                           <div style={{
                             fontSize: '9px',
@@ -1592,7 +1600,7 @@ const Sales: React.FC = () => {
                             color: isCancelled ? '#94A3B8' : '#6366F1',
                             textDecoration: isCancelled ? 'line-through' : 'none',
                           }}>
-                            {safeNumber(sale.total).toLocaleString('ru-RU')} Br
+                            {sellPrice.toLocaleString('ru-RU')} Br
                           </div>
                           <div style={{
                             fontSize: '9px',
@@ -1601,10 +1609,12 @@ const Sales: React.FC = () => {
                             marginTop: '2px',
                             letterSpacing: '0.5px',
                           }}>
-                            ИТОГО
+                            ПРОДАЖА
                           </div>
                         </div>
                       </div>
+                        );
+                      })()}
 
                       {/* ACTION BUTTONS */}
                       <div style={{

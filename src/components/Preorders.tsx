@@ -226,6 +226,16 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Закупочная цена (Br)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={form.purchasePrice}
+                  onChange={(e) => set('purchasePrice', Number(e.target.value))}
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Розничная цена (Br)</label>
                 <input
                   type="number"
@@ -236,6 +246,36 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
                 />
               </div>
             </div>
+            {Number(form.purchasePrice) > 0 && Number(form.retailPrice) > 0 && (
+              <div style={{
+                padding: '12px 16px',
+                backgroundColor: (Number(form.retailPrice) - Number(form.purchasePrice)) >= 0 ? '#F0FDF4' : '#FEF2F2',
+                borderRadius: '12px',
+                border: '1.5px solid',
+                borderColor: (Number(form.retailPrice) - Number(form.purchasePrice)) >= 0 ? '#A7F3D0' : '#FECACA',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '8px',
+              }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>
+                    Прибыль с пары:
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                    {Number(form.retailPrice)} - {Number(form.purchasePrice)} = {Number(form.retailPrice) - Number(form.purchasePrice)} Br
+                  </div>
+                </div>
+                <div style={{
+                  fontSize: '24px',
+                  fontWeight: '900',
+                  color: (Number(form.retailPrice) - Number(form.purchasePrice)) >= 0 ? '#10B981' : '#EF4444',
+                }}>
+                  {(Number(form.retailPrice) - Number(form.purchasePrice)) >= 0 ? '+' : ''}
+                  {Number(form.retailPrice) - Number(form.purchasePrice)} Br
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Поставщик *</label>
               <input
@@ -1392,37 +1432,65 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                 )}
 
                 {/* PRICE CARDS */}
+                {(() => {
+                  const buyPrice = Number(p.purchasePrice) || 0;
+                  const sellPrice = Number(p.retailPrice) || 0;
+                  const profit = sellPrice - buyPrice;
+                  const profitColor = profit >= 0 ? '#10B981' : '#EF4444';
+                  const profitBg = profit >= 0 ? '#F0FDF4' : '#FEF2F2';
+                  const profitBorder = profit >= 0 ? '#A7F3D0' : '#FECACA';
+                  return (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '8px',
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gap: '6px',
                   marginBottom: '14px'
                 }}>
                   <div style={{
-                    backgroundColor: '#F0FDF4',
+                    backgroundColor: '#F8FAFC',
                     borderRadius: '10px',
                     padding: '10px',
                     textAlign: 'center',
-                    border: '1px solid #A7F3D0'
+                    border: '1px solid #E2E8F0'
                   }}>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '800',
-                      color: '#10B981'
-                    }}>
-                      {p.retailPrice ? p.retailPrice.toLocaleString('ru-RU') : '—'} Br
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#64748B' }}>
+                      {buyPrice > 0 ? `${buyPrice.toLocaleString('ru-RU')} Br` : '—'}
                     </div>
-                    <div style={{
-                      fontSize: '10px',
-                      color: '#94A3B8',
-                      fontWeight: '700',
-                      marginTop: '2px',
-                      letterSpacing: '0.5px'
-                    }}>
+                    <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                      ЗАКУПКА
+                    </div>
+                  </div>
+                  <div style={{
+                    backgroundColor: profitBg,
+                    borderRadius: '10px',
+                    padding: '10px',
+                    textAlign: 'center',
+                    border: `1px solid ${profitBorder}`
+                  }}>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: profitColor }}>
+                      {buyPrice > 0 ? `${profit >= 0 ? '+' : ''}${profit.toLocaleString('ru-RU')} Br` : '—'}
+                    </div>
+                    <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                      ПРИБЫЛЬ
+                    </div>
+                  </div>
+                  <div style={{
+                    backgroundColor: '#EEF2FF',
+                    borderRadius: '10px',
+                    padding: '10px',
+                    textAlign: 'center',
+                    border: '1px solid #C7D2FE'
+                  }}>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#6366F1' }}>
+                      {sellPrice > 0 ? `${sellPrice.toLocaleString('ru-RU')} Br` : '—'}
+                    </div>
+                    <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
                       ПРОДАЖА
                     </div>
                   </div>
                 </div>
+                  );
+                })()}
 
                 {/* ACTION BUTTONS */}
                 <div style={{
