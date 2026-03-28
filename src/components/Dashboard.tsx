@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFirestore } from '../hooks/useFirestore';
 import { useViewMode } from '../contexts/ViewModeContext';
 import { Product, Sale, Expense } from '../types';
-import { safeDate } from '../utils/helpers';
+import { safeDate, safeNumber } from '../utils/helpers';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { db } from '../config/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -39,6 +41,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { data: sales, loading: loadingSales, error: errorSales } = useFirestore<Sale>('sales');
   const { data: expenses, loading: loadingExpenses, error: errorExpenses } = useFirestore<Expense>('expenses');
   const [period, setPeriod] = useState<Period>('month');
+
+  // Cash balance from Firestore
+  const [dashCashAmount, setDashCashAmount] = useState(0);
+  const [dashCardAmount, setDashCardAmount] = useState(0);
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'cash_balance', 'main'), (snap) => {
+      if (snap.exists()) {
+        const d = snap.data();
+        setDashCashAmount(safeNumber(d.cashAmount));
+        setDashCardAmount(safeNumber(d.cardAmount));
+      }
+    });
+    return () => unsub();
+  }, []);
 
   if (loadingProducts || loadingSales || loadingExpenses) return (
     <div className="flex items-center justify-center h-64">
@@ -454,6 +470,60 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* CASH WIDGET */}
+      <div
+        onClick={() => navigate('cash')}
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '20px',
+          padding: isMobileView ? '16px' : '22px',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+          border: '1px solid #F1F5F9',
+          marginBottom: isMobileView ? '16px' : '24px',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 14px 36px rgba(99,102,241,0.15)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06)';
+        }}
+      >
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#94A3B8', marginBottom: '12px' }}>
+          💰 Касса
+        </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobileView ? '16px' : '24px',
+          flexWrap: 'wrap'
+        }}>
+          <div>
+            <span style={{ fontSize: '13px', color: '#94A3B8' }}>💵 </span>
+            <span style={{ fontSize: isMobileView ? '18px' : '22px', fontWeight: '800', color: '#10B981' }}>
+              {dashCashAmount.toLocaleString('ru-RU')} Br
+            </span>
+            <span style={{ fontSize: '12px', color: '#94A3B8', marginLeft: '4px' }}>нал</span>
+          </div>
+          <div>
+            <span style={{ fontSize: '13px', color: '#94A3B8' }}>💳 </span>
+            <span style={{ fontSize: isMobileView ? '18px' : '22px', fontWeight: '800', color: '#6366F1' }}>
+              {dashCardAmount.toLocaleString('ru-RU')} Br
+            </span>
+            <span style={{ fontSize: '12px', color: '#94A3B8', marginLeft: '4px' }}>карта</span>
+          </div>
+          <div style={{ marginLeft: 'auto' }}>
+            <span style={{ fontSize: '12px', color: '#94A3B8' }}>Итого: </span>
+            <span style={{ fontSize: isMobileView ? '18px' : '22px', fontWeight: '900', color: '#0F172A' }}>
+              {(dashCashAmount + dashCardAmount).toLocaleString('ru-RU')} Br
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* SALES CHART — Last 7 days */}

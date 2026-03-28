@@ -11,8 +11,9 @@ import Preorders from './components/Preorders';
 import SettingsPage from './components/Settings';
 import AIAssistant from './components/AIAssistant';
 import AIAgent from './components/AIAgent';
+import Cash from './components/Cash';
 
-type Tab = 'dashboard' | 'catalog' | 'sales' | 'preorders' | 'expenses' | 'suppliers' | 'ai-assistant' | 'ai-agent' | 'settings';
+type Tab = 'dashboard' | 'catalog' | 'sales' | 'preorders' | 'expenses' | 'suppliers' | 'cash' | 'ai-assistant' | 'ai-agent' | 'settings';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -32,6 +33,7 @@ function AppContent() {
     { id: 'ai-assistant' as Tab, label: 'AI-Помощник', icon: '🤖' },
     { id: 'ai-agent' as Tab, label: 'AI-Агент', icon: '⚡' },
     { id: 'expenses' as Tab, label: 'Расходы', icon: '💸' },
+    { id: 'cash' as Tab, label: 'Касса', icon: '💰' },
     { id: 'suppliers' as Tab, label: 'Поставщики', icon: '🏪' },
     { id: 'settings' as Tab, label: 'Настройки', icon: '⚙️' },
   ];
@@ -52,6 +54,8 @@ function AppContent() {
         return <AIAgent />;
       case 'expenses':
         return <Expenses />;
+      case 'cash':
+        return <Cash />;
       case 'suppliers':
         return <Suppliers />;
       case 'settings':
@@ -492,7 +496,7 @@ function MobileBottomNav({ activeTab, setActiveTab, isMobileView }: { activeTab:
     { id: 'catalog', icon: '👟', label: 'Каталог' },
     { id: 'sales', icon: '🛍️', label: 'Продажи' },
     { id: 'preorders', icon: '📋', label: 'Заказы' },
-    { id: 'expenses', icon: '💸', label: 'Расходы' }
+    { id: 'cash', icon: '💰', label: 'Касса' }
   ];
 
   return (

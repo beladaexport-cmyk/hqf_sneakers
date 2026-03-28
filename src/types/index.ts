@@ -144,3 +144,24 @@ export interface Supplier {
   address: string;
   notes?: string;
 }
+
+export interface CashEntry {
+  id: string;
+  type: 'cash' | 'card';
+  operation: 'in' | 'out';
+  amount: number;
+  description: string;
+  category: 'sale' | 'expense' | 'supplier' | 'transfer' | 'other';
+  date: string;
+  linkedSaleId?: string;
+  linkedExpenseId?: string;
+  createdAt: string;
+}
+
+export interface CashBalance {
+  id: string;
+  cashAmount: number;
+  cardAmount: number;
+  updatedAt: string;
+  note?: string;
+}
