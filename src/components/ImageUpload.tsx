@@ -1,192 +1,386 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { uploadMultipleImages, testImgBBConnection } from '../utils/imgbbUpload';
+import React, { useState, useRef } from 'react';
+import { uploadToImgBB, isValidImageUrl } from '../utils/imgbbUpload';
 
 interface ImageUploadProps {
   images: string[];
   onImagesChange: (images: string[]) => void;
-  productSku: string;
+  productSku?: string;
+  maxImages?: number;
 }
 
-export default function ImageUpload({ images, onImagesChange, productSku: _productSku }: ImageUploadProps) {
-  const [uploadState, setUploadState] = useState({
-    isUploading: false,
-    percent: 0,
-    currentFile: '',
-    current: 0,
-    total: 0,
-  });
+const ImageUpload: React.FC<ImageUploadProps> = ({
+  images,
+  onImagesChange,
+  productSku: _productSku,
+  maxImages = 5,
+}) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    testImgBBConnection();
-  }, []);
+  // Фильтруем существующие изображения — убираем base64
+  const validImages = images.filter(isValidImageUrl);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    const fileArray = Array.from(files);
+    const remainingSlots = maxImages - validImages.length;
+    if (remainingSlots <= 0) {
+      setError(`Максимум ${maxImages} фотографий`);
+      return;
+    }
 
-    setUploadState({
-      isUploading: true,
-      percent: 0,
-      currentFile: '',
-      current: 0,
-      total: fileArray.length,
-    });
+    const filesToUpload = files.slice(0, remainingSlots);
+    setUploading(true);
+    setError(null);
+    setUploadProgress(0);
 
-    const { results, errors } = await uploadMultipleImages(
-      fileArray,
-      (progress) => {
-        setUploadState({
-          isUploading: progress.status !== 'done',
-          percent: progress.percent,
-          currentFile: progress.fileName,
-          current: progress.current,
-          total: progress.total,
-        });
+    try {
+      const newUrls: string[] = [];
+
+      for (let i = 0; i < filesToUpload.length; i++) {
+        setUploadProgress(Math.round(((i) / filesToUpload.length) * 100));
+
+        const result = await uploadToImgBB(filesToUpload[i]);
+        newUrls.push(result.url);
+
+        setUploadProgress(Math.round(((i + 1) / filesToUpload.length) * 100));
       }
-    );
 
-    if (results.length > 0) {
-      onImagesChange([
-        ...images,
-        ...results.map((r) => r.url),
-      ]);
+      onImagesChange([...validImages, ...newUrls]);
+    } catch (err: any) {
+      setError(`Ошибка загрузки: ${err.message}`);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-
-    if (errors.length > 0) {
-      alert(
-        `Не удалось загрузить:\n` +
-        errors.map((e) => `\u2022 ${e.file}: ${e.error}`).join('\n')
-      );
-    }
-
-    setUploadState({
-      isUploading: false,
-      percent: 100,
-      currentFile: '',
-      current: 0,
-      total: 0,
-    });
   };
 
-  const handleRemoveImage = async (_imageUrl: string, index: number) => {
-    if (!confirm('Удалить это фото?')) return;
+  const handleAddUrl = () => {
+    const url = urlInput.trim();
+    if (!url) return;
 
-    const newImages = images.filter((_, i) => i !== index);
+    if (!isValidImageUrl(url)) {
+      setError('Введите корректный URL (должен начинаться с http:// или https://)');
+      return;
+    }
+
+    if (validImages.length >= maxImages) {
+      setError(`Максимум ${maxImages} фотографий`);
+      return;
+    }
+
+    onImagesChange([...validImages, url]);
+    setUrlInput('');
+    setShowUrlInput(false);
+    setError(null);
+  };
+
+  const handleRemove = (index: number) => {
+    const newImages = validImages.filter((_, i) => i !== index);
+    onImagesChange(newImages);
+  };
+
+  const handleSetMain = (index: number) => {
+    const newImages = [...validImages];
+    const [selected] = newImages.splice(index, 1);
+    newImages.unshift(selected);
     onImagesChange(newImages);
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Фотографии товара
-        </label>
+    <div style={{ marginTop: '8px' }}>
+      <label style={{
+        display: 'block',
+        fontSize: '13px',
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: '10px',
+      }}>
+        📸 Фотографии товара ({validImages.length}/{maxImages})
+      </label>
 
-        <label className="relative cursor-pointer">
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-            disabled={uploadState.isUploading}
-          />
-          <div className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 hover:bg-blue-50">
-            {uploadState.isUploading ? (
-              <div className="text-center w-full px-4">
-                <div className="text-sm text-gray-600">
-                  Загрузка {uploadState.currentFile} ({uploadState.current}/{uploadState.total})
-                </div>
-                <div className="w-48 h-2 mt-2 bg-gray-200 rounded-full mx-auto">
-                  <div
-                    className="h-2 bg-blue-600 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadState.percent}%` }}
-                  />
-                </div>
-                <div className="text-xs text-gray-400 mt-1">{uploadState.percent}%</div>
-              </div>
-            ) : (
-              <div className="text-center">
-                <Upload className="w-8 h-8 mx-auto text-gray-400" />
-                <span className="mt-2 text-sm text-gray-600">
-                  Перетащите файлы или нажмите для выбора
-                </span>
-                <span className="block text-xs text-gray-400 mt-1">
-                  PNG, JPG, WebP до 5MB
-                </span>
-              </div>
-            )}
-          </div>
-        </label>
-      </div>
-
-      {uploadState.isUploading && (
+      {/* Превью загруженных фото */}
+      {validImages.length > 0 && (
         <div style={{
-          marginTop: '12px',
-          padding: '12px',
-          backgroundColor: '#EBF8FF',
-          borderRadius: '8px',
+          display: 'flex',
+          gap: '8px',
+          flexWrap: 'wrap',
+          marginBottom: '12px',
         }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginBottom: '6px',
-            fontSize: '13px',
-          }}>
-            <span>{uploadState.currentFile}</span>
-            <span style={{ fontWeight: 600 }}>
-              {uploadState.current}/{uploadState.total} ({uploadState.percent}%)
-            </span>
-          </div>
-          <div style={{
-            width: '100%',
-            height: '6px',
-            backgroundColor: '#BEE3F8',
-            borderRadius: '3px',
-          }}>
-            <div style={{
-              width: `${uploadState.percent}%`,
-              height: '100%',
-              backgroundColor: '#3B82F6',
-              borderRadius: '3px',
-              transition: 'width 0.3s ease',
-            }} />
-          </div>
-        </div>
-      )}
-
-      {images.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {images.map((imageUrl, index) => (
-            <div key={index} className="relative group">
+          {validImages.map((url, index) => (
+            <div
+              key={index}
+              style={{
+                position: 'relative',
+                width: '80px',
+                height: '80px',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                border: index === 0
+                  ? '2px solid #6366F1'
+                  : '2px solid #E2E8F0',
+                flexShrink: 0,
+              }}
+            >
               <img
-                src={imageUrl}
-                alt={`Product ${index + 1}`}
-                className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                src={url}
+                alt={`Фото ${index + 1}`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
               />
-              <button
-                type="button"
-                onClick={() => handleRemoveImage(imageUrl, index)}
-                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              {/* Главное фото бейдж */}
+              {index === 0 && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  left: '0',
+                  right: '0',
+                  backgroundColor: 'rgba(99,102,241,0.85)',
+                  color: 'white',
+                  fontSize: '9px',
+                  fontWeight: '700',
+                  textAlign: 'center',
+                  padding: '2px',
+                }}>
+                  ГЛАВНОЕ
+                </div>
+              )}
+
+              {/* Кнопки управления */}
+              <div style={{
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+              }}>
+                {/* Удалить */}
+                <button
+                  type="button"
+                  onClick={() => handleRemove(index)}
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: 'rgba(239,68,68,0.9)',
+                    color: 'white',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                  }}
+                >
+                  ×
+                </button>
+
+                {/* Сделать главным */}
+                {index !== 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleSetMain(index)}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      border: 'none',
+                      backgroundColor: 'rgba(99,102,241,0.9)',
+                      color: 'white',
+                      fontSize: '10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    title="Сделать главным"
+                  >
+                    ★
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {images.length === 0 && !uploadState.isUploading && (
-        <div className="flex items-center justify-center h-24 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="text-center text-gray-400">
-            <ImageIcon className="w-8 h-8 mx-auto mb-2" />
-            <p className="text-sm">Нет загруженных фото</p>
-          </div>
+      {/* Кнопки загрузки */}
+      {validImages.length < maxImages && (
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+
+          {/* Загрузить файл */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 16px',
+              borderRadius: '10px',
+              border: '2px dashed #C7D2FE',
+              backgroundColor: uploading ? '#F1F5F9' : '#EEF2FF',
+              color: uploading ? '#94A3B8' : '#6366F1',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            {uploading ? (
+              <>⏳ Загрузка {uploadProgress}%</>
+            ) : (
+              <>📁 Выбрать файл</>
+            )}
+          </button>
+
+          {/* Добавить по URL */}
+          <button
+            type="button"
+            onClick={() => setShowUrlInput(!showUrlInput)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 16px',
+              borderRadius: '10px',
+              border: '2px dashed #E2E8F0',
+              backgroundColor: 'white',
+              color: '#64748B',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer',
+            }}
+          >
+            🔗 По ссылке
+          </button>
         </div>
       )}
+
+      {/* Прогресс загрузки */}
+      {uploading && (
+        <div style={{
+          marginTop: '8px',
+          height: '6px',
+          backgroundColor: '#E2E8F0',
+          borderRadius: '3px',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${uploadProgress}%`,
+            background: 'linear-gradient(90deg, #6366F1, #8B5CF6)',
+            borderRadius: '3px',
+            transition: 'width 0.3s ease',
+          }} />
+        </div>
+      )}
+
+      {/* Поле для URL */}
+      {showUrlInput && (
+        <div style={{
+          marginTop: '10px',
+          display: 'flex',
+          gap: '8px',
+        }}>
+          <input
+            type="url"
+            placeholder="https://example.com/photo.jpg"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
+            style={{
+              flex: 1,
+              padding: '10px 12px',
+              border: '1.5px solid #E2E8F0',
+              borderRadius: '10px',
+              fontSize: '13px',
+              outline: 'none',
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleAddUrl}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: '#6366F1',
+              color: 'white',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer',
+            }}
+          >
+            Добавить
+          </button>
+        </div>
+      )}
+
+      {/* Ошибка */}
+      {error && (
+        <div style={{
+          marginTop: '8px',
+          padding: '10px 14px',
+          backgroundColor: '#FEF2F2',
+          border: '1px solid #FECACA',
+          borderRadius: '10px',
+          fontSize: '13px',
+          color: '#EF4444',
+          fontWeight: '600',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span>⚠️ {error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            style={{
+              border: 'none',
+              background: 'none',
+              color: '#EF4444',
+              cursor: 'pointer',
+              fontSize: '16px',
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Скрытый input для файлов */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileSelect}
+      />
+
+      <p style={{
+        fontSize: '11px',
+        color: '#94A3B8',
+        marginTop: '8px',
+      }}>
+        JPG, PNG, WebP • Максимум {maxImages} фото • До 32МБ каждое
+      </p>
     </div>
   );
-}
+};
+
+export default ImageUpload;
