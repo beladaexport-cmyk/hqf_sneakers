@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
@@ -27,14 +26,35 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        <div className="flex items-center justify-center mb-6">
-          <div className="bg-blue-500 p-3 rounded-full">
-            <LogIn className="w-8 h-8 text-white" />
-          </div>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          marginBottom: '32px',
+        }}>
+          <img
+            src="https://i.ibb.co/TxL4dnHM/logo.png"
+            alt="HQF Sneakers"
+            style={{
+              height: '80px',
+              width: 'auto',
+              objectFit: 'contain',
+              marginBottom: '12px',
+              filter: 'drop-shadow(0 4px 12px rgba(99,102,241,0.3))',
+            }}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <p style={{
+            fontSize: '14px',
+            color: '#94A3B8',
+            fontWeight: '500',
+            margin: 0,
+          }}>
+            Система управления магазином
+          </p>
         </div>
-
-        <h1 className="text-2xl font-bold text-center mb-2">👟 HQF Sneakers</h1>
-        <p className="text-gray-600 text-center mb-6">Вход в систему учета</p>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
