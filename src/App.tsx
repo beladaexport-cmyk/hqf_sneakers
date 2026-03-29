@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 import { useViewMode } from './contexts/ViewModeContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -570,7 +571,9 @@ function MobileBottomNav({ activeTab, setActiveTab, isMobileView }: { activeTab:
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <SettingsProvider>
+        <AppContent />
+      </SettingsProvider>
     </AuthProvider>
   );
 }
