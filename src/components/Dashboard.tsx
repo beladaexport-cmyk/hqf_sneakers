@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFirestore } from '../hooks/useFirestore';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { Product, Sale, Expense } from '../types';
 import { safeDate, safeNumber } from '../utils/helpers';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -37,6 +38,7 @@ const getStartDate = (period: Period): Date | null => {
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { isMobileView } = useViewMode();
+  const { settings } = useSettings();
   const { data: products, loading: loadingProducts, error: errorProducts } = useFirestore<Product>('products');
   const { data: sales, loading: loadingSales, error: errorSales } = useFirestore<Sale>('sales');
   const { data: expenses, loading: loadingExpenses, error: errorExpenses } = useFirestore<Expense>('expenses');
@@ -580,7 +582,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       {/* LOW STOCK ALERTS */}
-      {lowStockItems.length > 0 && (
+      {settings.showLowStock && lowStockItems.length > 0 && (
         <div style={{
           backgroundColor: '#FFFBEB',
           border: '1.5px solid #FCD34D',

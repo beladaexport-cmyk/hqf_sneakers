@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, Preorder, Supplier } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const Settings: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -11,6 +12,7 @@ const Settings: React.FC = () => {
   const { data: preorders } = useFirestore<Preorder>('preorders');
   const { data: suppliers } = useFirestore<Supplier>('suppliers');
   const { isMobileView } = useViewMode();
+  const { settings, updateSetting } = useSettings();
 
   const handleLogout = () => {
     logout();
@@ -27,6 +29,7 @@ const Settings: React.FC = () => {
     type: 'info' | 'toggle' | 'button';
     action?: () => void;
     btnText?: string;
+    onToggle?: (val: boolean) => void;
   };
 
   type SettingsSection = {
@@ -84,20 +87,23 @@ const Settings: React.FC = () => {
       {
         icon:'📦',
         label:'Уведомления о заказах',
-        value:true,
-        type:'toggle'
+        value:settings.orderNotifications,
+        type:'toggle',
+        onToggle:(val) => updateSetting('orderNotifications', val)
       },
       {
         icon:'⚠️',
         label:'Низкий остаток товара',
-        value:true,
-        type:'toggle'
+        value:settings.showLowStock,
+        type:'toggle',
+        onToggle:(val) => updateSetting('showLowStock', val)
       },
       {
         icon:'💸',
         label:'Напоминание о расходах',
-        value:false,
-        type:'toggle'
+        value:settings.expenseReminders,
+        type:'toggle',
+        onToggle:(val) => updateSetting('expenseReminders', val)
       }
     ]
   };
@@ -178,7 +184,7 @@ const Settings: React.FC = () => {
 
           {item.type==='toggle' && (
             <div
-              onClick={()=>{}}
+              onClick={()=>{ if (item.onToggle) item.onToggle(!item.value); }}
               style={{
                 width:'44px',
                 height:'24px',
