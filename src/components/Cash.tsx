@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFirestore } from '../hooks/useFirestore';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { CashEntry } from '../types';
 import { safeNumber, safeDate } from '../utils/helpers';
 import { db } from '../config/firebase';
@@ -12,6 +13,7 @@ type PeriodFilter = 'all' | 'today' | 'week' | 'month';
 
 const Cash: React.FC = () => {
   const { isMobileView } = useViewMode();
+  const theme = useTheme();
   const { data: entries, loading, error, add } = useFirestore<CashEntry>('cash_entries');
 
   const [cashAmount, setCashAmount] = useState(0);
@@ -223,7 +225,7 @@ const Cash: React.FC = () => {
   ];
 
   if (loading || balanceLoading) return (
-    <div style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>
+    <div style={{ padding: '24px', textAlign: 'center', color: theme.textMuted }}>
       <div style={{ fontSize: '32px', marginBottom: '12px' }}>💰</div>
       Загрузка кассы...
     </div>
@@ -241,11 +243,13 @@ const Cash: React.FC = () => {
     width: '100%',
     padding: '12px 16px',
     borderRadius: '12px',
-    border: '1.5px solid #E2E8F0',
+    border: `1.5px solid ${theme.border}`,
     fontSize: '15px',
     outline: 'none',
     transition: 'border-color 0.2s',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    backgroundColor: theme.bgInput,
+    color: theme.textPrimary
   };
 
   const btnPrimary: React.CSSProperties = {
@@ -263,9 +267,9 @@ const Cash: React.FC = () => {
   const btnCancel: React.CSSProperties = {
     padding: '12px 24px',
     borderRadius: '12px',
-    border: '1.5px solid #E2E8F0',
-    backgroundColor: 'white',
-    color: '#64748B',
+    border: `1.5px solid ${theme.border}`,
+    backgroundColor: theme.bgCard,
+    color: theme.textSecondary,
     fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -299,7 +303,7 @@ const Cash: React.FC = () => {
         <div style={{
           position: 'fixed',
           top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          backgroundColor: 'white',
+          backgroundColor: theme.bgCard,
           borderRadius: '24px',
           padding: isMobileView ? '20px' : '32px',
           width: isMobileView ? '92vw' : '480px',
@@ -310,19 +314,19 @@ const Cash: React.FC = () => {
         }}>
           {modal === 'operation' && (
             <>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', color: theme.textPrimary, marginBottom: '20px' }}>
                 Новая операция
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Тип</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Тип</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {(['cash', 'card'] as const).map(t => (
                       <button key={t} onClick={() => setOpType(t)} style={{
                         flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid',
-                        borderColor: opType === t ? (t === 'cash' ? '#10B981' : '#6366F1') : '#E2E8F0',
-                        backgroundColor: opType === t ? (t === 'cash' ? '#F0FDF4' : '#EEF2FF') : 'white',
-                        color: opType === t ? (t === 'cash' ? '#10B981' : '#6366F1') : '#64748B',
+                        borderColor: opType === t ? (t === 'cash' ? '#10B981' : theme.accent) : theme.border,
+                        backgroundColor: opType === t ? (t === 'cash' ? '#F0FDF4' : theme.accentBg) : theme.bgCard,
+                        color: opType === t ? (t === 'cash' ? '#10B981' : theme.accent) : theme.textSecondary,
                         fontSize: '14px', fontWeight: '700', cursor: 'pointer'
                       }}>
                         {t === 'cash' ? '💵 Наличные' : '💳 Карта'}
@@ -331,14 +335,14 @@ const Cash: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Операция</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Операция</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {(['in', 'out'] as const).map(o => (
                       <button key={o} onClick={() => setOpOperation(o)} style={{
                         flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid',
-                        borderColor: opOperation === o ? (o === 'in' ? '#10B981' : '#EF4444') : '#E2E8F0',
-                        backgroundColor: opOperation === o ? (o === 'in' ? '#F0FDF4' : '#FEF2F2') : 'white',
-                        color: opOperation === o ? (o === 'in' ? '#10B981' : '#EF4444') : '#64748B',
+                        borderColor: opOperation === o ? (o === 'in' ? '#10B981' : '#EF4444') : theme.border,
+                        backgroundColor: opOperation === o ? (o === 'in' ? '#F0FDF4' : '#FEF2F2') : theme.bgCard,
+                        color: opOperation === o ? (o === 'in' ? '#10B981' : '#EF4444') : theme.textSecondary,
                         fontSize: '14px', fontWeight: '700', cursor: 'pointer'
                       }}>
                         {o === 'in' ? '+ Приход' : '- Расход'}
@@ -347,17 +351,17 @@ const Cash: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Сумма (Br)</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Сумма (Br)</label>
                   <input type="number" value={opAmount} onChange={e => setOpAmount(e.target.value)}
                     placeholder="0" style={inputStyle} min="0" />
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Описание</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Описание</label>
                   <input type="text" value={opDescription} onChange={e => setOpDescription(e.target.value)}
                     placeholder="Описание операции" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Категория</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Категория</label>
                   <select value={opCategory} onChange={e => setOpCategory(e.target.value as CashEntry['category'])}
                     style={{ ...inputStyle, cursor: 'pointer' }}>
                     {categoryOptions.map(c => (
@@ -366,7 +370,7 @@ const Cash: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Дата</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Дата</label>
                   <input type="date" value={opDate} onChange={e => setOpDate(e.target.value)} style={inputStyle} />
                 </div>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
@@ -379,19 +383,19 @@ const Cash: React.FC = () => {
 
           {modal === 'transfer' && (
             <>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', color: theme.textPrimary, marginBottom: '20px' }}>
                 Перевод
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Откуда</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Откуда</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {(['cash', 'card'] as const).map(t => (
                       <button key={t} onClick={() => setTransferFrom(t)} style={{
                         flex: 1, padding: '10px', borderRadius: '10px', border: '1.5px solid',
-                        borderColor: transferFrom === t ? '#F59E0B' : '#E2E8F0',
-                        backgroundColor: transferFrom === t ? '#FFFBEB' : 'white',
-                        color: transferFrom === t ? '#D97706' : '#64748B',
+                        borderColor: transferFrom === t ? '#F59E0B' : theme.border,
+                        backgroundColor: transferFrom === t ? '#FFFBEB' : theme.bgCard,
+                        color: transferFrom === t ? '#D97706' : theme.textSecondary,
                         fontSize: '14px', fontWeight: '700', cursor: 'pointer'
                       }}>
                         {t === 'cash' ? '💵 Наличные' : '💳 Карта'}
@@ -401,21 +405,21 @@ const Cash: React.FC = () => {
                 </div>
                 <div style={{ textAlign: 'center', fontSize: '20px', color: '#F59E0B' }}>⬇️</div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Куда</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Куда</label>
                   <div style={{
-                    padding: '10px', borderRadius: '10px', border: '1.5px solid #E2E8F0',
-                    backgroundColor: '#F8FAFC', textAlign: 'center', fontSize: '14px', fontWeight: '700', color: '#64748B'
+                    padding: '10px', borderRadius: '10px', border: `1.5px solid ${theme.border}`,
+                    backgroundColor: theme.bgHover, textAlign: 'center', fontSize: '14px', fontWeight: '700', color: theme.textSecondary
                   }}>
                     {transferFrom === 'cash' ? '💳 Карта' : '💵 Наличные'}
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Сумма (Br)</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Сумма (Br)</label>
                   <input type="number" value={transferAmount} onChange={e => setTransferAmount(e.target.value)}
                     placeholder="0" style={inputStyle} min="0" />
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Комментарий</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Комментарий</label>
                   <input type="text" value={transferComment} onChange={e => setTransferComment(e.target.value)}
                     placeholder="Комментарий (необязательно)" style={inputStyle} />
                 </div>
@@ -431,26 +435,26 @@ const Cash: React.FC = () => {
 
           {modal === 'setBalance' && (
             <>
-              <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', color: theme.textPrimary, marginBottom: '20px' }}>
                 Установить фактический баланс
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>
                     Наличные на руках (Br)
                   </label>
                   <input type="number" value={setCashVal} onChange={e => setSetCashVal(e.target.value)}
                     placeholder={String(cashAmount)} style={inputStyle} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>
                     На карте (Br)
                   </label>
                   <input type="number" value={setCardVal} onChange={e => setSetCardVal(e.target.value)}
                     placeholder={String(cardAmount)} style={inputStyle} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', marginBottom: '6px', display: 'block' }}>Комментарий</label>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: theme.textSecondary, marginBottom: '6px', display: 'block' }}>Комментарий</label>
                   <textarea value={setBalanceNote} onChange={e => setSetBalanceNote(e.target.value)}
                     placeholder="Причина корректировки"
                     style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} />
@@ -480,10 +484,10 @@ const Cash: React.FC = () => {
 
       {/* HEADER */}
       <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ fontSize: isMobileView ? '22px' : '28px', fontWeight: '900', color: '#0F172A', margin: 0 }}>
+        <h1 style={{ fontSize: isMobileView ? '22px' : '28px', fontWeight: '900', color: theme.textPrimary, margin: 0 }}>
           💰 Касса
         </h1>
-        <p style={{ fontSize: '14px', color: '#94A3B8', marginTop: '4px' }}>
+        <p style={{ fontSize: '14px', color: theme.textMuted, marginTop: '4px' }}>
           Учёт наличных и безналичных средств
         </p>
       </div>
@@ -570,30 +574,30 @@ const Cash: React.FC = () => {
 
       {/* Total */}
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: theme.bgCard,
         borderRadius: '16px',
         padding: isMobileView ? '16px' : '20px',
         textAlign: 'center',
         marginBottom: '20px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        border: '1px solid #F1F5F9'
+        boxShadow: theme.shadowMd,
+        border: `1px solid ${theme.borderLight}`
       }}>
-        <span style={{ fontSize: '14px', color: '#94A3B8', fontWeight: '600' }}>ИТОГО НА СЧЕТУ: </span>
-        <span style={{ fontSize: isMobileView ? '22px' : '28px', fontWeight: '900', color: '#0F172A' }}>
+        <span style={{ fontSize: '14px', color: theme.textMuted, fontWeight: '600' }}>ИТОГО НА СЧЕТУ: </span>
+        <span style={{ fontSize: isMobileView ? '22px' : '28px', fontWeight: '900', color: theme.textPrimary }}>
           {formatNum(total)} Br
         </span>
       </div>
 
       {/* BLOCK 2 — Quick Operations */}
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: theme.bgCard,
         borderRadius: '20px',
         padding: isMobileView ? '16px' : '20px',
         marginBottom: '20px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        border: '1px solid #F1F5F9'
+        boxShadow: theme.shadowMd,
+        border: `1px solid ${theme.borderLight}`
       }}>
-        <div style={{ fontSize: '15px', fontWeight: '700', color: '#0F172A', marginBottom: '12px' }}>
+        <div style={{ fontSize: '15px', fontWeight: '700', color: theme.textPrimary, marginBottom: '12px' }}>
           Быстрые операции
         </div>
         <div style={{
@@ -606,7 +610,7 @@ const Cash: React.FC = () => {
             + Приход нал
           </button>
           <button onClick={() => openOperation('card', 'in')}
-            style={smallBtn('#EEF2FF', '#6366F1', '1.5px solid #C7D2FE')}>
+            style={smallBtn(theme.accentBg, theme.accent, `1.5px solid ${theme.accentBorder}`)}>
             + Приход карта
           </button>
           <button onClick={() => openOperation('cash', 'out')}
@@ -642,13 +646,13 @@ const Cash: React.FC = () => {
         ]).map(f => (
           <button key={f.key} onClick={() => setFilterType(f.key)} style={{
             padding: '8px 14px', borderRadius: '10px', border: '1.5px solid',
-            borderColor: filterType === f.key ? '#6366F1' : '#E2E8F0',
-            backgroundColor: filterType === f.key ? '#EEF2FF' : 'white',
-            color: filterType === f.key ? '#6366F1' : '#64748B',
+            borderColor: filterType === f.key ? theme.accent : theme.border,
+            backgroundColor: filterType === f.key ? theme.accentBg : theme.bgCard,
+            color: filterType === f.key ? theme.accent : theme.textSecondary,
             fontSize: '13px', fontWeight: '600', cursor: 'pointer'
           }}>{f.label}</button>
         ))}
-        <div style={{ width: '1px', backgroundColor: '#E2E8F0', margin: '0 4px' }} />
+        <div style={{ width: '1px', backgroundColor: theme.border, margin: '0 4px' }} />
         {([
           { key: 'all' as PeriodFilter, label: 'Всё время' },
           { key: 'today' as PeriodFilter, label: 'Сегодня' },
@@ -657,9 +661,9 @@ const Cash: React.FC = () => {
         ]).map(f => (
           <button key={f.key} onClick={() => setPeriodFilter(f.key)} style={{
             padding: '8px 14px', borderRadius: '10px', border: '1.5px solid',
-            borderColor: periodFilter === f.key ? '#6366F1' : '#E2E8F0',
-            backgroundColor: periodFilter === f.key ? '#EEF2FF' : 'white',
-            color: periodFilter === f.key ? '#6366F1' : '#64748B',
+            borderColor: periodFilter === f.key ? theme.accent : theme.border,
+            backgroundColor: periodFilter === f.key ? theme.accentBg : theme.bgCard,
+            color: periodFilter === f.key ? theme.accent : theme.textSecondary,
             fontSize: '13px', fontWeight: '600', cursor: 'pointer'
           }}>{f.label}</button>
         ))}
@@ -667,18 +671,18 @@ const Cash: React.FC = () => {
 
       {/* BLOCK 3 — History */}
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: theme.bgCard,
         borderRadius: '20px',
         padding: isMobileView ? '12px' : '20px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        border: '1px solid #F1F5F9'
+        boxShadow: theme.shadowMd,
+        border: `1px solid ${theme.borderLight}`
       }}>
-        <div style={{ fontSize: '15px', fontWeight: '700', color: '#0F172A', marginBottom: '12px' }}>
+        <div style={{ fontSize: '15px', fontWeight: '700', color: theme.textPrimary, marginBottom: '12px' }}>
           История операций
         </div>
 
         {filteredEntries.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: '#94A3B8' }}>
+          <div style={{ textAlign: 'center', padding: '32px', color: theme.textMuted }}>
             <div style={{ fontSize: '32px', marginBottom: '8px' }}>📭</div>
             Операций пока нет
           </div>
@@ -707,12 +711,12 @@ const Cash: React.FC = () => {
                   <span style={{ fontSize: '18px', flexShrink: 0 }}>{icon}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
-                      fontSize: '14px', fontWeight: '600', color: '#0F172A',
+                      fontSize: '14px', fontWeight: '600', color: theme.textPrimary,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                     }}>
                       {entry.description || '—'}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: theme.textMuted, marginTop: '2px' }}>
                       {dateStr} · {categoryLabels[entry.category] || entry.category}
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { useViewMode } from './contexts/ViewModeContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -21,6 +22,7 @@ function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, logout } = useAuth();
   const { isMobileView, toggleView } = useViewMode();
+  const t = useTheme();
 
   if (!currentUser) {
     return <Login />;
@@ -67,12 +69,12 @@ function AppContent() {
   const handleLogout = () => logout();
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F1F5F9' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: t.bgPrimary }}>
       {/* NAVBAR */}
       <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #F1F5F9',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        backgroundColor: t.bgNavbar,
+        borderBottom: `1px solid ${t.borderLight}`,
+        boxShadow: t.shadow,
         position: 'sticky',
         top: 0,
         zIndex: 100
@@ -129,8 +131,8 @@ function AppContent() {
                     padding: '7px 12px',
                     borderRadius: '10px',
                     border: 'none',
-                    backgroundColor: isActive ? '#EEF2FF' : 'transparent',
-                    color: isActive ? '#6366F1' : '#64748B',
+                    backgroundColor: isActive ? t.accentBg : 'transparent',
+                    color: isActive ? t.accent : t.textSecondary,
                     fontSize: '13px',
                     fontWeight: isActive ? '700' : '500',
                     cursor: 'pointer',
@@ -140,14 +142,14 @@ function AppContent() {
                   }}
                   onMouseEnter={e => {
                     if (!isActive) {
-                      e.currentTarget.style.backgroundColor = '#F8FAFC';
-                      e.currentTarget.style.color = '#374151';
+                      e.currentTarget.style.backgroundColor = t.bgHover;
+                      e.currentTarget.style.color = t.textPrimary;
                     }
                   }}
                   onMouseLeave={e => {
                     if (!isActive) {
                       e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = '#64748B';
+                      e.currentTarget.style.color = t.textSecondary;
                     }
                   }}
                 >
@@ -182,25 +184,25 @@ function AppContent() {
                 padding: '7px 12px',
                 borderRadius: '10px',
                 border: '1.5px solid',
-                borderColor: isMobileView ? '#C7D2FE' : '#E2E8F0',
-                backgroundColor: isMobileView ? '#EEF2FF' : 'white',
+                borderColor: isMobileView ? t.accentBorder : t.border,
+                backgroundColor: isMobileView ? t.accentBg : t.bgCard,
                 cursor: 'pointer',
                 fontSize: '13px',
                 fontWeight: '700',
-                color: isMobileView ? '#6366F1' : '#64748B',
+                color: isMobileView ? t.accent : t.textSecondary,
                 transition: 'all 0.2s',
                 flexShrink: 0,
                 boxShadow: isMobileView ? '0 2px 8px rgba(99,102,241,0.25)' : 'none'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#EEF2FF';
-                e.currentTarget.style.borderColor = '#C7D2FE';
-                e.currentTarget.style.color = '#6366F1';
+                e.currentTarget.style.backgroundColor = t.accentBg;
+                e.currentTarget.style.borderColor = t.accentBorder;
+                e.currentTarget.style.color = t.accent;
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = isMobileView ? '#EEF2FF' : 'white';
-                e.currentTarget.style.borderColor = isMobileView ? '#C7D2FE' : '#E2E8F0';
-                e.currentTarget.style.color = isMobileView ? '#6366F1' : '#64748B';
+                e.currentTarget.style.backgroundColor = isMobileView ? t.accentBg : t.bgCard;
+                e.currentTarget.style.borderColor = isMobileView ? t.accentBorder : t.border;
+                e.currentTarget.style.color = isMobileView ? t.accent : t.textSecondary;
               }}
             >
               <span style={{ fontSize: '16px' }}>
@@ -216,13 +218,14 @@ function AppContent() {
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: t.bgHover,
+                border: `1px solid ${t.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '18px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                color: t.textSecondary
               }}
             >
               {mobileMenuOpen ? '✕' : '☰'}
@@ -242,8 +245,8 @@ function AppContent() {
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: t.bgHover,
+                border: `1px solid ${t.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -253,12 +256,12 @@ function AppContent() {
                 position: 'relative'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#EEF2FF';
-                e.currentTarget.style.borderColor = '#C7D2FE';
+                e.currentTarget.style.backgroundColor = t.accentBg;
+                e.currentTarget.style.borderColor = t.accentBorder;
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = '#F8FAFC';
-                e.currentTarget.style.borderColor = '#E2E8F0';
+                e.currentTarget.style.backgroundColor = t.bgHover;
+                e.currentTarget.style.borderColor = t.border;
               }}
             >
               🔔
@@ -274,25 +277,25 @@ function AppContent() {
                 padding: '7px 12px',
                 borderRadius: '10px',
                 border: '1.5px solid',
-                borderColor: isMobileView ? '#C7D2FE' : '#E2E8F0',
-                backgroundColor: isMobileView ? '#EEF2FF' : 'white',
+                borderColor: isMobileView ? t.accentBorder : t.border,
+                backgroundColor: isMobileView ? t.accentBg : t.bgCard,
                 cursor: 'pointer',
                 fontSize: '13px',
                 fontWeight: '700',
-                color: isMobileView ? '#6366F1' : '#64748B',
+                color: isMobileView ? t.accent : t.textSecondary,
                 transition: 'all 0.2s',
                 flexShrink: 0,
                 boxShadow: isMobileView ? '0 2px 8px rgba(99,102,241,0.25)' : 'none'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#EEF2FF';
-                e.currentTarget.style.borderColor = '#C7D2FE';
-                e.currentTarget.style.color = '#6366F1';
+                e.currentTarget.style.backgroundColor = t.accentBg;
+                e.currentTarget.style.borderColor = t.accentBorder;
+                e.currentTarget.style.color = t.accent;
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = isMobileView ? '#EEF2FF' : 'white';
-                e.currentTarget.style.borderColor = isMobileView ? '#C7D2FE' : '#E2E8F0';
-                e.currentTarget.style.color = isMobileView ? '#6366F1' : '#64748B';
+                e.currentTarget.style.backgroundColor = isMobileView ? t.accentBg : t.bgCard;
+                e.currentTarget.style.borderColor = isMobileView ? t.accentBorder : t.border;
+                e.currentTarget.style.color = isMobileView ? t.accent : t.textSecondary;
               }}
               title="Переключить вид"
             >
@@ -311,23 +314,23 @@ function AppContent() {
                 gap: '6px',
                 padding: '7px 14px',
                 borderRadius: '10px',
-                border: '1.5px solid #E2E8F0',
-                backgroundColor: 'white',
-                color: '#64748B',
+                border: `1.5px solid ${t.border}`,
+                backgroundColor: t.bgCard,
+                color: t.textSecondary,
                 fontSize: '13px',
                 fontWeight: '600',
                 cursor: 'pointer',
                 transition: 'all 0.15s'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#FEF2F2';
-                e.currentTarget.style.borderColor = '#FECACA';
-                e.currentTarget.style.color = '#EF4444';
+                e.currentTarget.style.backgroundColor = t.dangerBg;
+                e.currentTarget.style.borderColor = t.dangerBorder;
+                e.currentTarget.style.color = t.danger;
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'white';
-                e.currentTarget.style.borderColor = '#E2E8F0';
-                e.currentTarget.style.color = '#64748B';
+                e.currentTarget.style.backgroundColor = t.bgCard;
+                e.currentTarget.style.borderColor = t.border;
+                e.currentTarget.style.color = t.textSecondary;
               }}
             >
               <span>🚪</span>
@@ -357,7 +360,7 @@ function AppContent() {
           left: 0,
           height: '100%',
           width: '256px',
-          backgroundColor: 'white',
+          backgroundColor: t.bgSidebar,
           boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
           transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s ease',
@@ -369,7 +372,7 @@ function AppContent() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '16px',
-          borderBottom: '1px solid #F1F5F9'
+          borderBottom: `1px solid ${t.borderLight}`
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img
@@ -392,7 +395,7 @@ function AppContent() {
               background: 'none',
               fontSize: '18px',
               cursor: 'pointer',
-              color: '#94A3B8'
+              color: t.textMuted
             }}
           >
             ✕
@@ -414,12 +417,12 @@ function AppContent() {
                   alignItems: 'center',
                   padding: '12px 20px',
                   border: 'none',
-                  backgroundColor: isActive ? '#EEF2FF' : 'transparent',
-                  color: isActive ? '#6366F1' : '#64748B',
+                  backgroundColor: isActive ? t.accentBg : 'transparent',
+                  color: isActive ? t.accent : t.textSecondary,
                   fontSize: '14px',
                   fontWeight: isActive ? '700' : '500',
                   cursor: 'pointer',
-                  borderRight: isActive ? '3px solid #6366F1' : '3px solid transparent',
+                  borderRight: isActive ? `3px solid ${t.accent}` : '3px solid transparent',
                   textAlign: 'left',
                   gap: '10px',
                   transition: 'all 0.15s'
@@ -441,9 +444,9 @@ function AppContent() {
               justifyContent: 'center',
               gap: '8px',
               padding: '10px',
-              backgroundColor: '#FEF2F2',
-              color: '#EF4444',
-              border: '1px solid #FECACA',
+              backgroundColor: t.dangerBg,
+              color: t.danger,
+              border: `1px solid ${t.dangerBorder}`,
               borderRadius: '10px',
               fontSize: '14px',
               fontWeight: '600',
@@ -482,6 +485,7 @@ function AppContent() {
 }
 
 function MobileBottomNav({ activeTab, setActiveTab, isMobileView }: { activeTab: Tab; setActiveTab: (t: Tab) => void; isMobileView: boolean }) {
+  const t = useTheme();
   const items: { id: Tab; icon: string; label: string }[] = [
     { id: 'dashboard', icon: '📊', label: 'Дашборд' },
     { id: 'catalog', icon: '👟', label: 'Каталог' },
@@ -497,8 +501,8 @@ function MobileBottomNav({ activeTab, setActiveTab, isMobileView }: { activeTab:
       left: 0,
       right: 0,
       height: '68px',
-      backgroundColor: 'white',
-      borderTop: '1px solid #F1F5F9',
+      backgroundColor: t.bgMobileNav,
+      borderTop: `1px solid ${t.borderLight}`,
       boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
       zIndex: 1000,
       display: isMobileView ? 'flex' : 'none',
@@ -546,7 +550,7 @@ function MobileBottomNav({ activeTab, setActiveTab, isMobileView }: { activeTab:
             <span style={{
               fontSize: '10px',
               fontWeight: isActive ? '700' : '500',
-              color: isActive ? '#6366F1' : '#94A3B8',
+              color: isActive ? t.accent : t.textMuted,
               whiteSpace: 'nowrap'
             }}>
               {item.label}
@@ -562,7 +566,9 @@ function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
-        <AppContent />
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
       </SettingsProvider>
     </AuthProvider>
   );

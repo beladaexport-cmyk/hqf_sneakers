@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useFirestore } from '../hooks/useFirestore';
 import { useViewMode } from '../contexts/ViewModeContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Product, Sale, Expense } from '../types';
 import { safeDate, safeNumber } from '../utils/helpers';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -47,6 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   // Cash balance from Firestore
   const [dashCashAmount, setDashCashAmount] = useState(0);
   const [dashCardAmount, setDashCardAmount] = useState(0);
+  const t = useTheme();
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'cash_balance', 'main'), (snap) => {
       if (snap.exists()) {
@@ -194,8 +196,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* ERROR BANNER */}
       {anyError && (
         <div style={{
-          backgroundColor: '#FEF2F2',
-          border: '1px solid #FECACA',
+          backgroundColor: t.dangerBg,
+          border: `1px solid ${t.dangerBorder}`,
           borderRadius: '12px',
           padding: '12px 16px',
           marginBottom: '16px',
@@ -350,9 +352,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             style={{
               padding: '8px 18px',
               borderRadius: '12px',
-              border: period === p ? '2px solid #6366F1' : '2px solid #E2E8F0',
-              backgroundColor: period === p ? '#EEF2FF' : 'white',
-              color: period === p ? '#6366F1' : '#64748B',
+              border: period === p ? `2px solid ${t.accent}` : `2px solid ${t.border}`,
+              backgroundColor: period === p ? t.accentBg : t.bgCard,
+              color: period === p ? t.accent : t.textSecondary,
               fontSize: '13px',
               fontWeight: '700',
               cursor: 'pointer',
@@ -417,15 +419,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <div
             key={stat.label}
             style={{
-              backgroundColor: 'white',
+              backgroundColor: t.bgCard,
               borderRadius: isMobileView ? '16px' : '20px',
               padding: isMobileView ? '14px' : '22px',
               display: 'flex',
               flexDirection: isMobileView ? 'column' : 'row',
               alignItems: isMobileView ? 'flex-start' : 'center',
               gap: isMobileView ? '10px' : '16px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-              border: '1px solid #F1F5F9',
+              boxShadow: t.shadowMd,
+              border: `1px solid ${t.borderLight}`,
               width: '100%',
               overflow: 'hidden',
               minWidth: 0,
@@ -438,7 +440,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06)';
+              e.currentTarget.style.boxShadow = t.shadowMd;
             }}
           >
             <div style={{
@@ -458,7 +460,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <div style={{
                 fontSize: isMobileView ? '11px' : '12px',
-                color: '#94A3B8',
+                color: t.textMuted,
                 fontWeight: '500',
                 marginBottom: isMobileView ? '4px' : '6px',
                 whiteSpace: 'nowrap',
@@ -470,7 +472,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               <div style={{
                 fontSize: isMobileView ? '20px' : '28px',
                 fontWeight: '800',
-                color: '#0F172A',
+                color: t.textPrimary,
                 letterSpacing: '-0.5px',
                 lineHeight: 1,
                 whiteSpace: 'nowrap',
@@ -481,7 +483,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <span style={{
                   fontSize: isMobileView ? '12px' : '13px',
                   fontWeight: '600',
-                  color: '#94A3B8',
+                  color: t.textMuted,
                   marginLeft: isMobileView ? '3px' : '4px'
                 }}>
                   {stat.unit}
@@ -496,11 +498,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       <div
         onClick={() => navigate('cash')}
         style={{
-          backgroundColor: 'white',
+          backgroundColor: t.bgCard,
           borderRadius: '20px',
           padding: isMobileView ? '16px' : '22px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-          border: '1px solid #F1F5F9',
+          boxShadow: t.shadowMd,
+          border: `1px solid ${t.borderLight}`,
           marginBottom: isMobileView ? '16px' : '24px',
           cursor: 'pointer',
           transition: 'all 0.2s ease'
@@ -511,10 +513,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         }}
         onMouseLeave={e => {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06)';
+          e.currentTarget.style.boxShadow = t.shadowMd;
         }}
       >
-        <div style={{ fontSize: '13px', fontWeight: '700', color: '#94A3B8', marginBottom: '12px' }}>
+        <div style={{ fontSize: '13px', fontWeight: '700', color: t.textMuted, marginBottom: '12px' }}>
           💰 Касса
         </div>
         <div style={{
@@ -524,22 +526,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           flexWrap: 'wrap'
         }}>
           <div>
-            <span style={{ fontSize: '13px', color: '#94A3B8' }}>💵 </span>
+            <span style={{ fontSize: '13px', color: t.textMuted }}>💵 </span>
             <span style={{ fontSize: isMobileView ? '18px' : '22px', fontWeight: '800', color: '#10B981' }}>
               {dashCashAmount.toLocaleString('ru-RU')} Br
             </span>
-            <span style={{ fontSize: '12px', color: '#94A3B8', marginLeft: '4px' }}>нал</span>
+            <span style={{ fontSize: '12px', color: t.textMuted, marginLeft: '4px' }}>нал</span>
           </div>
           <div>
-            <span style={{ fontSize: '13px', color: '#94A3B8' }}>💳 </span>
-            <span style={{ fontSize: isMobileView ? '18px' : '22px', fontWeight: '800', color: '#6366F1' }}>
+            <span style={{ fontSize: '13px', color: t.textMuted }}>💳 </span>
+            <span style={{ fontSize: isMobileView ? '18px' : '22px', fontWeight: '800', color: t.accent }}>
               {dashCardAmount.toLocaleString('ru-RU')} Br
             </span>
-            <span style={{ fontSize: '12px', color: '#94A3B8', marginLeft: '4px' }}>карта</span>
+            <span style={{ fontSize: '12px', color: t.textMuted, marginLeft: '4px' }}>карта</span>
           </div>
           <div style={{ marginLeft: 'auto' }}>
-            <span style={{ fontSize: '12px', color: '#94A3B8' }}>Итого: </span>
-            <span style={{ fontSize: isMobileView ? '18px' : '22px', fontWeight: '900', color: '#0F172A' }}>
+            <span style={{ fontSize: '12px', color: t.textMuted }}>Итого: </span>
+            <span style={{ fontSize: isMobileView ? '18px' : '22px', fontWeight: '900', color: t.textPrimary }}>
               {(dashCashAmount + dashCardAmount).toLocaleString('ru-RU')} Br
             </span>
           </div>
@@ -548,18 +550,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* SALES CHART — Last 7 days */}
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: t.bgCard,
         borderRadius: '20px',
         padding: '24px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-        border: '1px solid #F1F5F9',
+        boxShadow: t.shadowMd,
+        border: `1px solid ${t.borderLight}`,
         marginBottom: '20px'
       }}>
         <h3 style={{
           margin: '0 0 16px 0',
           fontSize: '17px',
           fontWeight: '800',
-          color: '#0F172A',
+          color: t.textPrimary,
           display: 'flex',
           alignItems: 'center',
           gap: '8px'
@@ -574,13 +576,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-            <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={t.borderLight} />
+            <XAxis dataKey="date" tick={{ fontSize: 12, fill: t.textMuted }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: t.textMuted }} axisLine={false} tickLine={false} />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'white',
-                border: '1px solid #E2E8F0',
+                backgroundColor: t.bgCard,
+                border: `1px solid ${t.border}`,
                 borderRadius: '10px',
                 fontSize: '13px',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
@@ -661,18 +663,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         {/* LEFT — DETAILS */}
         <div style={{
-          backgroundColor: 'white',
+          backgroundColor: t.bgCard,
           borderRadius: '20px',
           padding: '24px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-          border: '1px solid #F1F5F9',
+          boxShadow: t.shadowMd,
+          border: `1px solid ${t.borderLight}`,
           height: '100%'
         }}>
           <h3 style={{
             margin: '0 0 20px 0',
             fontSize: '17px',
             fontWeight: '800',
-            color: '#0F172A',
+            color: t.textPrimary,
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
@@ -687,8 +689,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           }}>
             {[
               { label: 'ВЫРУЧКА', value: monthRevenue || 0, icon: '💵', color: '#10B981', bg: '#F0FDF4', border: '#A7F3D0', wide: false },
-              { label: 'ВАЛОВАЯ ПРИБЫЛЬ', value: grossProfit || 0, icon: '📈', color: '#6366F1', bg: '#EEF2FF', border: '#C7D2FE', wide: false },
-              { label: 'РАСХОДЫ', value: monthExpenses || 0, icon: '📉', color: '#EF4444', bg: '#FEF2F2', border: '#FECACA', wide: false },
+              { label: 'ВАЛОВАЯ ПРИБЫЛЬ', value: grossProfit || 0, icon: '📈', color: t.accent, bg: t.accentBg, border: t.accentBorder, wide: false },
+              { label: 'РАСХОДЫ', value: monthExpenses || 0, icon: '📉', color: '#EF4444', bg: t.dangerBg, border: t.dangerBorder, wide: false },
               {
                 label: 'ЧИСТАЯ ПРИБЫЛЬ',
                 value: netProfit || 0,
@@ -727,7 +729,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <div style={{ minWidth: 0, overflow: 'hidden' }}>
                   <div style={{
                     fontSize: '10px',
-                    color: '#94A3B8',
+                    color: t.textMuted,
                     fontWeight: '700',
                     letterSpacing: '0.5px',
                     marginBottom: isMobileView ? '3px' : '4px'
@@ -753,23 +755,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         {/* RIGHT — EXPENSES BREAKDOWN */}
         <div style={{
-          backgroundColor: 'white',
+          backgroundColor: t.bgCard,
           borderRadius: '20px',
           padding: '24px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-          border: '1px solid #F1F5F9',
+          boxShadow: t.shadowMd,
+          border: `1px solid ${t.borderLight}`,
           height: '100%'
         }}>
           <h3 style={{
             margin: '0 0 20px 0',
             fontSize: '17px',
             fontWeight: '800',
-            color: '#0F172A'
+            color: t.textPrimary
           }}>
             💸 Расходы
           </h3>
           {[
-            { label: 'Реклама', value: adExpenses, total: monthExpenses, color: '#6366F1', bg: '#EEF2FF', icon: '📣' },
+            { label: 'Реклама', value: adExpenses, total: monthExpenses, color: t.accent, bg: t.accentBg, icon: '📣' },
             { label: 'Доставка', value: deliveryExpenses, total: monthExpenses, color: '#10B981', bg: '#F0FDF4', icon: '📦' },
             { label: 'Другое', value: otherExpenses, total: monthExpenses, color: '#F59E0B', bg: '#FFFBEB', icon: '💼' }
           ].map(exp => {
@@ -788,7 +790,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     gap: '6px',
                     fontSize: '13px',
                     fontWeight: '600',
-                    color: '#374151'
+                    color: t.textPrimary
                   }}>
                     <span>{exp.icon}</span>
                     {exp.label}
@@ -799,8 +801,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     </span>
                     <span style={{
                       fontSize: '11px',
-                      color: '#94A3B8',
-                      backgroundColor: '#F1F5F9',
+                      color: t.textMuted,
+                      backgroundColor: t.bgPrimary,
                       padding: '1px 6px',
                       borderRadius: '6px',
                       fontWeight: '600'
@@ -811,7 +813,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
                 <div style={{
                   height: '8px',
-                  backgroundColor: '#F1F5F9',
+                  backgroundColor: t.isDark ? t.borderLight : '#F1F5F9',
                   borderRadius: '4px',
                   overflow: 'hidden'
                 }}>
@@ -831,9 +833,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <div style={{
             marginTop: '20px',
             padding: '12px',
-            backgroundColor: '#FEF2F2',
+            backgroundColor: t.dangerBg,
             borderRadius: '12px',
-            border: '1px solid #FECACA',
+            border: `1px solid ${t.dangerBorder}`,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center'
@@ -850,11 +852,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* RECENT SALES */}
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: t.bgCard,
         borderRadius: '20px',
         padding: '24px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-        border: '1px solid #F1F5F9'
+        boxShadow: t.shadowMd,
+        border: `1px solid ${t.borderLight}`
       }}>
         <div style={{
           display: 'flex',
@@ -866,7 +868,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             margin: 0,
             fontSize: '17px',
             fontWeight: '800',
-            color: '#0F172A'
+            color: t.textPrimary
           }}>
             🛍️ Последние продажи
           </h3>
@@ -874,8 +876,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             onClick={() => navigate('sales')}
             style={{
               padding: '6px 14px',
-              backgroundColor: '#EEF2FF',
-              color: '#6366F1',
+              backgroundColor: t.accentBg,
+              color: t.accent,
               border: 'none',
               borderRadius: '8px',
               fontSize: '13px',
@@ -884,10 +886,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               transition: 'all 0.15s'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#E0E7FF';
+              e.currentTarget.style.backgroundColor = t.accentBorder;
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = '#EEF2FF';
+              e.currentTarget.style.backgroundColor = t.accentBg;
             }}
           >
             Все продажи →
@@ -916,10 +918,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   alignItems: 'center',
                   gap: '14px',
                   padding: '12px 16px',
-                  backgroundColor: isCancelled ? '#FFF5F5' : '#F8FAFC',
+                  backgroundColor: isCancelled ? t.dangerBg : t.bgHover,
                   borderRadius: '14px',
                   border: '1px solid',
-                  borderColor: isCancelled ? '#FECACA' : '#F1F5F9',
+                  borderColor: isCancelled ? t.dangerBorder : t.borderLight,
                   transition: 'all 0.15s',
                   opacity: isCancelled ? 0.85 : 1,
                   position: 'relative' as const,
@@ -927,13 +929,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 }}
                 onMouseEnter={e => {
                   if (!isCancelled) {
-                    e.currentTarget.style.backgroundColor = '#F1F5F9';
+                    e.currentTarget.style.backgroundColor = t.bgPrimary;
                     e.currentTarget.style.transform = 'translateX(3px)';
                   }
                 }}
                 onMouseLeave={e => {
                   if (!isCancelled) {
-                    e.currentTarget.style.backgroundColor = '#F8FAFC';
+                    e.currentTarget.style.backgroundColor = t.bgHover;
                     e.currentTarget.style.transform = 'translateX(0)';
                   }
                 }}
@@ -955,13 +957,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  backgroundColor: 'white',
+                  backgroundColor: t.bgCard,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   overflow: 'hidden',
                   flexShrink: 0,
-                  border: '1px solid #E2E8F0',
+                  border: `1px solid ${t.border}`,
                   boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
                   filter: isCancelled ? 'grayscale(60%)' : 'none'
                 }}>
@@ -984,7 +986,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <div style={{
                     fontSize: '14px',
                     fontWeight: '700',
-                    color: isCancelled ? '#9CA3AF' : '#1E293B',
+                    color: isCancelled ? '#9CA3AF' : t.textPrimary,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -996,7 +998,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   </div>
                   <div style={{
                     fontSize: '12px',
-                    color: '#94A3B8',
+                    color: t.textMuted,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px'
@@ -1039,7 +1041,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   </div>
                   <div style={{
                     fontSize: '11px',
-                    color: '#94A3B8',
+                    color: t.textMuted,
                     marginTop: '2px'
                   }}>
                     {new Date(safeDate(sale.date) || Date.now()).toLocaleDateString('ru-RU')}
@@ -1052,8 +1054,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     alignItems: 'center',
                     gap: '4px',
                     padding: '4px 10px',
-                    backgroundColor: '#FEF2F2',
-                    border: '1px solid #FECACA',
+                    backgroundColor: t.dangerBg,
+                    border: `1px solid ${t.dangerBorder}`,
                     borderRadius: '20px',
                     fontSize: '11px',
                     fontWeight: '800',
@@ -1084,7 +1086,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div style={{
               textAlign: 'center',
               padding: '40px',
-              color: '#94A3B8'
+              color: t.textMuted
             }}>
               <div style={{ fontSize: '40px' }}>🛍️</div>
               <div style={{

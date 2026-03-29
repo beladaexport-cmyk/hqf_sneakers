@@ -4,6 +4,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, Preorder, Supplier } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Settings: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -13,6 +14,7 @@ const Settings: React.FC = () => {
   const { data: suppliers } = useFirestore<Supplier>('suppliers');
   const { isMobileView } = useViewMode();
   const { settings, updateSetting } = useSettings();
+  const t = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -112,19 +114,19 @@ const Settings: React.FC = () => {
     <div
       key={section.title}
       style={{
-        backgroundColor:'white',
+        backgroundColor:t.bgCard,
         borderRadius:'20px',
         overflow:'hidden',
-        boxShadow:'0 4px 20px rgba(0,0,0,0.06)',
-        border:'1px solid #F1F5F9'
+        boxShadow:t.shadowMd,
+        border:`1px solid ${t.borderLight}`
       }}
     >
       <div style={{
         padding:'16px 20px',
-        borderBottom:'1px solid #F1F5F9',
+        borderBottom:`1px solid ${t.borderLight}`,
         fontSize:'15px',
         fontWeight:'700',
-        color:'#0F172A'
+        color:t.textPrimary
       }}>
         {section.title}
       </div>
@@ -138,12 +140,12 @@ const Settings: React.FC = () => {
             padding:'16px 20px',
             borderBottom:
               idx<section.items.length-1
-                ? '1px solid #F8FAFC'
+                ? `1px solid ${t.bgHover}`
                 : 'none',
             transition:'all 0.15s'
           }}
           onMouseEnter={e=>{
-            e.currentTarget.style.backgroundColor='#F8FAFC';
+            e.currentTarget.style.backgroundColor=t.bgHover;
           }}
           onMouseLeave={e=>{
             e.currentTarget.style.backgroundColor='transparent';
@@ -153,7 +155,7 @@ const Settings: React.FC = () => {
             width:'40px',
             height:'40px',
             borderRadius:'10px',
-            backgroundColor:'#F1F5F9',
+            backgroundColor:t.bgPrimary,
             display:'flex',
             alignItems:'center',
             justifyContent:'center',
@@ -167,7 +169,7 @@ const Settings: React.FC = () => {
             flex:1,
             fontSize:'14px',
             fontWeight:'600',
-            color:'#374151'
+            color:t.textPrimary
           }}>
             {item.label}
           </div>
@@ -175,7 +177,7 @@ const Settings: React.FC = () => {
           {item.type==='info' && (
             <div style={{
               fontSize:'13px',
-              color:'#94A3B8',
+              color:t.textMuted,
               fontWeight:'500'
             }}>
               {String(item.value)}
@@ -190,7 +192,7 @@ const Settings: React.FC = () => {
                 height:'24px',
                 borderRadius:'12px',
                 backgroundColor:
-                  item.value ? '#6366F1' : '#E2E8F0',
+                  item.value ? t.accent : t.border,
                 position:'relative',
                 cursor:'pointer',
                 transition:'all 0.2s',
@@ -216,8 +218,8 @@ const Settings: React.FC = () => {
               onClick={item.action}
               style={{
                 padding:'7px 16px',
-                backgroundColor:'#EEF2FF',
-                color:'#6366F1',
+                backgroundColor:t.accentBg,
+                color:t.accent,
                 border:'none',
                 borderRadius:'8px',
                 fontSize:'13px',
@@ -226,10 +228,10 @@ const Settings: React.FC = () => {
                 transition:'all 0.15s'
               }}
               onMouseEnter={e=>{
-                e.currentTarget.style.backgroundColor='#E0E7FF';
+                e.currentTarget.style.backgroundColor=t.accentBorder;
               }}
               onMouseLeave={e=>{
-                e.currentTarget.style.backgroundColor='#EEF2FF';
+                e.currentTarget.style.backgroundColor=t.accentBg;
               }}
             >
               {item.btnText}
@@ -254,7 +256,7 @@ const Settings: React.FC = () => {
             margin:'0 0 4px 0',
             fontSize:'28px',
             fontWeight:'800',
-            color:'#0F172A',
+            color:t.textPrimary,
             letterSpacing:'-0.5px'
           }}>
             ⚙️ Настройки
@@ -262,7 +264,7 @@ const Settings: React.FC = () => {
           <p style={{
             margin:0,
             fontSize:'14px',
-            color:'#94A3B8'
+            color:t.textMuted
           }}>
             Управление магазином HQF Sneakers
           </p>
@@ -271,11 +273,11 @@ const Settings: React.FC = () => {
 
       {/* PROFILE CARD */}
       <div style={{
-        backgroundColor:'white',
+        backgroundColor:t.bgCard,
         borderRadius:'20px',
         overflow:'hidden',
-        boxShadow:'0 4px 20px rgba(0,0,0,0.07)',
-        border:'1px solid #F1F5F9',
+        boxShadow:t.shadowMd,
+        border:`1px solid ${t.borderLight}`,
         marginBottom:'16px'
       }}>
         <div style={{
@@ -329,6 +331,100 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
+      {/* APPEARANCE TOGGLE */}
+      <div style={{
+        backgroundColor: t.bgCard,
+        borderRadius: '20px',
+        padding: '24px',
+        marginBottom: '16px',
+        border: `1px solid ${t.border}`,
+        boxShadow: t.shadow,
+      }}>
+        <h3 style={{
+          margin: '0 0 20px 0',
+          fontSize: '16px',
+          fontWeight: '800',
+          color: t.textPrimary,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          🎨 Внешний вид
+        </h3>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px',
+          backgroundColor: settings.darkMode ? '#1E2040' : t.bgHover,
+          borderRadius: '14px',
+          border: `1.5px solid ${settings.darkMode ? '#3730A3' : t.border}`,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+        }}
+        onClick={() => updateSetting('darkMode', !settings.darkMode)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: settings.darkMode
+                ? 'linear-gradient(135deg, #1E1B4B, #312E81)'
+                : 'linear-gradient(135deg, #FEF3C7, #FDE68A)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '22px',
+              transition: 'all 0.3s',
+            }}>
+              {settings.darkMode ? '🌙' : '☀️'}
+            </div>
+            <div>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '700',
+                color: t.textPrimary,
+              }}>
+                {settings.darkMode ? 'Тёмная тема' : 'Светлая тема'}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: t.textMuted,
+                marginTop: '2px',
+              }}>
+                {settings.darkMode
+                  ? 'Комфортно для глаз ночью'
+                  : 'Нажми чтобы включить тёмную тему'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            width: '52px',
+            height: '28px',
+            borderRadius: '14px',
+            backgroundColor: settings.darkMode ? '#6366F1' : '#E2E8F0',
+            position: 'relative',
+            transition: 'background-color 0.3s ease',
+            flexShrink: 0,
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '3px',
+              left: settings.darkMode ? '27px' : '3px',
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+              backgroundColor: 'white',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+              transition: 'left 0.3s ease',
+            }} />
+          </div>
+        </div>
+      </div>
+
       {/* TWO COLUMN LAYOUT */}
       <div style={{
         display:'grid',
@@ -348,24 +444,24 @@ const Settings: React.FC = () => {
 
           {/* STATS CARD */}
           <div style={{
-            backgroundColor:'white',
+            backgroundColor:t.bgCard,
             borderRadius:'20px',
             overflow:'hidden',
-            boxShadow:'0 4px 20px rgba(0,0,0,0.06)',
-            border:'1px solid #F1F5F9'
+            boxShadow:t.shadowMd,
+            border:`1px solid ${t.borderLight}`
           }}>
             <div style={{
               padding:'16px 20px',
-              borderBottom:'1px solid #F1F5F9',
+              borderBottom:`1px solid ${t.borderLight}`,
               fontSize:'15px',
               fontWeight:'700',
-              color:'#0F172A'
+              color:t.textPrimary
             }}>
               📊 Статистика магазина
             </div>
             {[
-              { icon:'👟', label:'Всего товаров', value:products?.length||0, color:'#6366F1' },
-              { icon:'🛍️', label:'Всего продаж', value:sales?.length||0, color:'#10B981' },
+              { icon:'👟', label:'Всего товаров', value:products?.length||0, color:t.accent },
+              { icon:'🛍️', label:'Всего продаж', value:sales?.length||0, color:t.success },
               { icon:'📋', label:'Предзаказов', value:preorders?.length||0, color:'#F59E0B' },
               { icon:'🏪', label:'Поставщиков', value:suppliers?.length||0, color:'#8B5CF6' }
             ].map((item,idx,arr)=>(
@@ -374,13 +470,13 @@ const Settings: React.FC = () => {
                 alignItems:'center',
                 gap:'14px',
                 padding:'14px 20px',
-                borderBottom: idx<arr.length-1 ? '1px solid #F8FAFC' : 'none'
+                borderBottom: idx<arr.length-1 ? `1px solid ${t.bgHover}` : 'none'
               }}>
                 <div style={{
                   width:'38px',
                   height:'38px',
                   borderRadius:'10px',
-                  backgroundColor:'#F8FAFC',
+                  backgroundColor:t.bgHover,
                   display:'flex',
                   alignItems:'center',
                   justifyContent:'center',
@@ -392,7 +488,7 @@ const Settings: React.FC = () => {
                   <div style={{
                     fontSize:'14px',
                     fontWeight:'600',
-                    color:'#374151'
+                    color:t.textPrimary
                   }}>
                     {item.label}
                   </div>
@@ -416,9 +512,9 @@ const Settings: React.FC = () => {
         style={{
           width:'100%',
           padding:'14px',
-          backgroundColor:'#FEF2F2',
-          color:'#EF4444',
-          border:'2px solid #FECACA',
+          backgroundColor:t.dangerBg,
+          color:t.danger,
+          border:`2px solid ${t.dangerBorder}`,
           borderRadius:'14px',
           fontSize:'15px',
           fontWeight:'700',
@@ -431,11 +527,11 @@ const Settings: React.FC = () => {
           marginTop:'16px'
         }}
         onMouseEnter={e=>{
-          e.currentTarget.style.backgroundColor='#FEE2E2';
+          e.currentTarget.style.backgroundColor=t.dangerBorder;
           e.currentTarget.style.transform='translateY(-1px)';
         }}
         onMouseLeave={e=>{
-          e.currentTarget.style.backgroundColor='#FEF2F2';
+          e.currentTarget.style.backgroundColor=t.dangerBg;
           e.currentTarget.style.transform='translateY(0)';
         }}
       >

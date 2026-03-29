@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -7,6 +8,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const t = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,8 +26,8 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: t.bgPrimary }}>
+      <div className="rounded-lg shadow-lg p-8 max-w-md w-full" style={{ backgroundColor: t.bgCard }}>
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -48,7 +50,7 @@ const Login: React.FC = () => {
           />
           <p style={{
             fontSize: '14px',
-            color: '#94A3B8',
+            color: t.textMuted,
             fontWeight: '500',
             margin: 0,
           }}>
@@ -57,14 +59,14 @@ const Login: React.FC = () => {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          <div style={{ backgroundColor: t.dangerBg, border: `1px solid ${t.dangerBorder}`, color: t.danger }} className="px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>
               Email
             </label>
             <input
@@ -72,13 +74,14 @@ const Login: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              style={{ backgroundColor: t.bgInput, border: `1px solid ${t.border}`, color: t.textPrimary }}
               placeholder="admin@hqf.by"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>
               Пароль
             </label>
             <input
@@ -86,7 +89,8 @@ const Login: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              style={{ backgroundColor: t.bgInput, border: `1px solid ${t.border}`, color: t.textPrimary }}
               placeholder="••••••••"
             />
           </div>
@@ -94,14 +98,15 @@ const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+            className="w-full py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: loading ? t.textMuted : t.accent, color: '#FFFFFF' }}
           >
             {loading ? 'Вход...' : 'Войти'}
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-gray-600">
+        <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: t.accentBg }}>
+          <p className="text-sm" style={{ color: t.textSecondary }}>
             <strong>💡 Для настройки:</strong><br/>
             1. Создайте Firebase проект<br/>
             2. Добавьте пользователя в Authentication<br/>

@@ -5,6 +5,7 @@ import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Sale, DeliveryMethod, SaleStatus } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { safeDate, safeNumber } from '../utils/helpers';
 
 type Period = 'all' | 'today' | 'week' | 'month';
@@ -46,6 +47,7 @@ interface SaleFormProps {
 }
 
 const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
+  const t = useTheme();
   const available = products.filter((p) => p.quantity > 0 && p.status === 'available');
   const [productId, setProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -135,7 +137,7 @@ const SaleForm: React.FC<SaleFormProps> = ({ products, onSave, onCancel }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: t.bgCard }}>
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Оформить продажу</h2>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
@@ -345,6 +347,7 @@ interface EditSaleModalProps {
 }
 
 const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, onCancel }) => {
+  const t = useTheme();
   const [date, setDate] = useState(sale.date ? (safeDate(sale.date) || new Date().toISOString()).split('T')[0] : '');
   const [productId, setProductId] = useState(sale.productId);
   const [customer, setCustomer] = useState(sale.customer || '');
@@ -409,7 +412,7 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ borderRadius: 12 }}>
+      <div className="rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ borderRadius: 12, backgroundColor: t.bgCard }}>
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Редактировать продажу</h2>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
@@ -527,7 +530,7 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
               display: 'block',
               fontSize: '13px',
               fontWeight: '600',
-              color: '#374151',
+              color: t.textPrimary,
               marginBottom: '5px'
             }}>
               Закупочная цена (Br)
@@ -537,12 +540,14 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
               min="0"
               style={{
                 width: '100%',
-                border: '1px solid #D1D5DB',
+                border: `1px solid ${t.border}`,
                 borderRadius: '8px',
                 padding: '9px 12px',
                 fontSize: '14px',
                 outline: 'none',
                 boxSizing: 'border-box' as const,
+                backgroundColor: t.bgInput,
+                color: t.textPrimary,
               }}
               value={purchasePriceEdit}
               onChange={(e) => setPurchasePriceEdit(Number(e.target.value))}
@@ -560,7 +565,7 @@ const EditSaleModal: React.FC<EditSaleModalProps> = ({ sale, products, onSave, o
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
+              <span style={{ fontSize: '13px', color: t.textSecondary, fontWeight: '600' }}>
                 Прибыль с пары:
               </span>
               <span style={{
@@ -640,6 +645,7 @@ type StatusFilter = 'all' | SaleStatus;
 
 const Sales: React.FC = () => {
   const { isMobileView } = useViewMode();
+  const t = useTheme();
   const { data: products } = useFirestore<Product>('products');
   const { data: sales, add: addSale, update: updateSale, error } = useFirestore<Sale>('sales');
   const [showForm, setShowForm] = useState(false);
@@ -972,7 +978,7 @@ const Sales: React.FC = () => {
           margin:0,
           fontSize:'22px',
           fontWeight:'800',
-          color:'#0F172A'
+          color:t.textPrimary
         }}>
           🛍️ Продажи
         </h1>
@@ -1052,9 +1058,9 @@ const Sales: React.FC = () => {
             value:totalProfit||0,
             label:'Прибыль',
             unit:'Br',
-            color:'#6366F1',
-            bg:'#EEF2FF',
-            border:'#C7D2FE',
+            color:t.accent,
+            bg:t.accentBg,
+            border:t.accentBorder,
             plus:true
           },
           {
@@ -1104,7 +1110,7 @@ const Sales: React.FC = () => {
             </div>
             <div style={{
               fontSize:'10px',
-              color:'#94A3B8',
+              color:t.textMuted,
               fontWeight:'600'
             }}>
               {s.label}
@@ -1145,12 +1151,12 @@ const Sales: React.FC = () => {
               border:'none',
               backgroundColor:
                 statusFilter===tab.key
-                  ? '#6366F1'
-                  : 'white',
+                  ? t.accent
+                  : t.bgCard,
               color:
                 statusFilter===tab.key
                   ? 'white'
-                  : '#64748B',
+                  : t.textSecondary,
               fontSize:'12px',
               fontWeight:'600',
               cursor:'pointer',
@@ -1159,7 +1165,7 @@ const Sales: React.FC = () => {
               boxShadow:
                 statusFilter===tab.key
                   ? '0 4px 12px rgba(99,102,241,0.35)'
-                  : '0 1px 4px rgba(0,0,0,0.08)'
+                  : t.shadowMd
             }}
           >
             {tab.label}
@@ -1177,11 +1183,12 @@ const Sales: React.FC = () => {
           style={{
             width: '100%',
             padding: '10px 16px',
-            border: '1.5px solid #E2E8F0',
+            border: `1.5px solid ${t.border}`,
             borderRadius: '14px',
             fontSize: '14px',
             outline: 'none',
-            backgroundColor: 'white',
+            backgroundColor: t.bgInput,
+            color: t.textPrimary,
             boxSizing: 'border-box' as const,
           }}
         />
@@ -1215,13 +1222,13 @@ const Sales: React.FC = () => {
               <div style={{
                 textAlign: 'center',
                 padding: '80px 20px',
-                color: '#94A3B8'
+                color: t.textMuted
               }}>
                 <div style={{ fontSize: '64px' }}>🛍️</div>
                 <div style={{
                   fontSize: '20px',
                   fontWeight: '700',
-                  color: '#475569',
+                  color: t.textPrimary,
                   marginTop: '16px'
                 }}>
                   {sales.length === 0 ? 'Продаж пока нет' : 'Продаж не найдено'}
@@ -1262,14 +1269,14 @@ const Sales: React.FC = () => {
                   <div
                     key={sale.id}
                     style={{
-                      backgroundColor: 'white',
+                      backgroundColor: t.bgCard,
                       borderRadius: '20px',
                       overflow: 'hidden',
                       boxShadow: isCompleted
                         ? '0 4px 20px rgba(16,185,129,0.12)'
                         : isInProcess
                         ? '0 4px 20px rgba(99,102,241,0.12)'
-                        : '0 2px 8px rgba(0,0,0,0.06)',
+                        : t.shadowMd,
                       border: isCompleted
                         ? '2px solid #A7F3D0'
                         : isInProcess
@@ -1292,7 +1299,7 @@ const Sales: React.FC = () => {
                         ? '0 4px 20px rgba(16,185,129,0.12)'
                         : isInProcess
                         ? '0 4px 20px rgba(99,102,241,0.12)'
-                        : '0 2px 8px rgba(0,0,0,0.06)';
+                        : t.shadowMd;
                     }}
                   >
                     {/* ═══ IMAGE AREA ═══ */}
@@ -1302,7 +1309,7 @@ const Sales: React.FC = () => {
                       backgroundColor: isCompleted
                         ? '#F0FDF4'
                         : isInProcess
-                        ? '#EEF2FF'
+                        ? t.accentBg
                         : '#FEF2F2',
                       display: 'flex',
                       alignItems: 'center',
@@ -1366,7 +1373,7 @@ const Sales: React.FC = () => {
                         padding: '3px 8px',
                         fontSize: '11px',
                         fontWeight: '600',
-                        color: '#64748B',
+                        color: t.textSecondary,
                         backdropFilter: 'blur(8px)',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
                       }}>
@@ -1379,7 +1386,7 @@ const Sales: React.FC = () => {
                           position: 'absolute',
                           bottom: '10px',
                           left: '10px',
-                          backgroundColor: '#1E293B',
+                          backgroundColor: t.textPrimary,
                           color: 'white',
                           borderRadius: '10px',
                           padding: '6px 14px',
@@ -1394,7 +1401,7 @@ const Sales: React.FC = () => {
                           <span style={{
                             fontSize: '9px',
                             fontWeight: '700',
-                            color: '#94A3B8',
+                            color: t.textMuted,
                             letterSpacing: '1.5px',
                             textTransform: 'uppercase' as const,
                           }}>
@@ -1445,7 +1452,7 @@ const Sales: React.FC = () => {
                       <div style={{
                         fontSize: '15px',
                         fontWeight: '800',
-                        color: '#0F172A',
+                        color: t.textPrimary,
                         marginBottom: '3px',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
@@ -1465,7 +1472,7 @@ const Sales: React.FC = () => {
                         {sale.productColor && (
                           <span style={{
                             fontSize: '12px',
-                            color: '#94A3B8',
+                            color: t.textMuted,
                             fontWeight: '500',
                           }}>
                             {sale.productColor}
@@ -1475,8 +1482,8 @@ const Sales: React.FC = () => {
                           <span style={{
                             fontSize: '11px',
                             fontFamily: 'monospace',
-                            backgroundColor: '#F1F5F9',
-                            color: '#64748B',
+                            backgroundColor: t.bgPrimary,
+                            color: t.textSecondary,
                             padding: '1px 6px',
                             borderRadius: '5px',
                             fontWeight: '600',
@@ -1493,15 +1500,15 @@ const Sales: React.FC = () => {
                         gap: '6px',
                         marginBottom: '12px',
                         padding: '8px 10px',
-                        backgroundColor: '#F8FAFC',
+                        backgroundColor: t.bgHover,
                         borderRadius: '10px',
-                        border: '1px solid #E2E8F0',
+                        border: `1px solid ${t.border}`,
                       }}>
                         <span style={{ fontSize: '14px' }}>👤</span>
                         <span style={{
                           fontSize: '13px',
                           fontWeight: '600',
-                          color: '#374151',
+                          color: t.textPrimary,
                           flex: 1,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -1539,23 +1546,23 @@ const Sales: React.FC = () => {
                         marginBottom: '10px',
                       }}>
                         <div style={{
-                          backgroundColor: '#F8FAFC',
+                          backgroundColor: t.bgHover,
                           borderRadius: '10px',
                           padding: '8px 6px',
                           textAlign: 'center',
-                          border: '1px solid #E2E8F0',
+                          border: `1px solid ${t.border}`,
                         }}>
                           <div style={{
                             fontSize: '14px',
                             fontWeight: '800',
-                            color: isCancelled ? '#94A3B8' : '#64748B',
+                            color: isCancelled ? t.textMuted : t.textSecondary,
                             textDecoration: isCancelled ? 'line-through' : 'none',
                           }}>
                             {buyPrice > 0 ? `${buyPrice.toLocaleString('ru-RU')} Br` : '—'}
                           </div>
                           <div style={{
                             fontSize: '9px',
-                            color: '#94A3B8',
+                            color: t.textMuted,
                             fontWeight: '700',
                             marginTop: '2px',
                             letterSpacing: '0.5px',
@@ -1573,13 +1580,13 @@ const Sales: React.FC = () => {
                           <div style={{
                             fontSize: '14px',
                             fontWeight: '800',
-                            color: isCancelled ? '#94A3B8' : profitColor,
+                            color: isCancelled ? t.textMuted : profitColor,
                           }}>
                             {buyPrice > 0 ? `${profit >= 0 ? '+' : ''}${profit.toLocaleString('ru-RU')} Br` : '—'}
                           </div>
                           <div style={{
                             fontSize: '9px',
-                            color: '#94A3B8',
+                            color: t.textMuted,
                             fontWeight: '700',
                             marginTop: '2px',
                             letterSpacing: '0.5px',
@@ -1588,23 +1595,23 @@ const Sales: React.FC = () => {
                           </div>
                         </div>
                         <div style={{
-                          backgroundColor: '#EEF2FF',
+                          backgroundColor: t.accentBg,
                           borderRadius: '10px',
                           padding: '8px 6px',
                           textAlign: 'center',
-                          border: '1px solid #C7D2FE',
+                          border: `1px solid ${t.accentBorder}`,
                         }}>
                           <div style={{
                             fontSize: '14px',
                             fontWeight: '800',
-                            color: isCancelled ? '#94A3B8' : '#6366F1',
+                            color: isCancelled ? t.textMuted : t.accent,
                             textDecoration: isCancelled ? 'line-through' : 'none',
                           }}>
                             {sellPrice.toLocaleString('ru-RU')} Br
                           </div>
                           <div style={{
                             fontSize: '9px',
-                            color: '#94A3B8',
+                            color: t.textMuted,
                             fontWeight: '700',
                             marginTop: '2px',
                             letterSpacing: '0.5px',
@@ -1659,9 +1666,9 @@ const Sales: React.FC = () => {
                           style={{
                             flex: 1,
                             padding: '10px',
-                            border: '1.5px solid #E2E8F0',
+                            border: `1.5px solid ${t.border}`,
                             borderRadius: '10px',
-                            backgroundColor: 'white',
+                            backgroundColor: t.bgCard,
                             color: '#475569',
                             fontSize: '12px',
                             fontWeight: '600',
@@ -1673,12 +1680,12 @@ const Sales: React.FC = () => {
                             gap: '4px',
                           }}
                           onMouseEnter={e => {
-                            e.currentTarget.style.backgroundColor = '#F8FAFC';
+                            e.currentTarget.style.backgroundColor = t.bgHover;
                             e.currentTarget.style.borderColor = '#CBD5E1';
                           }}
                           onMouseLeave={e => {
-                            e.currentTarget.style.backgroundColor = 'white';
-                            e.currentTarget.style.borderColor = '#E2E8F0';
+                            e.currentTarget.style.backgroundColor = t.bgCard;
+                            e.currentTarget.style.borderColor = t.border;
                           }}
                         >
                           ✏️ Изменить
@@ -1801,7 +1808,7 @@ const Sales: React.FC = () => {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              backgroundColor: 'white',
+              backgroundColor: t.bgCard,
               borderRadius: '28px',
               width: '100%',
               maxWidth: '420px',
@@ -1867,10 +1874,10 @@ const Sales: React.FC = () => {
               {/* SALE INFO */}
               <div style={{
                 padding: '14px',
-                backgroundColor: '#F8FAFC',
+                backgroundColor: t.bgHover,
                 borderRadius: '16px',
                 marginBottom: '20px',
-                border: '1px solid #F1F5F9',
+                border: `1px solid ${t.borderLight}`,
               }}>
                 <div style={{
                   display: 'flex',
@@ -1893,7 +1900,7 @@ const Sales: React.FC = () => {
                     <div style={{
                       fontSize: '14px',
                       fontWeight: '700',
-                      color: '#1E293B',
+                      color: t.textPrimary,
                       marginBottom: '4px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -1909,7 +1916,7 @@ const Sales: React.FC = () => {
                       {cancelSale.customer && (
                         <span style={{
                           fontSize: '12px',
-                          color: '#64748B',
+                          color: t.textSecondary,
                           fontWeight: '600',
                         }}>
                           👤 {cancelSale.customer}
@@ -1927,7 +1934,7 @@ const Sales: React.FC = () => {
                     </div>
                     <div style={{
                       fontSize: '11px',
-                      color: '#94A3B8',
+                      color: t.textMuted,
                     }}>
                       возврат суммы
                     </div>
@@ -1962,7 +1969,7 @@ const Sales: React.FC = () => {
                   display: 'block',
                   fontSize: '12px',
                   fontWeight: '700',
-                  color: '#374151',
+                  color: t.textPrimary,
                   marginBottom: '6px',
                 }}>
                   📝 ПРИЧИНА ВОЗВРАТА
@@ -1981,9 +1988,9 @@ const Sales: React.FC = () => {
                         padding: '6px 12px',
                         borderRadius: '8px',
                         border: '1.5px solid',
-                        borderColor: cancelReason === r ? '#EF4444' : '#E2E8F0',
-                        backgroundColor: cancelReason === r ? '#FEF2F2' : 'white',
-                        color: cancelReason === r ? '#EF4444' : '#64748B',
+                        borderColor: cancelReason === r ? '#EF4444' : t.border,
+                        backgroundColor: cancelReason === r ? '#FEF2F2' : t.bgCard,
+                        color: cancelReason === r ? '#EF4444' : t.textSecondary,
                         fontSize: '12px',
                         fontWeight: '600',
                         cursor: 'pointer',
@@ -2002,12 +2009,14 @@ const Sales: React.FC = () => {
                   style={{
                     width: '100%',
                     padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0',
+                    border: `1.5px solid ${t.border}`,
                     borderRadius: '12px',
                     fontSize: '14px',
                     outline: 'none',
                     resize: 'none',
                     fontFamily: 'inherit',
+                    backgroundColor: t.bgInput,
+                    color: t.textPrimary,
                     boxSizing: 'border-box' as const,
                   }}
                 />
@@ -2021,9 +2030,9 @@ const Sales: React.FC = () => {
                     flex: 1,
                     padding: '13px',
                     borderRadius: '14px',
-                    border: '1.5px solid #E2E8F0',
-                    backgroundColor: 'white',
-                    color: '#64748B',
+                    border: `1.5px solid ${t.border}`,
+                    backgroundColor: t.bgCard,
+                    color: t.textSecondary,
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer',
@@ -2046,9 +2055,9 @@ const Sales: React.FC = () => {
                     borderRadius: '14px',
                     border: 'none',
                     background: cancelLoading
-                      ? '#E2E8F0'
+                      ? t.border
                       : 'linear-gradient(135deg,#EF4444,#F87171)',
-                    color: cancelLoading ? '#94A3B8' : 'white',
+                    color: cancelLoading ? t.textMuted : 'white',
                     fontSize: '15px',
                     fontWeight: '800',
                     cursor: cancelLoading ? 'not-allowed' : 'pointer',
@@ -2072,7 +2081,7 @@ const Sales: React.FC = () => {
 
       {deleteConfirmSale && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+          <div className="rounded-xl shadow-xl w-full max-w-md" style={{ backgroundColor: t.bgCard }}>
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h2 className="text-lg font-semibold text-gray-900">Удалить отменённую продажу?</h2>
               <button onClick={() => setDeleteConfirmSale(null)} className="text-gray-400 hover:text-gray-600">

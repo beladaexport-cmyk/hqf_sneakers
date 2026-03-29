@@ -7,6 +7,7 @@ import { Product } from '../types';
 import { SIZE_OPTIONS } from '../utils/sizeChart';
 import ImageUpload from './ImageUpload';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface SizeEntry {
   eu: string;
@@ -562,6 +563,7 @@ const BulkAddForm: React.FC<BulkAddFormProps> = ({ onSave, onCancel }) => {
 
 const Catalog: React.FC = () => {
   const { isMobileView } = useViewMode();
+  const t = useTheme();
   const { data: products, loading, error, add, update, remove } = useFirestore<Product>('products');
   const [search, setSearch] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
@@ -863,12 +865,12 @@ const Catalog: React.FC = () => {
         }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} style={{
-              backgroundColor: 'white',
+              backgroundColor: t.bgCard,
               borderRadius: '20px',
               overflow: 'hidden',
-              border: '2px solid #F1F5F9',
+              border: `2px solid ${t.borderLight}`,
             }}>
-              <div className="animate-pulse" style={{ height: '200px', backgroundColor: '#F1F5F9' }} />
+              <div className="animate-pulse" style={{ height: '200px', backgroundColor: t.borderLight }} />
               <div style={{ padding: '14px 16px' }}>
                 <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse mb-3" />
                 <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse mb-3" />
@@ -977,8 +979,8 @@ const Catalog: React.FC = () => {
           onClick={() => setViewMode('cards')}
           style={{
             padding: '6px 14px',
-            backgroundColor: viewMode === 'cards' ? '#3B82F6' : '#F1F5F9',
-            color: viewMode === 'cards' ? 'white' : '#475569',
+            backgroundColor: viewMode === 'cards' ? '#3B82F6' : t.bgPrimary,
+            color: viewMode === 'cards' ? 'white' : t.textSecondary,
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
@@ -992,8 +994,8 @@ const Catalog: React.FC = () => {
           onClick={() => setViewMode('table')}
           style={{
             padding: '6px 14px',
-            backgroundColor: viewMode === 'table' ? '#3B82F6' : '#F1F5F9',
-            color: viewMode === 'table' ? 'white' : '#475569',
+            backgroundColor: viewMode === 'table' ? '#3B82F6' : t.bgPrimary,
+            color: viewMode === 'table' ? 'white' : t.textSecondary,
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
@@ -1007,8 +1009,8 @@ const Catalog: React.FC = () => {
           onClick={() => setShowReservedOnly(!showReservedOnly)}
           style={{
             padding: '6px 14px',
-            backgroundColor: showReservedOnly ? '#6366F1' : '#F1F5F9',
-            color: showReservedOnly ? 'white' : '#475569',
+            backgroundColor: showReservedOnly ? '#6366F1' : t.bgPrimary,
+            color: showReservedOnly ? 'white' : t.textSecondary,
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
@@ -1028,14 +1030,14 @@ const Catalog: React.FC = () => {
           <div style={{
             textAlign: 'center',
             padding: '60px 20px',
-            color: '#94A3B8'
+            color: t.textMuted
           }}>
             <div style={{ fontSize: '64px' }}>👟</div>
             <div style={{
               fontSize: '18px',
               fontWeight: '700',
               marginTop: '16px',
-              color: '#475569'
+              color: t.textSecondary
             }}>
               {products.length === 0 ? 'Товаров нет' : 'Товаров не найдено'}
             </div>
@@ -1079,15 +1081,15 @@ const Catalog: React.FC = () => {
                     <div key={key}>
                       <div
                         style={{
-                          backgroundColor: 'white',
+                          backgroundColor: t.bgCard,
                           borderRadius: '20px',
                           overflow: 'hidden',
                           boxShadow: isInStock
                             ? '0 4px 20px rgba(16,185,129,0.12)'
-                            : '0 2px 8px rgba(0,0,0,0.06)',
+                            : t.shadowMd,
                           border: isInStock
                             ? '2px solid #A7F3D0'
-                            : '2px solid #F1F5F9',
+                            : `2px solid ${t.borderLight}`,
                           transition: 'all 0.25s ease',
                           position: 'relative',
                           cursor: 'pointer',
@@ -1102,14 +1104,14 @@ const Catalog: React.FC = () => {
                           e.currentTarget.style.transform = 'translateY(0)';
                           e.currentTarget.style.boxShadow = isInStock
                             ? '0 4px 20px rgba(16,185,129,0.12)'
-                            : '0 2px 8px rgba(0,0,0,0.06)';
+                            : t.shadowMd;
                         }}
                       >
                         {/* IMAGE AREA */}
                         <div style={{
                           position: 'relative',
                           height: '200px',
-                          backgroundColor: isInStock ? '#F0FDF4' : '#F8FAFC',
+                          backgroundColor: isInStock ? '#F0FDF4' : t.bgHover,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1234,7 +1236,7 @@ const Catalog: React.FC = () => {
                           <div style={{
                             fontSize: '15px',
                             fontWeight: '800',
-                            color: '#0F172A',
+                            color: t.textPrimary,
                             marginBottom: '3px',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -1251,8 +1253,8 @@ const Catalog: React.FC = () => {
                               alignItems:'center',
                               gap:'5px',
                               padding:'4px 10px',
-                              backgroundColor:'#EEF2FF',
-                              border:'1px solid #C7D2FE',
+                              backgroundColor:t.accentBg,
+                              border:`1px solid ${t.accentBorder}`,
                               borderRadius:'20px',
                               marginBottom:'8px',
                               maxWidth:'100%'
@@ -1261,7 +1263,7 @@ const Catalog: React.FC = () => {
                               <span style={{
                                 fontSize:'11px',
                                 fontWeight:'700',
-                                color:'#6366F1',
+                                color:t.accent,
                                 whiteSpace:'nowrap',
                                 overflow:'hidden',
                                 textOverflow:'ellipsis',
@@ -1284,7 +1286,7 @@ const Catalog: React.FC = () => {
                           {/* Color */}
                           <div style={{
                             fontSize: '12px',
-                            color: '#94A3B8',
+                            color: t.textMuted,
                             marginBottom: '12px',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -1319,10 +1321,10 @@ const Catalog: React.FC = () => {
                                       gap: '3px',
                                       padding: '5px 10px',
                                       borderRadius: '8px',
-                                      backgroundColor: hasStock ? '#ECFDF5' : '#F8FAFC',
+                                      backgroundColor: hasStock ? '#ECFDF5' : t.bgHover,
                                       border: hasStock
                                         ? '1.5px solid #6EE7B7'
-                                        : '1.5px solid #E2E8F0',
+                                        : `1.5px solid ${t.border}`,
                                       cursor: 'default',
                                       transition: 'all 0.15s'
                                     }}
@@ -1330,7 +1332,7 @@ const Catalog: React.FC = () => {
                                     <span style={{
                                       fontSize: '9px',
                                       fontWeight: '700',
-                                      color: hasStock ? '#6EE7B7' : '#94A3B8',
+                                      color: hasStock ? '#6EE7B7' : t.textMuted,
                                       letterSpacing: '0.5px'
                                     }}>
                                       EU
@@ -1338,7 +1340,7 @@ const Catalog: React.FC = () => {
                                     <span style={{
                                       fontSize: '13px',
                                       fontWeight: '800',
-                                      color: hasStock ? '#065F46' : '#94A3B8',
+                                      color: hasStock ? '#065F46' : t.textMuted,
                                       letterSpacing: '0.3px'
                                     }}>
                                       {size}
@@ -1347,7 +1349,7 @@ const Catalog: React.FC = () => {
                                       <span style={{
                                         fontSize: '9px',
                                         fontWeight: '800',
-                                        backgroundColor: hasStock ? '#10B981' : '#94A3B8',
+                                        backgroundColor: hasStock ? '#10B981' : t.textMuted,
                                         color: 'white',
                                         borderRadius: '4px',
                                         padding: '0 3px',
@@ -1371,24 +1373,24 @@ const Catalog: React.FC = () => {
                                 gap: '3px',
                                 padding: '5px 10px',
                                 borderRadius: '8px',
-                                backgroundColor: '#F8FAFC',
+                                backgroundColor: t.bgHover,
                                 border: '1.5px dashed #CBD5E1',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s'
                               }}
                               onMouseEnter={e => {
-                                e.currentTarget.style.backgroundColor = '#EEF2FF';
-                                e.currentTarget.style.borderColor = '#6366F1';
+                                e.currentTarget.style.backgroundColor = t.accentBg;
+                                e.currentTarget.style.borderColor = t.accent;
                               }}
                               onMouseLeave={e => {
-                                e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                e.currentTarget.style.backgroundColor = t.bgHover;
                                 e.currentTarget.style.borderColor = '#CBD5E1';
                               }}
                             >
                               <span style={{
                                 fontSize: '12px',
                                 fontWeight: '700',
-                                color: '#94A3B8'
+                                color: t.textMuted
                               }}>
                                 + EU
                               </span>
@@ -1411,16 +1413,16 @@ const Catalog: React.FC = () => {
                                 marginBottom: '12px',
                               }}>
                                 <div style={{
-                                  backgroundColor: '#F8FAFC',
+                                  backgroundColor: t.bgHover,
                                   borderRadius: '10px',
                                   padding: '8px 6px',
                                   textAlign: 'center',
-                                  border: '1px solid #E2E8F0',
+                                  border: `1px solid ${t.border}`,
                                 }}>
-                                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#64748B' }}>
+                                  <div style={{ fontSize: '14px', fontWeight: '800', color: t.textSecondary }}>
                                     {buyPrice > 0 ? buyPrice.toLocaleString('ru-RU') : '—'} Br
                                   </div>
-                                  <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                                  <div style={{ fontSize: '9px', color: t.textMuted, fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
                                     ЗАКУПКА
                                   </div>
                                 </div>
@@ -1434,21 +1436,21 @@ const Catalog: React.FC = () => {
                                   <div style={{ fontSize: '14px', fontWeight: '800', color: profitColor }}>
                                     {buyPrice > 0 ? `${profit >= 0 ? '+' : ''}${profit.toLocaleString('ru-RU')} Br` : '—'}
                                   </div>
-                                  <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                                  <div style={{ fontSize: '9px', color: t.textMuted, fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
                                     ПРИБЫЛЬ
                                   </div>
                                 </div>
                                 <div style={{
-                                  backgroundColor: '#EEF2FF',
+                                  backgroundColor: t.accentBg,
                                   borderRadius: '10px',
                                   padding: '8px 6px',
                                   textAlign: 'center',
-                                  border: '1px solid #C7D2FE',
+                                  border: `1px solid ${t.accentBorder}`,
                                 }}>
-                                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#6366F1' }}>
+                                  <div style={{ fontSize: '14px', fontWeight: '800', color: t.accent }}>
                                     {sellPrice > 0 ? sellPrice.toLocaleString('ru-RU') : '—'} Br
                                   </div>
-                                  <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                                  <div style={{ fontSize: '9px', color: t.textMuted, fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
                                     ПРОДАЖА
                                   </div>
                                 </div>
@@ -1461,11 +1463,11 @@ const Catalog: React.FC = () => {
                             <span style={{
                               fontSize: '11px',
                               fontWeight: '600',
-                              color: '#94A3B8',
-                              backgroundColor: '#F8FAFC',
+                              color: t.textMuted,
+                              backgroundColor: t.bgHover,
                               padding: '3px 8px',
                               borderRadius: '8px',
-                              border: '1px solid #E2E8F0'
+                              border: `1px solid ${t.border}`
                             }}>
                               {categoryLabels[first.category] || 'Лайфстайл'}
                             </span>
@@ -1541,9 +1543,9 @@ const Catalog: React.FC = () => {
                                 minWidth: '80px',
                                 padding: '9px 8px',
                                 borderRadius: '12px',
-                                border: '1.5px solid #E2E8F0',
-                                backgroundColor: 'white',
-                                color: '#64748B',
+                                border: `1.5px solid ${t.border}`,
+                                backgroundColor: t.bgCard,
+                                color: t.textSecondary,
                                 fontSize: '12px',
                                 fontWeight: '600',
                                 cursor: 'pointer',
@@ -1561,8 +1563,8 @@ const Catalog: React.FC = () => {
                                 width: '34px',
                                 height: '34px',
                                 borderRadius: '10px',
-                                border: '1px solid #E2E8F0',
-                                backgroundColor: 'white',
+                                border: `1px solid ${t.border}`,
+                                backgroundColor: t.bgCard,
                                 cursor: 'pointer',
                                 fontSize: '14px',
                                 display: 'flex',
@@ -1600,9 +1602,9 @@ const Catalog: React.FC = () => {
                         <div style={{
                           marginTop: '8px',
                           padding: '12px',
-                          backgroundColor: '#F8FAFC',
+                          backgroundColor: t.bgHover,
                           borderRadius: '12px',
-                          border: '1px solid #E2E8F0',
+                          border: `1px solid ${t.border}`,
                         }}>
                           {items.map(p => {
                             const isLow = p.quantity <= p.minStock;
@@ -1612,7 +1614,7 @@ const Catalog: React.FC = () => {
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                                 padding: '6px 0',
-                                borderBottom: '1px solid #E2E8F0',
+                                borderBottom: `1px solid ${t.border}`,
                                 fontSize: '12px',
                               }}>
                                 <span>Размер: {p.size}</span>
@@ -1720,8 +1722,8 @@ const Catalog: React.FC = () => {
                                       height: '72px',
                                       objectFit: 'cover',
                                       borderRadius: '10px',
-                                      border: '1px solid #E2E8F0',
-                                      boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+                                      border: `1px solid ${t.border}`,
+                                      boxShadow: t.shadowMd,
                                       display: 'block',
                                       transition: 'transform 0.2s',
                                       cursor: 'pointer',
@@ -1910,7 +1912,7 @@ const Catalog: React.FC = () => {
               position: 'absolute',
               top: '20px',
               right: '20px',
-              backgroundColor: 'white',
+              backgroundColor: t.bgCard,
               border: 'none',
               borderRadius: '50%',
               width: '36px',
@@ -1940,7 +1942,7 @@ const Catalog: React.FC = () => {
           padding: '20px',
         }}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: t.bgCard,
             borderRadius: '16px',
             padding: '24px',
             width: '100%',
@@ -1960,7 +1962,7 @@ const Catalog: React.FC = () => {
                 margin: '0',
                 fontSize: '18px',
                 fontWeight: '700',
-                color: '#1E293B',
+                color: t.textPrimary,
               }}>
                 Добавить размер
               </h3>
@@ -1968,13 +1970,13 @@ const Catalog: React.FC = () => {
                 onClick={() => setShowAddSizeModal(false)}
                 style={{
                   border: 'none',
-                  background: '#F1F5F9',
+                  background: t.bgPrimary,
                   borderRadius: '8px',
                   width: '32px',
                   height: '32px',
                   cursor: 'pointer',
                   fontSize: '18px',
-                  color: '#64748B',
+                  color: t.textSecondary,
                 }}
               >
                 ×
@@ -1983,13 +1985,13 @@ const Catalog: React.FC = () => {
 
             {/* Product name */}
             <div style={{
-              backgroundColor: '#F8FAFC',
+              backgroundColor: t.bgHover,
               borderRadius: '10px',
               padding: '10px 14px',
               marginBottom: '16px',
               fontSize: '14px',
               fontWeight: '600',
-              color: '#374151',
+              color: t.textPrimary,
             }}>
               {selectedProduct?.brand}{' '}
               {selectedProduct?.model}{' '}
@@ -2001,7 +2003,7 @@ const Catalog: React.FC = () => {
               <label style={{
                 fontSize: '13px',
                 fontWeight: '600',
-                color: '#374151',
+                color: t.textPrimary,
                 display: 'block',
                 marginBottom: '6px',
               }}>
@@ -2015,7 +2017,7 @@ const Catalog: React.FC = () => {
                 style={{
                   width: '100%',
                   padding: '12px',
-                  border: newSize.size ? '2px solid #10B981' : '2px solid #E2E8F0',
+                  border: newSize.size ? '2px solid #10B981' : `2px solid ${t.border}`,
                   borderRadius: '10px',
                   fontSize: '20px',
                   fontWeight: '700',
@@ -2041,8 +2043,8 @@ const Catalog: React.FC = () => {
                       onClick={() => setNewSize(prev => ({ ...prev, size: String(s) }))}
                       style={{
                         padding: '5px 8px',
-                        backgroundColor: newSize.size === String(s) ? '#10B981' : '#F1F5F9',
-                        color: newSize.size === String(s) ? 'white' : '#475569',
+                        backgroundColor: newSize.size === String(s) ? '#10B981' : t.bgPrimary,
+                        color: newSize.size === String(s) ? 'white' : t.textSecondary,
                         border: 'none',
                         borderRadius: '6px',
                         fontSize: '12px',
@@ -2062,7 +2064,7 @@ const Catalog: React.FC = () => {
               <label style={{
                 fontSize: '13px',
                 fontWeight: '600',
-                color: '#374151',
+                color: t.textPrimary,
                 display: 'block',
                 marginBottom: '6px',
               }}>
@@ -2079,8 +2081,8 @@ const Catalog: React.FC = () => {
                     width: '36px',
                     height: '36px',
                     borderRadius: '8px',
-                    border: '2px solid #E2E8F0',
-                    backgroundColor: 'white',
+                    border: `2px solid ${t.border}`,
+                    backgroundColor: t.bgCard,
                     fontSize: '18px',
                     cursor: 'pointer',
                     fontWeight: '700',
@@ -2102,8 +2104,8 @@ const Catalog: React.FC = () => {
                     width: '36px',
                     height: '36px',
                     borderRadius: '8px',
-                    border: '2px solid #E2E8F0',
-                    backgroundColor: 'white',
+                    border: `2px solid ${t.border}`,
+                    backgroundColor: t.bgCard,
                     fontSize: '18px',
                     cursor: 'pointer',
                     fontWeight: '700',
@@ -2124,10 +2126,10 @@ const Catalog: React.FC = () => {
                 style={{
                   flex: 1,
                   padding: '12px',
-                  border: '2px solid #E2E8F0',
+                  border: `2px solid ${t.border}`,
                   borderRadius: '10px',
-                  backgroundColor: 'white',
-                  color: '#64748B',
+                  backgroundColor: t.bgCard,
+                  color: t.textSecondary,
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
@@ -2143,8 +2145,8 @@ const Catalog: React.FC = () => {
                   padding: '12px',
                   border: 'none',
                   borderRadius: '10px',
-                  backgroundColor: newSize.size ? '#10B981' : '#E2E8F0',
-                  color: newSize.size ? 'white' : '#94A3B8',
+                  backgroundColor: newSize.size ? '#10B981' : t.border,
+                  color: newSize.size ? 'white' : t.textMuted,
                   fontSize: '14px',
                   fontWeight: '700',
                   cursor: newSize.size ? 'pointer' : 'not-allowed',
@@ -2176,7 +2178,7 @@ const Catalog: React.FC = () => {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              backgroundColor: 'white',
+              backgroundColor: t.bgCard,
               borderRadius: '28px',
               width: '100%',
               maxWidth: '480px',
@@ -2255,7 +2257,7 @@ const Catalog: React.FC = () => {
               {/* SIZE */}
               {Array.isArray(sellModal.product.sizes) && sellModal.product.sizes.length > 0 && (
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.textPrimary, marginBottom: '8px' }}>
                     📏 РАЗМЕР
                   </label>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -2267,9 +2269,9 @@ const Catalog: React.FC = () => {
                           padding: '7px 14px',
                           borderRadius: '8px',
                           border: '1.5px solid',
-                          borderColor: sellForm.selectedSize === String(s) ? '#10B981' : '#E2E8F0',
-                          backgroundColor: sellForm.selectedSize === String(s) ? '#F0FDF4' : 'white',
-                          color: sellForm.selectedSize === String(s) ? '#10B981' : '#64748B',
+                          borderColor: sellForm.selectedSize === String(s) ? '#10B981' : t.border,
+                          backgroundColor: sellForm.selectedSize === String(s) ? '#F0FDF4' : t.bgCard,
+                          color: sellForm.selectedSize === String(s) ? '#10B981' : t.textSecondary,
                           fontSize: '13px',
                           fontWeight: '700',
                           cursor: 'pointer'
@@ -2284,7 +2286,7 @@ const Catalog: React.FC = () => {
 
               {/* CUSTOMER */}
               <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.textPrimary, marginBottom: '6px' }}>
                   👤 ПОКУПАТЕЛЬ *
                 </label>
                 <input
@@ -2294,18 +2296,19 @@ const Catalog: React.FC = () => {
                   placeholder="Имя или @instagram"
                   style={{
                     width: '100%', padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    border: `1.5px solid ${t.border}`, borderRadius: '12px',
                     fontSize: '14px', outline: 'none',
-                    boxSizing: 'border-box', fontFamily: 'inherit'
+                    boxSizing: 'border-box', fontFamily: 'inherit',
+                    backgroundColor: t.bgInput, color: t.textPrimary
                   }}
                   onFocus={e => { e.target.style.borderColor = '#10B981'; }}
-                  onBlur={e => { e.target.style.borderColor = '#E2E8F0'; }}
+                  onBlur={e => { e.target.style.borderColor = t.border; }}
                 />
               </div>
 
               {/* INSTAGRAM */}
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.textPrimary, marginBottom: '6px' }}>
                   📸 INSTAGRAM (необязательно)
                 </label>
                 <input
@@ -2315,19 +2318,20 @@ const Catalog: React.FC = () => {
                   placeholder="@username"
                   style={{
                     width: '100%', padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    border: `1.5px solid ${t.border}`, borderRadius: '12px',
                     fontSize: '14px', outline: 'none',
-                    boxSizing: 'border-box', fontFamily: 'inherit'
+                    boxSizing: 'border-box', fontFamily: 'inherit',
+                    backgroundColor: t.bgInput, color: t.textPrimary
                   }}
                   onFocus={e => { e.target.style.borderColor = '#E1306C'; }}
-                  onBlur={e => { e.target.style.borderColor = '#E2E8F0'; }}
+                  onBlur={e => { e.target.style.borderColor = t.border; }}
                 />
               </div>
 
               {/* PRICES */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.textPrimary, marginBottom: '6px' }}>
                     💰 ЦЕНА ПРОДАЖИ *
                   </label>
                   <input
@@ -2352,7 +2356,7 @@ const Catalog: React.FC = () => {
                   display: 'block',
                   fontSize: '12px',
                   fontWeight: '700',
-                  color: '#374151',
+                  color: t.textPrimary,
                   marginBottom: '8px',
                   letterSpacing: '0.3px'
                 }}>
@@ -2378,13 +2382,13 @@ const Catalog: React.FC = () => {
                         border: '1.5px solid',
                         borderColor: sellForm.paymentMethod === m.key
                           ? m.key === 'почта' ? '#6366F1' : '#10B981'
-                          : '#E2E8F0',
+                          : t.border,
                         backgroundColor: sellForm.paymentMethod === m.key
-                          ? m.key === 'почта' ? '#EEF2FF' : '#F0FDF4'
-                          : 'white',
+                          ? m.key === 'почта' ? t.accentBg : '#F0FDF4'
+                          : t.bgCard,
                         color: sellForm.paymentMethod === m.key
-                          ? m.key === 'почта' ? '#6366F1' : '#10B981'
-                          : '#64748B',
+                          ? m.key === 'почта' ? t.accent : '#10B981'
+                          : t.textSecondary,
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column' as const,
@@ -2441,7 +2445,7 @@ const Catalog: React.FC = () => {
                           style={{
                             padding: '6px 12px', borderRadius: '8px', border: '1.5px solid',
                             borderColor: sellForm.deliveryService === s.key ? '#6366F1' : '#DDD6FE',
-                            backgroundColor: sellForm.deliveryService === s.key ? '#6366F1' : 'white',
+                            backgroundColor: sellForm.deliveryService === s.key ? '#6366F1' : t.bgCard,
                             color: sellForm.deliveryService === s.key ? 'white' : '#5B21B6',
                             fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
                           }}>{s.label}</button>
@@ -2452,14 +2456,14 @@ const Catalog: React.FC = () => {
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>👤 ФИО ПОЛУЧАТЕЛЯ *</label>
                     <input type="text" value={sellForm.deliveryFullName} onChange={e => setSellForm(p => ({ ...p, deliveryFullName: e.target.value }))} placeholder="Фамилия Имя Отчество"
-                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
                       onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                   </div>
 
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📞 ТЕЛЕФОН *</label>
                     <input type="tel" value={sellForm.deliveryPhone} onChange={e => setSellForm(p => ({ ...p, deliveryPhone: e.target.value }))} placeholder="+375 XX XXX XX XX"
-                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
                       onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                   </div>
 
@@ -2467,13 +2471,13 @@ const Catalog: React.FC = () => {
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>🏙️ ГОРОД *</label>
                       <input type="text" value={sellForm.deliveryCity} onChange={e => setSellForm(p => ({ ...p, deliveryCity: e.target.value }))} placeholder="Минск"
-                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
                         onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📮 ИНДЕКС</label>
                       <input type="text" value={sellForm.deliveryIndex} onChange={e => setSellForm(p => ({ ...p, deliveryIndex: e.target.value }))} placeholder="220000"
-                        style={{ width: '90px', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                        style={{ width: '90px', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
                         onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                     </div>
                   </div>
@@ -2481,14 +2485,14 @@ const Catalog: React.FC = () => {
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📍 АДРЕС / ОТДЕЛЕНИЕ *</label>
                     <input type="text" value={sellForm.deliveryAddress} onChange={e => setSellForm(p => ({ ...p, deliveryAddress: e.target.value }))} placeholder="ул. Ленина 1, кв. 5 / Отделение №3"
-                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
                       onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                   </div>
 
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>🔍 ТРЕК-НОМЕР (заполни после отправки)</label>
                     <input type="text" value={sellForm.trackingNumber} onChange={e => setSellForm(p => ({ ...p, trackingNumber: e.target.value }))} placeholder="BY123456789BY"
-                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white', letterSpacing: '0.5px' }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary, letterSpacing: '0.5px' }}
                       onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                   </div>
 
@@ -2496,7 +2500,7 @@ const Catalog: React.FC = () => {
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>💸 СТОИМОСТЬ ДОСТАВКИ</label>
                       <input type="number" value={sellForm.deliveryCost} onChange={e => setSellForm(p => ({ ...p, deliveryCost: e.target.value }))} placeholder="0"
-                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', fontWeight: '700', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
+                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', fontWeight: '700', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
                         onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                     </div>
                     <div>
@@ -2510,7 +2514,7 @@ const Catalog: React.FC = () => {
                             style={{
                               flex: 1, padding: '9px 4px', borderRadius: '10px', border: '1.5px solid',
                               borderColor: sellForm.deliveryPaidBy === p.key ? '#6366F1' : '#DDD6FE',
-                              backgroundColor: sellForm.deliveryPaidBy === p.key ? '#6366F1' : 'white',
+                              backgroundColor: sellForm.deliveryPaidBy === p.key ? '#6366F1' : t.bgCard,
                               color: sellForm.deliveryPaidBy === p.key ? 'white' : '#5B21B6',
                               fontSize: '11px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
                             }}>{p.label}</button>
@@ -2523,7 +2527,7 @@ const Catalog: React.FC = () => {
 
               {/* DATE */}
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.textPrimary, marginBottom: '6px' }}>
                   📅 ДАТА ПРОДАЖИ
                 </label>
                 <input
@@ -2532,16 +2536,17 @@ const Catalog: React.FC = () => {
                   onChange={e => setSellForm(p => ({ ...p, date: e.target.value }))}
                   style={{
                     width: '100%', padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    border: `1.5px solid ${t.border}`, borderRadius: '12px',
                     fontSize: '14px', outline: 'none',
-                    boxSizing: 'border-box', fontFamily: 'inherit'
+                    boxSizing: 'border-box', fontFamily: 'inherit',
+                    backgroundColor: t.bgInput, color: t.textPrimary
                   }}
                 />
               </div>
 
               {/* NOTES */}
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: t.textPrimary, marginBottom: '6px' }}>
                   📝 ЗАМЕТКА
                 </label>
                 <textarea
@@ -2551,9 +2556,10 @@ const Catalog: React.FC = () => {
                   placeholder="Дополнительная информация..."
                   style={{
                     width: '100%', padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    border: `1.5px solid ${t.border}`, borderRadius: '12px',
                     fontSize: '14px', outline: 'none', resize: 'none',
-                    fontFamily: 'inherit', boxSizing: 'border-box'
+                    fontFamily: 'inherit', boxSizing: 'border-box',
+                    backgroundColor: t.bgInput, color: t.textPrimary
                   }}
                 />
               </div>
@@ -2564,8 +2570,8 @@ const Catalog: React.FC = () => {
                   onClick={() => setSellModal({ show: false, product: null })}
                   style={{
                     flex: 1, padding: '13px', borderRadius: '14px',
-                    border: '1.5px solid #E2E8F0', backgroundColor: 'white',
-                    color: '#64748B', fontSize: '14px', fontWeight: '600', cursor: 'pointer'
+                    border: `1.5px solid ${t.border}`, backgroundColor: t.bgCard,
+                    color: t.textSecondary, fontSize: '14px', fontWeight: '600', cursor: 'pointer'
                   }}
                 >
                   Отмена
@@ -2576,8 +2582,8 @@ const Catalog: React.FC = () => {
                   style={{
                     flex: 2, padding: '13px', borderRadius: '14px',
                     border: 'none',
-                    background: sellLoading ? '#E2E8F0' : 'linear-gradient(135deg,#10B981,#34D399)',
-                    color: sellLoading ? '#94A3B8' : 'white',
+                    background: sellLoading ? t.border : 'linear-gradient(135deg,#10B981,#34D399)',
+                    color: sellLoading ? t.textMuted : 'white',
                     fontSize: '15px', fontWeight: '800',
                     cursor: sellLoading ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -2612,7 +2618,7 @@ const Catalog: React.FC = () => {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: 'white',
+              backgroundColor: t.bgCard,
               borderRadius: '20px',
               padding: '28px',
               width: '100%',
@@ -2637,14 +2643,14 @@ const Catalog: React.FC = () => {
               margin: '0 0 8px',
               fontSize: '18px',
               fontWeight: '700',
-              color: '#1E293B',
+              color: t.textPrimary,
             }}>
               Удалить товар?
             </h3>
             <p style={{
               margin: '0 0 24px',
               fontSize: '14px',
-              color: '#64748B',
+              color: t.textSecondary,
             }}>
               Это действие нельзя отменить. Товар будет удалён навсегда.
             </p>
@@ -2655,9 +2661,9 @@ const Catalog: React.FC = () => {
                   flex: 1,
                   padding: '12px',
                   borderRadius: '12px',
-                  border: '1.5px solid #E2E8F0',
-                  backgroundColor: 'white',
-                  color: '#64748B',
+                  border: `1.5px solid ${t.border}`,
+                  backgroundColor: t.bgCard,
+                  color: t.textSecondary,
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
