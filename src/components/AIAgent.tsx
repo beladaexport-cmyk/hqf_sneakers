@@ -27,6 +27,7 @@ import {
 import { logAction } from '../services/aiHistory';
 import AIHistoryLog from './AIHistoryLog';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -64,6 +65,7 @@ const AIAgent: React.FC = () => {
   const [preorders, setPreorders] = useState<Array<{ id: string; [key: string]: unknown }>>([]);
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const { isMobileView } = useViewMode();
+  const t = useTheme();
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -421,10 +423,10 @@ const AIAgent: React.FC = () => {
     <div className="space-y-4" style={{ padding: isMobileView ? '16px' : '24px' }}>
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Bot className="w-8 h-8 text-indigo-600" />
+        <Bot className="w-8 h-8" style={{ color: t.accent }} />
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">🤖 AI-Агент</h2>
-          <p className="text-sm text-gray-500">Управляйте магазином текстовыми командами</p>
+          <h2 className="text-2xl font-bold" style={{ color: t.textPrimary }}>🤖 AI-Агент</h2>
+          <p className="text-sm" style={{ color: t.textSecondary }}>Управляйте магазином текстовыми командами</p>
         </div>
       </div>
 
@@ -435,7 +437,8 @@ const AIAgent: React.FC = () => {
             key={qc.command}
             onClick={() => sendCommand(qc.command)}
             disabled={isProcessing}
-            className="px-3 py-1.5 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full hover:bg-indigo-100 transition-colors disabled:opacity-50"
+            className="px-3 py-1.5 text-xs rounded-full hover:opacity-80 transition-colors disabled:opacity-50"
+            style={{ backgroundColor: t.accentBg, color: t.accent, border: `1px solid ${t.accentBorder}` }}
           >
             {qc.label}
           </button>
@@ -443,10 +446,10 @@ const AIAgent: React.FC = () => {
       </div>
 
       {/* Conversation */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm min-h-64 max-h-96 overflow-y-auto p-4 space-y-3">
+      <div className="rounded-xl shadow-sm min-h-64 max-h-96 overflow-y-auto p-4 space-y-3" style={{ backgroundColor: t.bgCard, border: `1px solid ${t.border}` }}>
         {conversation.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-gray-400 space-y-2">
-            <Zap className="w-12 h-12 text-indigo-200" />
+          <div className="flex flex-col items-center justify-center h-48 space-y-2" style={{ color: t.textMuted }}>
+            <Zap className="w-12 h-12" style={{ color: t.accentBorder }} />
             <p className="text-sm text-center">
               Введите команду, и AI-агент выполнит её для вас.<br />
               Например: <span className="italic">"найди все найки дешевле 100 и подними цену на 20%"</span>
@@ -461,9 +464,13 @@ const AIAgent: React.FC = () => {
               <div
                 className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap ${
                   msg.role === 'user'
-                    ? 'bg-indigo-600 text-white rounded-br-sm'
-                    : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                    ? 'rounded-br-sm'
+                    : 'rounded-bl-sm'
                 }`}
+                style={{
+                  backgroundColor: msg.role === 'user' ? t.accent : t.bgPrimary,
+                  color: msg.role === 'user' ? 'white' : t.textPrimary,
+                }}
               >
                 {msg.content}
               </div>
@@ -473,11 +480,11 @@ const AIAgent: React.FC = () => {
 
         {isProcessing && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 text-gray-500 px-4 py-2.5 rounded-2xl rounded-bl-sm text-sm flex items-center gap-2">
+            <div className="px-4 py-2.5 rounded-2xl rounded-bl-sm text-sm flex items-center gap-2" style={{ backgroundColor: t.bgPrimary, color: t.textSecondary }}>
               <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: t.textMuted, animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: t.textMuted, animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: t.textMuted, animationDelay: '300ms' }} />
               </div>
               Обрабатываю...
             </div>
@@ -494,7 +501,7 @@ const AIAgent: React.FC = () => {
             <AlertTriangle className="w-5 h-5 text-amber-500" />
             Требуется подтверждение
           </div>
-          <p className="text-amber-900 text-sm bg-white border border-amber-200 rounded-lg p-3">
+          <p className="text-sm rounded-lg p-3" style={{ color: '#92400E', backgroundColor: t.bgCard, border: `1px solid #FDE68A` }}>
             {pendingAction.preview}
           </p>
           <div className="flex gap-2">
@@ -513,7 +520,8 @@ const AIAgent: React.FC = () => {
             <button
               onClick={cancelAction}
               disabled={isConfirming}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:opacity-80 transition-colors text-sm"
+              style={{ backgroundColor: t.bgCard, border: `1px solid ${t.border}`, color: t.textSecondary }}
             >
               <XCircle className="w-4 h-4" />
               Отмена
@@ -543,7 +551,8 @@ const AIAgent: React.FC = () => {
           placeholder='Напишите команду... Например: "найди все адидасы и поставь категорию lifestyle"'
           rows={2}
           disabled={isProcessing}
-          className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none disabled:bg-gray-50"
+          className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none disabled:opacity-50"
+          style={{ border: `1px solid ${t.border}`, backgroundColor: t.bgInput, color: t.textPrimary }}
         />
         <div className="flex flex-col gap-1">
           <button
@@ -552,8 +561,9 @@ const AIAgent: React.FC = () => {
             className={`px-3 py-2 rounded-xl transition-colors ${
               listening
                 ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : ''
             }`}
+            style={listening ? {} : { backgroundColor: t.bgPrimary, color: t.textSecondary }}
             title="Голосовой ввод"
           >
             <Mic className="w-5 h-5" />
@@ -561,7 +571,8 @@ const AIAgent: React.FC = () => {
           <button
             onClick={() => sendCommand()}
             disabled={!command.trim() || isProcessing}
-            className="px-3 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:bg-gray-300 transition-colors"
+            className="px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+            style={{ backgroundColor: !command.trim() || isProcessing ? t.border : t.accent, color: !command.trim() || isProcessing ? t.textMuted : 'white' }}
             title="Отправить"
           >
             <Send className="w-5 h-5" />
@@ -569,12 +580,12 @@ const AIAgent: React.FC = () => {
         </div>
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs" style={{ color: t.textMuted }}>
         Enter — отправить • Shift+Enter — новая строка • Или используйте голосовой ввод
       </p>
 
       {/* Action history */}
-      <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+      <div className="rounded-xl p-4" style={{ border: `1px solid ${t.border}`, backgroundColor: t.bgHover }}>
         <AIHistoryLog key={historyKey} />
       </div>
     </div>

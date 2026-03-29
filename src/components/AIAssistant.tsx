@@ -3,6 +3,7 @@ import { CheckCircle, XCircle } from 'lucide-react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AIResponse {
   brand: string;
@@ -32,6 +33,7 @@ const AIAssistant: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isMobileView } = useViewMode();
+  const t = useTheme();
 
   // Pulse animation for loading dots
   useEffect(() => {
@@ -318,25 +320,25 @@ const AIAssistant: React.FC = () => {
               alignItems:'center',
               gap:'6px',
               padding:'8px 14px',
-              backgroundColor:'white',
-              border:'1.5px solid #E2E8F0',
+              backgroundColor:t.bgCard,
+              border:`1.5px solid ${t.border}`,
               borderRadius:'20px',
               fontSize:'13px',
               fontWeight:'600',
-              color:'#475569',
+              color:t.textSecondary,
               cursor:'pointer',
               transition:'all 0.15s',
               boxShadow:'0 2px 6px rgba(0,0,0,0.05)'
             }}
             onMouseEnter={e=>{
-              e.currentTarget.style.backgroundColor='#EEF2FF';
-              e.currentTarget.style.borderColor='#C7D2FE';
-              e.currentTarget.style.color='#6366F1';
+              e.currentTarget.style.backgroundColor=t.accentBg;
+              e.currentTarget.style.borderColor=t.accentBorder;
+              e.currentTarget.style.color=t.accent;
             }}
             onMouseLeave={e=>{
-              e.currentTarget.style.backgroundColor='white';
-              e.currentTarget.style.borderColor='#E2E8F0';
-              e.currentTarget.style.color='#475569';
+              e.currentTarget.style.backgroundColor=t.bgCard;
+              e.currentTarget.style.borderColor=t.border;
+              e.currentTarget.style.color=t.textSecondary;
             }}
           >
             {chip.icon} {chip.text}
@@ -349,20 +351,20 @@ const AIAssistant: React.FC = () => {
         onClick={()=> fileInputRef.current?.click()}
         onDragOver={e=>{
           e.preventDefault();
-          e.currentTarget.style.borderColor='#6366F1';
-          e.currentTarget.style.backgroundColor='#EEF2FF';
+          e.currentTarget.style.borderColor=t.accent;
+          e.currentTarget.style.backgroundColor=t.accentBg;
         }}
         onDragLeave={e=>{
-          e.currentTarget.style.borderColor='#C7D2FE';
+          e.currentTarget.style.borderColor=t.accentBorder;
           e.currentTarget.style.backgroundColor='#F8FAFF';
         }}
         onDrop={e=>{
           handleDrop(e);
-          e.currentTarget.style.borderColor='#C7D2FE';
+          e.currentTarget.style.borderColor=t.accentBorder;
           e.currentTarget.style.backgroundColor='#F8FAFF';
         }}
         style={{
-          border:'2.5px dashed #C7D2FE',
+          border:`2.5px dashed ${t.accentBorder}`,
           borderRadius:'20px',
           padding:'32px 20px',
           textAlign:'center',
@@ -372,11 +374,11 @@ const AIAssistant: React.FC = () => {
           transition:'all 0.2s'
         }}
         onMouseEnter={e=>{
-          e.currentTarget.style.borderColor='#6366F1';
-          e.currentTarget.style.backgroundColor='#EEF2FF';
+          e.currentTarget.style.borderColor=t.accent;
+          e.currentTarget.style.backgroundColor=t.accentBg;
         }}
         onMouseLeave={e=>{
-          e.currentTarget.style.borderColor='#C7D2FE';
+          e.currentTarget.style.borderColor=t.accentBorder;
           e.currentTarget.style.backgroundColor='#F8FAFF';
         }}
       >
@@ -419,7 +421,7 @@ const AIAssistant: React.FC = () => {
               width:'64px',
               height:'64px',
               borderRadius:'18px',
-              backgroundColor:'#EEF2FF',
+              backgroundColor:t.accentBg,
               display:'flex',
               alignItems:'center',
               justifyContent:'center',
@@ -431,14 +433,14 @@ const AIAssistant: React.FC = () => {
             <div style={{
               fontSize:'15px',
               fontWeight:'700',
-              color:'#6366F1',
+              color:t.accent,
               marginBottom:'6px'
             }}>
               Перетащи фото кроссовок
             </div>
             <div style={{
               fontSize:'13px',
-              color:'#94A3B8'
+              color:t.textMuted
             }}>
               или кликни для выбора файла
             </div>
@@ -451,7 +453,7 @@ const AIAssistant: React.FC = () => {
               backgroundColor:'rgba(99,102,241,0.1)',
               borderRadius:'20px',
               fontSize:'12px',
-              color:'#6366F1',
+              color:t.accent,
               fontWeight:'600'
             }}>
               JPG, PNG, WEBP
@@ -474,35 +476,35 @@ const AIAssistant: React.FC = () => {
         gap:'12px',
         marginBottom:'16px'
       }}>
-        <div style={{ flex:1, height:'1px', backgroundColor:'#E2E8F0' }}/>
+        <div style={{ flex:1, height:'1px', backgroundColor:t.border }}/>
         <span style={{
           fontSize:'12px',
-          color:'#94A3B8',
+          color:t.textMuted,
           fontWeight:'600',
           letterSpacing:'0.5px'
         }}>
           ИЛИ ОПИШИТЕ ТЕКСТОМ
         </span>
-        <div style={{ flex:1, height:'1px', backgroundColor:'#E2E8F0' }}/>
+        <div style={{ flex:1, height:'1px', backgroundColor:t.border }}/>
       </div>
 
       {/* TEXT INPUT AREA */}
       <div
         style={{
-          backgroundColor:'white',
+          backgroundColor:t.bgCard,
           borderRadius:'20px',
-          border:'1.5px solid #E2E8F0',
+          border:`1.5px solid ${t.border}`,
           overflow:'hidden',
-          boxShadow:'0 4px 20px rgba(0,0,0,0.06)',
+          boxShadow:t.shadowMd,
           transition:'border-color 0.2s'
         }}
         onFocusCapture={e=>{
-          (e.currentTarget as HTMLElement).style.borderColor='#6366F1';
+          (e.currentTarget as HTMLElement).style.borderColor=t.accent;
           (e.currentTarget as HTMLElement).style.boxShadow='0 4px 20px rgba(99,102,241,0.15)';
         }}
         onBlurCapture={e=>{
-          (e.currentTarget as HTMLElement).style.borderColor='#E2E8F0';
-          (e.currentTarget as HTMLElement).style.boxShadow='0 4px 20px rgba(0,0,0,0.06)';
+          (e.currentTarget as HTMLElement).style.borderColor=t.border;
+          (e.currentTarget as HTMLElement).style.boxShadow=t.shadowMd;
         }}
       >
         <textarea
@@ -522,7 +524,7 @@ const AIAssistant: React.FC = () => {
             border:'none',
             outline:'none',
             fontSize:'14px',
-            color:'#1E293B',
+            color:t.textPrimary,
             resize:'none',
             fontFamily:'inherit',
             lineHeight:'1.6',
@@ -535,12 +537,12 @@ const AIAssistant: React.FC = () => {
           alignItems:'center',
           justifyContent:'space-between',
           padding:'12px 16px',
-          borderTop:'1px solid #F1F5F9',
+          borderTop:`1px solid ${t.borderLight}`,
           backgroundColor:'#FAFAFA'
         }}>
           <div style={{
             fontSize:'12px',
-            color:'#94A3B8'
+            color:t.textMuted
           }}>
             Enter — отправить • Shift+Enter — перенос строки
           </div>
@@ -557,15 +559,15 @@ const AIAssistant: React.FC = () => {
                 width:'40px',
                 height:'40px',
                 borderRadius:'12px',
-                backgroundColor: listening ? '#FEF2F2' : '#F1F5F9',
-                border: listening ? '1.5px solid #FECACA' : '1.5px solid #E2E8F0',
+                backgroundColor: listening ? '#FEF2F2' : t.bgPrimary,
+                border: listening ? '1.5px solid #FECACA' : `1.5px solid ${t.border}`,
                 cursor: listening || processing ? 'not-allowed' : 'pointer',
                 fontSize:'18px',
                 display:'flex',
                 alignItems:'center',
                 justifyContent:'center',
                 transition:'all 0.15s',
-                color: listening ? '#EF4444' : '#64748B'
+                color: listening ? '#EF4444' : t.textSecondary
               }}
             >
               🎤
@@ -578,10 +580,10 @@ const AIAssistant: React.FC = () => {
               style={{
                 padding:'10px 20px',
                 background: processing || (!command && !image)
-                  ? '#E2E8F0'
+                  ? t.border
                   : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
                 color: processing || (!command && !image)
-                  ? '#94A3B8'
+                  ? t.textMuted
                   : 'white',
                 border:'none',
                 borderRadius:'12px',
@@ -635,9 +637,9 @@ const AIAssistant: React.FC = () => {
       {processing && (
         <div style={{
           marginTop:'20px',
-          backgroundColor:'white',
+          backgroundColor:t.bgCard,
           borderRadius:'20px',
-          border:'1.5px solid #C7D2FE',
+          border:`1.5px solid ${t.accentBorder}`,
           padding:'24px',
           display:'flex',
           alignItems:'center',
@@ -661,7 +663,7 @@ const AIAssistant: React.FC = () => {
             <div style={{
               fontSize:'14px',
               fontWeight:'700',
-              color:'#6366F1',
+              color:t.accent,
               marginBottom:'4px'
             }}>
               AI думает...
@@ -672,7 +674,7 @@ const AIAssistant: React.FC = () => {
                   width:'8px',
                   height:'8px',
                   borderRadius:'50%',
-                  backgroundColor:'#6366F1',
+                  backgroundColor:t.accent,
                   opacity:0.4,
                   animation:`aiPulse 1.2s ${i*0.2}s infinite`
                 }} />
@@ -686,19 +688,19 @@ const AIAssistant: React.FC = () => {
       {aiMessage && (
         <div style={{
           marginTop:'20px',
-          backgroundColor:'white',
+          backgroundColor:t.bgCard,
           borderRadius:'20px',
-          border:'1px solid #F1F5F9',
+          border:`1px solid ${t.borderLight}`,
           overflow:'hidden',
-          boxShadow:'0 4px 20px rgba(0,0,0,0.06)'
+          boxShadow:t.shadowMd
         }}>
           <div style={{
             padding:'14px 20px',
-            borderBottom:'1px solid #F1F5F9',
+            borderBottom:`1px solid ${t.borderLight}`,
             display:'flex',
             alignItems:'center',
             gap:'10px',
-            backgroundColor:'#F8FAFC'
+            backgroundColor:t.bgHover
           }}>
             <div style={{
               width:'32px',
@@ -715,7 +717,7 @@ const AIAssistant: React.FC = () => {
             <span style={{
               fontSize:'14px',
               fontWeight:'700',
-              color:'#0F172A'
+              color:t.textPrimary
             }}>
               Ответ AI-помощника
             </span>
@@ -723,7 +725,7 @@ const AIAssistant: React.FC = () => {
           <div style={{
             padding:'20px',
             fontSize:'14px',
-            color:'#374151',
+            color:t.textPrimary,
             lineHeight:'1.7',
             whiteSpace:'pre-wrap'
           }}>
@@ -736,15 +738,15 @@ const AIAssistant: React.FC = () => {
       {aiResponse && (
         <div style={{
           marginTop:'16px',
-          backgroundColor:'white',
+          backgroundColor:t.bgCard,
           borderRadius:'20px',
-          border:'1px solid #F1F5F9',
+          border:`1px solid ${t.borderLight}`,
           overflow:'hidden',
-          boxShadow:'0 4px 20px rgba(0,0,0,0.06)'
+          boxShadow:t.shadowMd
         }}>
           <div style={{
             padding:'14px 20px',
-            borderBottom:'1px solid #F1F5F9',
+            borderBottom:`1px solid ${t.borderLight}`,
             display:'flex',
             alignItems:'center',
             gap:'10px',
@@ -767,57 +769,57 @@ const AIAssistant: React.FC = () => {
               fontSize:'14px'
             }}>
               <div>
-                <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Бренд</div>
-                <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.brand}</div>
+                <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Бренд</div>
+                <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.brand}</div>
               </div>
               <div>
-                <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Модель</div>
-                <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.model}</div>
+                <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Модель</div>
+                <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.model}</div>
               </div>
               {aiResponse.modelArticle && (
                 <div>
-                  <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Артикул</div>
-                  <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.modelArticle}</div>
+                  <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Артикул</div>
+                  <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.modelArticle}</div>
                 </div>
               )}
               {aiResponse.color && (
                 <div>
-                  <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Цвет</div>
-                  <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.color}</div>
+                  <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Цвет</div>
+                  <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.color}</div>
                 </div>
               )}
               <div>
-                <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Размеры EU</div>
-                <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.sizes.join(', ')}</div>
+                <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Размеры EU</div>
+                <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.sizes.join(', ')}</div>
               </div>
               {aiResponse.purchasePrice !== undefined && aiResponse.purchasePrice > 0 && (
                 <div>
-                  <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Закупка</div>
-                  <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.purchasePrice} Br</div>
+                  <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Закупка</div>
+                  <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.purchasePrice} Br</div>
                 </div>
               )}
               {aiResponse.retailPrice !== undefined && aiResponse.retailPrice > 0 && (
                 <div>
-                  <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Продажа</div>
-                  <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.retailPrice} Br</div>
+                  <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Продажа</div>
+                  <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.retailPrice} Br</div>
                 </div>
               )}
               {aiResponse.supplier && (
                 <div>
-                  <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Поставщик</div>
-                  <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.supplier}</div>
+                  <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Поставщик</div>
+                  <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.supplier}</div>
                 </div>
               )}
               {aiResponse.status === 'preorder' && (
                 <div style={{ gridColumn:'1 / -1' }}>
-                  <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Статус</div>
+                  <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Статус</div>
                   <div style={{ fontWeight:'600', color:'#F59E0B' }}>🛒 Предзаказ</div>
                 </div>
               )}
               {aiResponse.expectedDate && (
                 <div style={{ gridColumn:'1 / -1' }}>
-                  <div style={{ color:'#94A3B8', fontSize:'12px', marginBottom:'2px' }}>Ожидается</div>
-                  <div style={{ fontWeight:'600', color:'#1E293B' }}>{aiResponse.expectedDate}</div>
+                  <div style={{ color:t.textMuted, fontSize:'12px', marginBottom:'2px' }}>Ожидается</div>
+                  <div style={{ fontWeight:'600', color:t.textPrimary }}>{aiResponse.expectedDate}</div>
                 </div>
               )}
             </div>
@@ -842,11 +844,11 @@ const AIAssistant: React.FC = () => {
                 background: saveSuccess
                   ? '#10B981'
                   : saving
-                  ? '#E2E8F0'
+                  ? t.border
                   : aiResponse.status === 'preorder'
                   ? 'linear-gradient(135deg,#F59E0B,#D97706)'
                   : 'linear-gradient(135deg,#10B981,#059669)',
-                color: saving ? '#94A3B8' : 'white',
+                color: saving ? t.textMuted : 'white',
                 boxShadow: saving
                   ? 'none'
                   : saveSuccess

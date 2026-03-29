@@ -6,6 +6,7 @@ interface Settings {
   lowStockNotifications: boolean;
   orderNotifications: boolean;
   expenseReminders: boolean;
+  darkMode: boolean;
 }
 
 interface SettingsContextType {
@@ -19,6 +20,7 @@ const defaultSettings: Settings = {
   lowStockNotifications: true,
   orderNotifications: true,
   expenseReminders: false,
+  darkMode: false,
 };
 
 const SettingsContext = createContext<SettingsContextType>({

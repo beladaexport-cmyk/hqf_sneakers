@@ -7,6 +7,7 @@ import { sanitizeForFirestore } from '../utils/sanitizeFirestore';
 import { Preorder, PreorderStatus } from '../types';
 import { SIZE_OPTIONS } from '../utils/sizeChart';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -85,6 +86,7 @@ interface PreorderFormProps {
 }
 
 const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, title }) => {
+  const t = useTheme();
   const [form, setForm] = useState(initial);
 
   const set = (field: keyof typeof form, value: string | number) => {
@@ -102,7 +104,7 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-screen overflow-y-auto">
+      <div className="rounded-xl shadow-xl w-full max-w-lg max-h-screen overflow-y-auto" style={{ backgroundColor: t.bgCard }}>
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
@@ -115,7 +117,7 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
             <label style={{
               fontSize: '13px',
               fontWeight: '600',
-              color: '#374151',
+              color: t.textPrimary,
               display: 'block',
               marginBottom: '8px'
             }}>
@@ -124,21 +126,21 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
             <div
               onClick={() => document.getElementById('newPreorderPhoto')?.click()}
               style={{
-                border: '2px dashed #E2E8F0',
+                border: `2px dashed ${t.border}`,
                 borderRadius: '12px',
                 padding: '20px',
                 textAlign: 'center',
                 cursor: 'pointer',
-                backgroundColor: '#F8FAFC',
+                backgroundColor: t.bgHover,
                 transition: 'all 0.2s'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = '#6366F1';
-                e.currentTarget.style.backgroundColor = '#EEF2FF';
+                e.currentTarget.style.borderColor = t.accent;
+                e.currentTarget.style.backgroundColor = t.accentBg;
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = '#E2E8F0';
-                e.currentTarget.style.backgroundColor = '#F8FAFC';
+                e.currentTarget.style.borderColor = t.border;
+                e.currentTarget.style.backgroundColor = t.bgHover;
               }}
             >
               {form.image ? (
@@ -155,7 +157,7 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
               ) : (
                 <div>
                   <div style={{ fontSize: '32px', marginBottom: '8px' }}>📷</div>
-                  <div style={{ fontSize: '13px', color: '#94A3B8', fontWeight: '500' }}>
+                  <div style={{ fontSize: '13px', color: t.textMuted, fontWeight: '500' }}>
                     Нажми чтобы добавить фото
                   </div>
                 </div>
@@ -259,10 +261,10 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
                 marginTop: '8px',
               }}>
                 <div>
-                  <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>
+                  <div style={{ fontSize: '12px', color: t.textSecondary, fontWeight: '600' }}>
                     Прибыль с пары:
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                  <div style={{ fontSize: '11px', color: t.textMuted }}>
                     {Number(form.retailPrice)} - {Number(form.purchasePrice)} = {Number(form.retailPrice) - Number(form.purchasePrice)} Br
                   </div>
                 </div>
@@ -335,6 +337,7 @@ const PreorderForm: React.FC<PreorderFormProps> = ({ initial, onSave, onCancel, 
 };
 
 const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate }) => {
+  const t = useTheme();
   const { isMobileView } = useViewMode();
   const { data: preorders, loading, error, add, update, remove } = useFirestore<Preorder>('preorders');
   const [showForm, setShowForm] = useState(false);
@@ -874,7 +877,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           margin:0,
           fontSize:'22px',
           fontWeight:'800',
-          color:'#0F172A'
+          color:t.textPrimary
         }}>
           🛒 Предзаказы
         </h1>
@@ -918,9 +921,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
             icon:'📦',
             label:'Всего пар',
             value:totalPairs||0,
-            color:'#6366F1',
-            bg:'#EEF2FF',
-            border:'#C7D2FE'
+            color:t.accent,
+            bg:t.accentBg,
+            border:t.accentBorder
           },
           {
             icon:'💰',
@@ -962,7 +965,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
             </div>
             <div style={{
               fontSize:'10px',
-              color:'#94A3B8',
+              color:t.textMuted,
               fontWeight:'600'
             }}>
               {s.label}
@@ -998,12 +1001,12 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               border:'none',
               backgroundColor:
                 statusFilter===tab.key
-                  ? '#6366F1'
-                  : 'white',
+                  ? t.accent
+                  : t.bgCard,
               color:
                 statusFilter===tab.key
                   ? 'white'
-                  : '#64748B',
+                  : t.textSecondary,
               fontSize:'12px',
               fontWeight:'600',
               cursor:'pointer',
@@ -1012,7 +1015,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               boxShadow:
                 statusFilter===tab.key
                   ? '0 4px 12px rgba(99,102,241,0.35)'
-                  : '0 1px 4px rgba(0,0,0,0.08)'
+                  : t.shadowMd
             }}
           >
             {tab.label}
@@ -1030,12 +1033,12 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           <div style={{
             fontSize: '18px',
             fontWeight: '700',
-            color: '#475569',
+            color: t.textPrimary,
             marginTop: '16px'
           }}>
             {preorders.length === 0 ? 'Предзаказов нет' : 'Нет предзаказов с выбранным статусом'}
           </div>
-          <div style={{ fontSize: '14px', color: '#94A3B8', marginTop: '4px' }}>
+          <div style={{ fontSize: '14px', color: t.textMuted, marginTop: '4px' }}>
             {preorders.length === 0 ? 'Добавьте первый предзаказ!' : 'Попробуйте другой фильтр'}
           </div>
         </div>
@@ -1062,14 +1065,14 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
             <div
               key={p.id}
               style={{
-                backgroundColor: 'white',
+                backgroundColor: t.bgCard,
                 borderRadius: '20px',
                 overflow: 'hidden',
                 boxShadow: isPending
                   ? '0 4px 20px rgba(251,191,36,0.15)'
                   : (isArrived || isSold)
                   ? '0 4px 20px rgba(16,185,129,0.12)'
-                  : '0 2px 8px rgba(0,0,0,0.06)',
+                  : t.shadowMd,
                 border: isPending
                   ? '2px solid #FDE68A'
                   : (isArrived || isSold)
@@ -1122,7 +1125,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     <span style={{ fontSize: '52px' }}>👟</span>
                     <span style={{
                       fontSize: '12px',
-                      color: '#94A3B8',
+                      color: t.textMuted,
                       fontWeight: '600'
                     }}>
                       + Добавить фото
@@ -1170,7 +1173,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     padding: '3px 8px',
                     fontSize: '11px',
                     fontWeight: '600',
-                    color: '#64748B',
+                    color: t.textSecondary,
                     backdropFilter: 'blur(8px)'
                   }}>
                     📅 {new Date(p.expectedDate).toLocaleDateString('ru-RU')}
@@ -1183,7 +1186,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     position: 'absolute',
                     bottom: '10px',
                     left: '10px',
-                    backgroundColor: '#1E293B',
+                    backgroundColor: t.textPrimary,
                     color: 'white',
                     borderRadius: '10px',
                     padding: '6px 14px',
@@ -1198,7 +1201,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     <span style={{
                       fontSize: '10px',
                       fontWeight: '600',
-                      color: '#94A3B8',
+                      color: t.textMuted,
                       letterSpacing: '1px'
                     }}>
                       EU
@@ -1245,7 +1248,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                 <div style={{
                   fontSize: '15px',
                   fontWeight: '800',
-                  color: '#0F172A',
+                  color: t.textPrimary,
                   marginBottom: '6px',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -1262,12 +1265,12 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     alignItems: 'center',
                     gap: '4px',
                     padding: '3px 8px',
-                    backgroundColor: '#EEF2FF',
-                    border: '1px solid #C7D2FE',
+                    backgroundColor: t.accentBg,
+                    border: `1px solid ${t.accentBorder}`,
                     borderRadius: '20px',
                     fontSize: '11px',
                     fontWeight: '700',
-                    color: '#6366F1',
+                    color: t.accent,
                     marginBottom: '6px'
                   }}>
                     +{p.clonesCount || 1} доп.
@@ -1296,12 +1299,12 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     alignItems: 'center',
                     gap: '4px',
                     padding: '3px 8px',
-                    backgroundColor: '#EEF2FF',
-                    border: '1px solid #C7D2FE',
+                    backgroundColor: t.accentBg,
+                    border: `1px solid ${t.accentBorder}`,
                     borderRadius: '20px',
                     fontSize: '11px',
                     fontWeight: '700',
-                    color: '#6366F1',
+                    color: t.accent,
                     marginBottom: '6px'
                   }}>
                     📦 В каталоге
@@ -1319,8 +1322,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   <span style={{
                     fontSize: '12px',
                     fontWeight: '600',
-                    color: '#475569',
-                    backgroundColor: '#F1F5F9',
+                    color: t.textPrimary,
+                    backgroundColor: t.bgPrimary,
                     padding: '2px 8px',
                     borderRadius: '6px'
                   }}>
@@ -1330,8 +1333,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     <span style={{
                       fontSize: '11px',
                       fontWeight: '700',
-                      color: '#64748B',
-                      backgroundColor: '#F1F5F9',
+                      color: t.textSecondary,
+                      backgroundColor: t.bgPrimary,
                       padding: '2px 7px',
                       borderRadius: '6px'
                     }}>
@@ -1349,14 +1352,14 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     padding:'8px 12px',
                     backgroundColor:
                       p.status==='arrived'
-                        ? '#EEF2FF'
-                        : '#F8FAFC',
+                        ? t.accentBg
+                        : t.bgHover,
                     borderRadius:'10px',
                     border:'1px solid',
                     borderColor:
                       p.status==='arrived'
-                        ? '#C7D2FE'
-                        : '#E2E8F0',
+                        ? t.accentBorder
+                        : t.border,
                     marginBottom:'8px'
                   }}>
                     <span style={{fontSize:'16px'}}>
@@ -1365,7 +1368,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{
                         fontSize:'10px',
-                        color:'#94A3B8',
+                        color:t.textMuted,
                         fontWeight:'600',
                         marginBottom:'2px'
                       }}>
@@ -1382,7 +1385,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                         style={{
                           fontSize:'13px',
                           fontWeight:'700',
-                          color:'#6366F1',
+                          color:t.accent,
                           textDecoration:'none'
                         }}
                       >
@@ -1401,7 +1404,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     </div>
                     <span style={{
                       fontSize:'14px',
-                      color:'#94A3B8'
+                      color:t.textMuted
                     }}>
                       📸
                     </span>
@@ -1419,7 +1422,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     <span style={{ fontSize: '13px' }}>📝</span>
                     <span style={{
                       fontSize: '12px',
-                      color: '#6366F1',
+                      color: t.accent,
                       fontWeight: '500',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -1447,16 +1450,16 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   marginBottom: '14px'
                 }}>
                   <div style={{
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: t.bgHover,
                     borderRadius: '10px',
                     padding: '10px',
                     textAlign: 'center',
-                    border: '1px solid #E2E8F0'
+                    border: `1px solid ${t.border}`
                   }}>
-                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#64748B' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: t.textSecondary }}>
                       {buyPrice > 0 ? `${buyPrice.toLocaleString('ru-RU')} Br` : '—'}
                     </div>
-                    <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                    <div style={{ fontSize: '9px', color: t.textMuted, fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
                       ЗАКУПКА
                     </div>
                   </div>
@@ -1470,21 +1473,21 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     <div style={{ fontSize: '14px', fontWeight: '800', color: profitColor }}>
                       {buyPrice > 0 ? `${profit >= 0 ? '+' : ''}${profit.toLocaleString('ru-RU')} Br` : '—'}
                     </div>
-                    <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                    <div style={{ fontSize: '9px', color: t.textMuted, fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
                       ПРИБЫЛЬ
                     </div>
                   </div>
                   <div style={{
-                    backgroundColor: '#EEF2FF',
+                    backgroundColor: t.accentBg,
                     borderRadius: '10px',
                     padding: '10px',
                     textAlign: 'center',
-                    border: '1px solid #C7D2FE'
+                    border: `1px solid ${t.accentBorder}`
                   }}>
-                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#6366F1' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: t.accent }}>
                       {sellPrice > 0 ? `${sellPrice.toLocaleString('ru-RU')} Br` : '—'}
                     </div>
-                    <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                    <div style={{ fontSize: '9px', color: t.textMuted, fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
                       ПРОДАЖА
                     </div>
                   </div>
@@ -1561,9 +1564,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     style={{
                       padding: '9px 10px',
                       borderRadius: '12px',
-                      border: '1.5px solid #C7D2FE',
-                      backgroundColor: '#EEF2FF',
-                      color: '#6366F1',
+                      border: `1.5px solid ${t.accentBorder}`,
+                      backgroundColor: t.accentBg,
+                      color: t.accent,
                       fontSize: '13px',
                       fontWeight: '700',
                       cursor: 'pointer',
@@ -1576,14 +1579,14 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                       whiteSpace: 'nowrap' as const
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.backgroundColor = '#6366F1';
+                      e.currentTarget.style.backgroundColor = t.accent;
                       e.currentTarget.style.color = 'white';
-                      e.currentTarget.style.borderColor = '#6366F1';
+                      e.currentTarget.style.borderColor = t.accent;
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.backgroundColor = '#EEF2FF';
-                      e.currentTarget.style.color = '#6366F1';
-                      e.currentTarget.style.borderColor = '#C7D2FE';
+                      e.currentTarget.style.backgroundColor = t.accentBg;
+                      e.currentTarget.style.color = t.accent;
+                      e.currentTarget.style.borderColor = t.accentBorder;
                     }}
                   >
                     ➕ Заказ
@@ -1632,9 +1635,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                       style={{
                         padding: '8px 10px',
                         borderRadius: '12px',
-                        border: '1.5px solid #C7D2FE',
-                        backgroundColor: '#EEF2FF',
-                        color: '#6366F1',
+                        border: `1.5px solid ${t.accentBorder}`,
+                        backgroundColor: t.accentBg,
+                        color: t.accent,
                         fontSize: '12px',
                         fontWeight: '700',
                         cursor: 'pointer',
@@ -1645,12 +1648,12 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                         whiteSpace: 'nowrap' as const
                       }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.backgroundColor = '#6366F1';
+                        e.currentTarget.style.backgroundColor = t.accent;
                         e.currentTarget.style.color = 'white';
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.backgroundColor = '#EEF2FF';
-                        e.currentTarget.style.color = '#6366F1';
+                        e.currentTarget.style.backgroundColor = t.accentBg;
+                        e.currentTarget.style.color = t.accent;
                       }}
                     >
                       📦 В каталог
@@ -1662,8 +1665,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                       width: '38px',
                       height: '38px',
                       borderRadius: '10px',
-                      border: '1px solid #E2E8F0',
-                      backgroundColor: 'white',
+                      border: `1px solid ${t.border}`,
+                      backgroundColor: t.bgCard,
                       cursor: 'pointer',
                       fontSize: '16px',
                       display: 'flex',
@@ -1740,7 +1743,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           <div
             onClick={e=>e.stopPropagation()}
             style={{
-              backgroundColor:'white',
+              backgroundColor:t.bgCard,
               borderRadius:'28px',
               padding:'28px 24px',
               maxWidth:'400px',
@@ -1776,13 +1779,13 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                 height:'32px',
                 borderRadius:'50%',
                 border:'none',
-                backgroundColor:'#F1F5F9',
+                backgroundColor:t.bgPrimary,
                 cursor:'pointer',
                 fontSize:'16px',
                 display:'flex',
                 alignItems:'center',
                 justifyContent:'center',
-                color:'#64748B'
+                color:t.textSecondary
               }}
             >
               ×
@@ -1816,7 +1819,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               margin:'0 0 8px',
               fontSize:'22px',
               fontWeight:'800',
-              color:'#0F172A'
+              color:t.textPrimary
             }}>
               {arrivedModal.alreadyExists
                 ? 'Уже в каталоге!'
@@ -1827,7 +1830,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               textAlign:'center',
               margin:'0 0 24px',
               fontSize:'14px',
-              color:'#64748B',
+              color:t.textSecondary,
               lineHeight:'1.5'
             }}>
               {arrivedModal.alreadyExists
@@ -1837,17 +1840,17 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
 
             {/* PRODUCT CARD */}
             <div style={{
-              backgroundColor:'#F8FAFC',
+              backgroundColor:t.bgHover,
               borderRadius:'16px',
               padding:'16px',
               marginBottom:'16px',
-              border:'1px solid #F1F5F9'
+              border:`1px solid ${t.borderLight}`
             }}>
               {/* Name */}
               <div style={{
                 fontSize:'16px',
                 fontWeight:'700',
-                color:'#1E293B',
+                color:t.textPrimary,
                 marginBottom:'14px',
                 textAlign:'center'
               }}>
@@ -1861,9 +1864,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   alignItems:'center',
                   gap:'10px',
                   padding:'12px 14px',
-                  backgroundColor:'#EEF2FF',
+                  backgroundColor:t.accentBg,
                   borderRadius:'12px',
-                  border:'1.5px solid #C7D2FE',
+                  border:`1.5px solid ${t.accentBorder}`,
                   marginBottom:'10px'
                 }}>
                   <div style={{
@@ -1882,7 +1885,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   <div>
                     <div style={{
                       fontSize:'10px',
-                      color:'#94A3B8',
+                      color:t.textMuted,
                       fontWeight:'700',
                       letterSpacing:'0.5px',
                       marginBottom:'3px'
@@ -1892,7 +1895,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     <div style={{
                       fontSize:'16px',
                       fontWeight:'800',
-                      color:'#6366F1'
+                      color:t.accent
                     }}>
                       {arrivedModal.buyerTag}
                     </div>
@@ -1915,9 +1918,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     alignItems:'center',
                     gap:'8px',
                     padding:'10px 14px',
-                    backgroundColor:'white',
+                    backgroundColor:t.bgCard,
                     borderRadius:'10px',
-                    border:'1px solid #E2E8F0',
+                    border:`1px solid ${t.border}`,
                     textDecoration:'none',
                     color:'#E1306C',
                     fontSize:'13px',
@@ -1940,14 +1943,14 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               }}>
                 <div style={{
                   padding:'10px',
-                  backgroundColor:'white',
+                  backgroundColor:t.bgCard,
                   borderRadius:'10px',
-                  border:'1px solid #E2E8F0',
+                  border:`1px solid ${t.border}`,
                   textAlign:'center'
                 }}>
                   <div style={{
                     fontSize:'10px',
-                    color:'#94A3B8',
+                    color:t.textMuted,
                     fontWeight:'700',
                     letterSpacing:'0.5px',
                     marginBottom:'4px'
@@ -1976,9 +1979,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   flex:1,
                   padding:'12px',
                   borderRadius:'14px',
-                  border:'1.5px solid #E2E8F0',
-                  backgroundColor:'white',
-                  color:'#64748B',
+                  border:`1.5px solid ${t.border}`,
+                  backgroundColor:t.bgCard,
+                  color:t.textSecondary,
                   fontSize:'14px',
                   fontWeight:'600',
                   cursor:'pointer'
@@ -2029,7 +2032,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              backgroundColor: 'white', borderRadius: '28px',
+              backgroundColor: t.bgCard, borderRadius: '28px',
               width: '100%', maxWidth: '460px', maxHeight: '90vh',
               overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
               position: 'relative'
@@ -2073,8 +2076,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               {/* PRODUCT INFO */}
               <div style={{
                 display: 'flex', gap: '12px', padding: '14px',
-                backgroundColor: '#F8FAFC', borderRadius: '16px',
-                marginBottom: '20px', border: '1px solid #F1F5F9'
+                backgroundColor: t.bgHover, borderRadius: '16px',
+                marginBottom: '20px', border: `1px solid ${t.borderLight}`
               }}>
                 {sellModal.preorder.image && (
                   <img
@@ -2088,13 +2091,13 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: '15px', fontWeight: '700', color: '#1E293B',
+                    fontSize: '15px', fontWeight: '700', color: t.textPrimary,
                     marginBottom: '4px', overflow: 'hidden',
                     textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                   }}>
                     {sellModal.preorder.modelName || 'Товар'}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', gap: '8px' }}>
+                  <div style={{ fontSize: '12px', color: t.textMuted, display: 'flex', gap: '8px' }}>
                     {sellModal.preorder.sizeEU && <span>EU {sellModal.preorder.sizeEU}</span>}
                     {sellModal.preorder.supplier && <span>{sellModal.preorder.supplier}</span>}
                   </div>
@@ -2105,7 +2108,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               <div style={{ marginBottom: '14px' }}>
                 <label style={{
                   display: 'block', fontSize: '12px', fontWeight: '700',
-                  color: '#374151', marginBottom: '6px', letterSpacing: '0.3px'
+                  color: t.textPrimary, marginBottom: '6px', letterSpacing: '0.3px'
                 }}>
                   👤 ПОКУПАТЕЛЬ
                 </label>
@@ -2116,8 +2119,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   placeholder="Имя или @instagram"
                   style={{
                     width: '100%', padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
-                    fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+                    border: `1.5px solid ${t.border}`, borderRadius: '12px',
+                    fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+                    backgroundColor: t.bgInput, color: t.textPrimary
                   }}
                 />
               </div>
@@ -2127,7 +2131,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                 <div style={{ marginBottom: '14px' }}>
                   <label style={{
                     display: 'block', fontSize: '12px', fontWeight: '700',
-                    color: '#374151', marginBottom: '6px'
+                    color: t.textPrimary, marginBottom: '6px'
                   }}>
                     📸 INSTAGRAM ПОКУПАТЕЛЯ
                   </label>
@@ -2165,7 +2169,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                 <div>
                   <label style={{
                     display: 'block', fontSize: '12px', fontWeight: '700',
-                    color: '#374151', marginBottom: '6px'
+                    color: t.textPrimary, marginBottom: '6px'
                   }}>
                     💰 ЦЕНА ПРОДАЖИ (Br)
                   </label>
@@ -2190,7 +2194,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   display: 'block',
                   fontSize: '12px',
                   fontWeight: '700',
-                  color: '#374151',
+                  color: t.textPrimary,
                   marginBottom: '8px',
                   letterSpacing: '0.3px'
                 }}>
@@ -2215,14 +2219,14 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                         borderRadius: '12px',
                         border: '1.5px solid',
                         borderColor: sellForm.paymentMethod === m.key
-                          ? m.key === 'почта' ? '#6366F1' : '#10B981'
-                          : '#E2E8F0',
+                          ? m.key === 'почта' ? t.accent : '#10B981'
+                          : t.border,
                         backgroundColor: sellForm.paymentMethod === m.key
-                          ? m.key === 'почта' ? '#EEF2FF' : '#F0FDF4'
-                          : 'white',
+                          ? m.key === 'почта' ? t.accentBg : '#F0FDF4'
+                          : t.bgCard,
                         color: sellForm.paymentMethod === m.key
-                          ? m.key === 'почта' ? '#6366F1' : '#10B981'
-                          : '#64748B',
+                          ? m.key === 'почта' ? t.accent : '#10B981'
+                          : t.textSecondary,
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column' as const,
@@ -2278,8 +2282,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                         <button key={s.key} onClick={() => setSellForm(prev => ({ ...prev, deliveryService: s.key }))}
                           style={{
                             padding: '6px 12px', borderRadius: '8px', border: '1.5px solid',
-                            borderColor: sellForm.deliveryService === s.key ? '#6366F1' : '#DDD6FE',
-                            backgroundColor: sellForm.deliveryService === s.key ? '#6366F1' : 'white',
+                            borderColor: sellForm.deliveryService === s.key ? t.accent : '#DDD6FE',
+                            backgroundColor: sellForm.deliveryService === s.key ? t.accent : t.bgCard,
                             color: sellForm.deliveryService === s.key ? 'white' : '#5B21B6',
                             fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
                           }}>{s.label}</button>
@@ -2290,52 +2294,52 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>👤 ФИО ПОЛУЧАТЕЛЯ *</label>
                     <input type="text" value={sellForm.deliveryFullName} onChange={e => setSellForm(prev => ({ ...prev, deliveryFullName: e.target.value }))} placeholder="Фамилия Имя Отчество"
-                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
-                      onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
+                      onFocus={e => { e.target.style.borderColor = t.accent; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                   </div>
 
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📞 ТЕЛЕФОН *</label>
                     <input type="tel" value={sellForm.deliveryPhone} onChange={e => setSellForm(prev => ({ ...prev, deliveryPhone: e.target.value }))} placeholder="+375 XX XXX XX XX"
-                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
-                      onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
+                      onFocus={e => { e.target.style.borderColor = t.accent; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', marginBottom: '10px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>🏙️ ГОРОД *</label>
                       <input type="text" value={sellForm.deliveryCity} onChange={e => setSellForm(prev => ({ ...prev, deliveryCity: e.target.value }))} placeholder="Минск"
-                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
-                        onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
+                        onFocus={e => { e.target.style.borderColor = t.accent; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📮 ИНДЕКС</label>
                       <input type="text" value={sellForm.deliveryIndex} onChange={e => setSellForm(prev => ({ ...prev, deliveryIndex: e.target.value }))} placeholder="220000"
-                        style={{ width: '90px', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
-                        onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                        style={{ width: '90px', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
+                        onFocus={e => { e.target.style.borderColor = t.accent; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                     </div>
                   </div>
 
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>📍 АДРЕС / ОТДЕЛЕНИЕ *</label>
                     <input type="text" value={sellForm.deliveryAddress} onChange={e => setSellForm(prev => ({ ...prev, deliveryAddress: e.target.value }))} placeholder="ул. Ленина 1, кв. 5 / Отделение №3"
-                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
-                      onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
+                      onFocus={e => { e.target.style.borderColor = t.accent; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                   </div>
 
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>🔍 ТРЕК-НОМЕР (заполни после отправки)</label>
                     <input type="text" value={sellForm.trackingNumber} onChange={e => setSellForm(prev => ({ ...prev, trackingNumber: e.target.value }))} placeholder="BY123456789BY"
-                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white', letterSpacing: '0.5px' }}
-                      onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary, letterSpacing: '0.5px' }}
+                      onFocus={e => { e.target.style.borderColor = t.accent; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '4px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>💸 СТОИМОСТЬ ДОСТАВКИ</label>
                       <input type="number" value={sellForm.deliveryCost} onChange={e => setSellForm(prev => ({ ...prev, deliveryCost: e.target.value }))} placeholder="0"
-                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', fontWeight: '700', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' }}
-                        onFocus={e => { e.target.style.borderColor = '#6366F1'; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
+                        style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #DDD6FE', borderRadius: '10px', fontSize: '13px', fontWeight: '700', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: t.bgInput, color: t.textPrimary }}
+                        onFocus={e => { e.target.style.borderColor = t.accent; }} onBlur={e => { e.target.style.borderColor = '#DDD6FE'; }} />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#5B21B6', marginBottom: '5px' }}>💳 КТО ПЛАТИТ</label>
@@ -2347,8 +2351,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                           <button key={p.key} onClick={() => setSellForm(prev => ({ ...prev, deliveryPaidBy: p.key }))}
                             style={{
                               flex: 1, padding: '9px 4px', borderRadius: '10px', border: '1.5px solid',
-                              borderColor: sellForm.deliveryPaidBy === p.key ? '#6366F1' : '#DDD6FE',
-                              backgroundColor: sellForm.deliveryPaidBy === p.key ? '#6366F1' : 'white',
+                              borderColor: sellForm.deliveryPaidBy === p.key ? t.accent : '#DDD6FE',
+                              backgroundColor: sellForm.deliveryPaidBy === p.key ? t.accent : t.bgCard,
                               color: sellForm.deliveryPaidBy === p.key ? 'white' : '#5B21B6',
                               fontSize: '11px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
                             }}>{p.label}</button>
@@ -2363,7 +2367,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               <div style={{ marginBottom: '20px' }}>
                 <label style={{
                   display: 'block', fontSize: '12px', fontWeight: '700',
-                  color: '#374151', marginBottom: '6px'
+                  color: t.textPrimary, marginBottom: '6px'
                 }}>
                   📅 ДАТА ПРОДАЖИ
                 </label>
@@ -2373,8 +2377,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   onChange={e => setSellForm(prev => ({ ...prev, date: e.target.value }))}
                   style={{
                     width: '100%', padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
-                    fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+                    border: `1.5px solid ${t.border}`, borderRadius: '12px',
+                    fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+                    backgroundColor: t.bgInput, color: t.textPrimary
                   }}
                 />
               </div>
@@ -2383,7 +2388,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               <div style={{ marginBottom: '20px' }}>
                 <label style={{
                   display: 'block', fontSize: '12px', fontWeight: '700',
-                  color: '#374151', marginBottom: '6px'
+                  color: t.textPrimary, marginBottom: '6px'
                 }}>
                   📝 ЗАМЕТКА
                 </label>
@@ -2394,9 +2399,10 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   placeholder="Дополнительная информация..."
                   style={{
                     width: '100%', padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0', borderRadius: '12px',
+                    border: `1.5px solid ${t.border}`, borderRadius: '12px',
                     fontSize: '14px', outline: 'none', resize: 'none',
-                    fontFamily: 'inherit', boxSizing: 'border-box'
+                    fontFamily: 'inherit', boxSizing: 'border-box',
+                    backgroundColor: t.bgInput, color: t.textPrimary
                   }}
                 />
               </div>
@@ -2407,8 +2413,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   onClick={() => setSellModal({ show: false, preorder: null })}
                   style={{
                     flex: 1, padding: '13px', borderRadius: '14px',
-                    border: '1.5px solid #E2E8F0', backgroundColor: 'white',
-                    color: '#64748B', fontSize: '14px', fontWeight: '600', cursor: 'pointer'
+                    border: `1.5px solid ${t.border}`, backgroundColor: t.bgCard,
+                    color: t.textSecondary, fontSize: '14px', fontWeight: '600', cursor: 'pointer'
                   }}
                 >
                   Отмена
@@ -2418,8 +2424,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   disabled={sellLoading}
                   style={{
                     flex: 2, padding: '13px', borderRadius: '14px', border: 'none',
-                    background: sellLoading ? '#E2E8F0' : 'linear-gradient(135deg,#10B981,#34D399)',
-                    color: sellLoading ? '#94A3B8' : 'white',
+                    background: sellLoading ? t.border : 'linear-gradient(135deg,#10B981,#34D399)',
+                    color: sellLoading ? t.textMuted : 'white',
                     fontSize: '15px', fontWeight: '800',
                     cursor: sellLoading ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -2454,7 +2460,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              backgroundColor: 'white',
+              backgroundColor: t.bgCard,
               borderRadius: '28px',
               width: '100%',
               maxWidth: '460px',
@@ -2565,7 +2571,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   display: 'block',
                   fontSize: '12px',
                   fontWeight: '700',
-                  color: '#374151',
+                  color: t.textPrimary,
                   marginBottom: '8px',
                   letterSpacing: '0.3px'
                 }}>
@@ -2586,9 +2592,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                         padding: '6px 10px',
                         borderRadius: '8px',
                         border: '1.5px solid',
-                        borderColor: cloneForm.size === s ? '#6366F1' : '#E2E8F0',
-                        backgroundColor: cloneForm.size === s ? '#EEF2FF' : 'white',
-                        color: cloneForm.size === s ? '#6366F1' : '#64748B',
+                        borderColor: cloneForm.size === s ? t.accent : t.border,
+                        backgroundColor: cloneForm.size === s ? t.accentBg : t.bgCard,
+                        color: cloneForm.size === s ? t.accent : t.textSecondary,
                         fontSize: '13px',
                         fontWeight: '700',
                         cursor: 'pointer',
@@ -2608,20 +2614,22 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   style={{
                     width: '100%',
                     padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0',
+                    border: `1.5px solid ${t.border}`,
                     borderRadius: '12px',
                     fontSize: '14px',
                     outline: 'none',
                     boxSizing: 'border-box' as const,
                     fontFamily: 'inherit',
-                    transition: 'border-color 0.15s'
+                    transition: 'border-color 0.15s',
+                    backgroundColor: t.bgInput,
+                    color: t.textPrimary
                   }}
                   onFocus={e => {
-                    e.target.style.borderColor = '#6366F1';
+                    e.target.style.borderColor = t.accent;
                     e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
                   }}
                   onBlur={e => {
-                    e.target.style.borderColor = '#E2E8F0';
+                    e.target.style.borderColor = t.border;
                     e.target.style.boxShadow = 'none';
                   }}
                 />
@@ -2633,7 +2641,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   display: 'block',
                   fontSize: '12px',
                   fontWeight: '700',
-                  color: '#374151',
+                  color: t.textPrimary,
                   marginBottom: '6px',
                   letterSpacing: '0.3px'
                 }}>
@@ -2647,20 +2655,22 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   style={{
                     width: '100%',
                     padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0',
+                    border: `1.5px solid ${t.border}`,
                     borderRadius: '12px',
                     fontSize: '14px',
                     outline: 'none',
                     boxSizing: 'border-box' as const,
                     fontFamily: 'inherit',
-                    transition: 'border-color 0.15s'
+                    transition: 'border-color 0.15s',
+                    backgroundColor: t.bgInput,
+                    color: t.textPrimary
                   }}
                   onFocus={e => {
                     e.target.style.borderColor = '#E1306C';
                     e.target.style.boxShadow = '0 0 0 3px rgba(225,48,108,0.08)';
                   }}
                   onBlur={e => {
-                    e.target.style.borderColor = '#E2E8F0';
+                    e.target.style.borderColor = t.border;
                     e.target.style.boxShadow = 'none';
                   }}
                 />
@@ -2668,10 +2678,10 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   <div style={{
                     marginTop: '6px',
                     padding: '6px 10px',
-                    backgroundColor: '#EEF2FF',
+                    backgroundColor: t.accentBg,
                     borderRadius: '8px',
                     fontSize: '12px',
-                    color: '#6366F1',
+                    color: t.accent,
                     fontWeight: '600'
                   }}>
                     👤 {(() => {
@@ -2694,7 +2704,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     display: 'block',
                     fontSize: '12px',
                     fontWeight: '700',
-                    color: '#374151',
+                    color: t.textPrimary,
                     marginBottom: '6px'
                   }}>
                     💰 ПРОДАЖА (Br)
@@ -2727,7 +2737,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   display: 'block',
                   fontSize: '12px',
                   fontWeight: '700',
-                  color: '#374151',
+                  color: t.textPrimary,
                   marginBottom: '6px'
                 }}>
                   📝 ЗАМЕТКА
@@ -2740,13 +2750,15 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   style={{
                     width: '100%',
                     padding: '11px 14px',
-                    border: '1.5px solid #E2E8F0',
+                    border: `1.5px solid ${t.border}`,
                     borderRadius: '12px',
                     fontSize: '14px',
                     outline: 'none',
                     resize: 'none' as const,
                     fontFamily: 'inherit',
-                    boxSizing: 'border-box' as const
+                    boxSizing: 'border-box' as const,
+                    backgroundColor: t.bgInput,
+                    color: t.textPrimary
                   }}
                 />
               </div>
@@ -2759,9 +2771,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     flex: 1,
                     padding: '13px',
                     borderRadius: '14px',
-                    border: '1.5px solid #E2E8F0',
-                    backgroundColor: 'white',
-                    color: '#64748B',
+                    border: `1.5px solid ${t.border}`,
+                    backgroundColor: t.bgCard,
+                    color: t.textSecondary,
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer'
@@ -2777,8 +2789,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                     padding: '13px',
                     borderRadius: '14px',
                     border: 'none',
-                    background: cloneLoading ? '#E2E8F0' : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
-                    color: cloneLoading ? '#94A3B8' : 'white',
+                    background: cloneLoading ? t.border : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+                    color: cloneLoading ? t.textMuted : 'white',
                     fontSize: '15px',
                     fontWeight: '800',
                     cursor: cloneLoading ? 'not-allowed' : 'pointer',
@@ -2817,7 +2829,7 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              backgroundColor: 'white',
+              backgroundColor: t.bgCard,
               borderRadius: '24px',
               padding: '28px 24px',
               maxWidth: '360px',
@@ -2844,14 +2856,14 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               margin: '0 0 8px',
               fontSize: '18px',
               fontWeight: '800',
-              color: '#0F172A'
+              color: t.textPrimary
             }}>
               Удалить предзаказ?
             </h3>
             <p style={{
               margin: '0 0 24px',
               fontSize: '14px',
-              color: '#64748B',
+              color: t.textSecondary,
               lineHeight: '1.5'
             }}>
               Это действие нельзя отменить. Предзаказ будет удалён навсегда.
@@ -2863,9 +2875,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
                   flex: 1,
                   padding: '12px',
                   borderRadius: '14px',
-                  border: '1.5px solid #E2E8F0',
-                  backgroundColor: 'white',
-                  color: '#64748B',
+                  border: `1.5px solid ${t.border}`,
+                  backgroundColor: t.bgCard,
+                  color: t.textSecondary,
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer'

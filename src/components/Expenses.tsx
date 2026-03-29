@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Expense } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { safeDate } from '../utils/helpers';
 
 type Period = 'all' | 'today' | 'week' | 'month';
@@ -52,6 +53,7 @@ interface ExpenseFormProps {
 }
 
 const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, title }) => {
+  const t = useTheme();
   const [form, setForm] = useState<Omit<Expense, 'id'>>(initial);
 
   const set = <K extends keyof Omit<Expense, 'id'>>(field: K, value: Omit<Expense, 'id'>[K]) => {
@@ -73,18 +75,19 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, ti
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+      <div style={{ backgroundColor: t.bgCard }} className="rounded-xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+          <h2 className="text-lg font-semibold" style={{ color: t.textPrimary }}>{title}</h2>
+          <button onClick={onCancel} style={{ color: t.textMuted }}>
             <X className="w-5 h-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Тип расхода *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Тип расхода *</label>
             <select
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.type}
               onChange={(e) => set('type', e.target.value as Expense['type'])}
               required
@@ -95,21 +98,23 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, ti
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Сумма (Br) *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Сумма (Br) *</label>
             <input
               type="number"
               min="0.01"
               step="0.01"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.amount || ''}
               onChange={(e) => set('amount', Number(e.target.value))}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Описание *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Описание *</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Например: Реклама в Instagram"
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
@@ -117,22 +122,24 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, ti
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Дата *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Дата *</label>
             <input
               type="date"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.date}
               onChange={(e) => set('date', e.target.value)}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>
               Примечания (необязательно)
             </label>
             <textarea
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Дополнительная информация..."
               value={form.notes ?? ''}
               onChange={(e) => set('notes', e.target.value)}
@@ -142,7 +149,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, ti
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              style={{ borderColor: t.border, color: t.textSecondary, backgroundColor: t.bgCard }}
+              className="px-4 py-2 border rounded-lg hover:opacity-80 transition-colors"
             >
               Отмена
             </button>
@@ -161,6 +169,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initial, onSave, onCancel, ti
 
 const Expenses: React.FC = () => {
   const { isMobileView } = useViewMode();
+  const t = useTheme();
   const { data: expenses, loading, error, add, update, remove } = useFirestore<Expense>('expenses');
   const [showForm, setShowForm] = useState(false);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
@@ -254,7 +263,7 @@ const Expenses: React.FC = () => {
             margin:'0 0 2px 0',
             fontSize:'22px',
             fontWeight:'800',
-            color:'#0F172A',
+            color:t.textPrimary,
             letterSpacing:'-0.3px'
           }}>
             💸 Расходы
@@ -262,7 +271,7 @@ const Expenses: React.FC = () => {
           <p style={{
             margin:0,
             fontSize:'12px',
-            color:'#94A3B8'
+            color:t.textMuted
           }}>
             Управление расходами
           </p>
@@ -293,14 +302,15 @@ const Expenses: React.FC = () => {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         {/* Period */}
-        <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex space-x-1 rounded-lg p-1" style={{ backgroundColor: t.bgPrimary }}>
           {(Object.keys(periodLabels) as Period[]).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                period === p ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                period === p ? 'shadow-sm' : ''
               }`}
+              style={period === p ? { backgroundColor: t.bgCard, color: t.accent } : { color: t.textSecondary }}
             >
               {periodLabels[p]}
             </button>
@@ -309,7 +319,8 @@ const Expenses: React.FC = () => {
 
         {/* Type filter */}
         <select
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          style={{ borderColor: t.border, backgroundColor: t.bgInput, color: t.textPrimary }}
+          className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as ExpenseType)}
         >
@@ -340,9 +351,9 @@ const Expenses: React.FC = () => {
             label:'Реклама',
             value:adExp.toFixed(0),
             icon:'📣',
-            color:'#6366F1',
-            bg:'#EEF2FF',
-            border:'#C7D2FE'
+            color:t.accent,
+            bg:t.accentBg,
+            border:t.accentBorder
           },
           {
             label:'Доставка',
@@ -386,7 +397,7 @@ const Expenses: React.FC = () => {
             </div>
             <div style={{
               fontSize:'10px',
-              color:'#94A3B8',
+              color:t.textMuted,
               fontWeight:'600'
             }}>
               {s.label}
@@ -405,14 +416,14 @@ const Expenses: React.FC = () => {
           <div
             key={expense.id}
             style={{
-              backgroundColor:'white',
+              backgroundColor:t.bgCard,
               borderRadius:'14px',
               padding:'12px 14px',
               display:'flex',
               alignItems:'center',
               gap:'10px',
-              boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
-              border:'1px solid #F1F5F9',
+              boxShadow:t.shadowMd,
+              border:`1px solid ${t.borderLight}`,
               marginBottom:'8px'
             }}
           >
@@ -422,7 +433,7 @@ const Expenses: React.FC = () => {
               borderRadius:'12px',
               backgroundColor:
                 expense.type==='advertising'
-                  ? '#EEF2FF'
+                  ? t.accentBg
                   : expense.type==='delivery'
                   ? '#FFFBEB'
                   : '#F0FDF4',
@@ -442,7 +453,7 @@ const Expenses: React.FC = () => {
               <div style={{
                 fontSize:'14px',
                 fontWeight:'700',
-                color:'#1E293B',
+                color:t.textPrimary,
                 whiteSpace:'nowrap',
                 overflow:'hidden',
                 textOverflow:'ellipsis'
@@ -451,7 +462,7 @@ const Expenses: React.FC = () => {
               </div>
               <div style={{
                 fontSize:'11px',
-                color:'#94A3B8',
+                color:t.textMuted,
                 marginTop:'2px',
                 display:'flex',
                 gap:'6px',
@@ -463,13 +474,13 @@ const Expenses: React.FC = () => {
                   borderRadius:'4px',
                   backgroundColor:
                     expense.type==='advertising'
-                      ? '#EEF2FF'
+                      ? t.accentBg
                       : expense.type==='delivery'
                       ? '#FFFBEB'
                       : '#F0FDF4',
                   color:
                     expense.type==='advertising'
-                      ? '#6366F1'
+                      ? t.accent
                       : expense.type==='delivery'
                       ? '#F59E0B'
                       : '#10B981',
@@ -500,9 +511,9 @@ const Expenses: React.FC = () => {
                 style={{
                   width:'32px',
                   height:'32px',
-                  border:'1px solid #E2E8F0',
+                  border:`1px solid ${t.border}`,
                   borderRadius:'8px',
-                  backgroundColor:'white',
+                  backgroundColor:t.bgCard,
                   cursor:'pointer',
                   fontSize:'13px',
                   display:'flex',
@@ -533,13 +544,13 @@ const Expenses: React.FC = () => {
           <div style={{
             textAlign:'center',
             padding:'60px 20px',
-            color:'#94A3B8'
+            color:t.textMuted
           }}>
             <div style={{fontSize:'56px'}}>💸</div>
             <div style={{
               fontSize:'18px',
               fontWeight:'700',
-              color:'#475569',
+              color:t.textSecondary,
               marginTop:'16px'
             }}>
               Расходов нет
@@ -574,11 +585,11 @@ const Expenses: React.FC = () => {
 
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Удалить запись?</h3>
-            <p className="text-gray-500 mb-6">Это действие нельзя отменить.</p>
+          <div style={{ backgroundColor: t.bgCard }} className="rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-bold mb-2" style={{ color: t.textPrimary }}>Удалить запись?</h3>
+            <p style={{ color: t.textSecondary }} className="mb-6">Это действие нельзя отменить.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">Отмена</button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ borderColor: t.border, color: t.textSecondary, backgroundColor: t.bgCard }} className="flex-1 px-4 py-2 border rounded-xl hover:opacity-80">Отмена</button>
               <button onClick={handleDeleteConfirm} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600">Удалить</button>
             </div>
           </div>

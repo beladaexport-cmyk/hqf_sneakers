@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 import { Supplier, Product, Preorder } from '../types';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const emptySupplier: Omit<Supplier, 'id'> = {
   name: '',
@@ -21,6 +22,7 @@ interface SupplierFormProps {
 }
 
 const SupplierForm: React.FC<SupplierFormProps> = ({ initial, onSave, onCancel, title }) => {
+  const t = useTheme();
   const [form, setForm] = useState<Omit<Supplier, 'id'>>(initial);
 
   const set = (field: keyof Omit<Supplier, 'id'>, value: string) => {
@@ -38,66 +40,72 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ initial, onSave, onCancel, 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+      <div style={{ backgroundColor: t.bgCard }} className="rounded-xl shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+          <h2 className="text-lg font-semibold" style={{ color: t.textPrimary }}>{title}</h2>
+          <button onClick={onCancel} style={{ color: t.textMuted }}>
             <X className="w-5 h-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Название *</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>
               Контактное лицо *
             </label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.contact}
               onChange={(e) => set('contact', e.target.value)}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Телефон *</label>
             <input
               type="tel"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.phone}
               onChange={(e) => set('phone', e.target.value)}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Email</label>
             <input
               type="email"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.email}
               onChange={(e) => set('email', e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Адрес</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Адрес</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.address}
               onChange={(e) => set('address', e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Примечания</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: t.textSecondary }}>Примечания</label>
             <textarea
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              style={{ backgroundColor: t.bgInput, borderColor: t.border, color: t.textPrimary }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               value={form.notes}
               onChange={(e) => set('notes', e.target.value)}
             />
@@ -106,7 +114,8 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ initial, onSave, onCancel, 
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              style={{ borderColor: t.border, color: t.textSecondary, backgroundColor: t.bgCard }}
+              className="px-4 py-2 border rounded-lg hover:opacity-80 transition-colors"
             >
               Отмена
             </button>
@@ -125,6 +134,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ initial, onSave, onCancel, 
 
 const Suppliers: React.FC = () => {
   const { isMobileView } = useViewMode();
+  const t = useTheme();
   const { data: suppliers, loading, add, update, remove } = useFirestore<Supplier>('suppliers');
   const { data: products } = useFirestore<Product>('products');
   const { data: preorders } = useFirestore<Preorder>('preorders');
@@ -151,7 +161,7 @@ const Suppliers: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Загрузка данных...</div>
+        <div style={{ color: t.textSecondary }}>Загрузка данных...</div>
       </div>
     );
   }
@@ -170,7 +180,7 @@ const Suppliers: React.FC = () => {
             margin:'0 0 4px 0',
             fontSize:'28px',
             fontWeight:'800',
-            color:'#0F172A',
+            color:t.textPrimary,
             letterSpacing:'-0.5px'
           }}>
             🏪 Поставщики
@@ -178,7 +188,7 @@ const Suppliers: React.FC = () => {
           <p style={{
             margin:0,
             fontSize:'14px',
-            color:'#94A3B8'
+            color:t.textMuted
           }}>
             {suppliers?.length || 0} поставщиков
             в базе
@@ -224,20 +234,20 @@ const Suppliers: React.FC = () => {
           <div
             key={supplier.id}
             style={{
-              backgroundColor:'white',
+              backgroundColor:t.bgCard,
               borderRadius:'20px',
               overflow:'hidden',
-              boxShadow:'0 4px 20px rgba(0,0,0,0.07)',
-              border:'1px solid #F1F5F9',
+              boxShadow:t.shadowMd,
+              border:`1px solid ${t.borderLight}`,
               transition:'all 0.2s ease'
             }}
             onMouseEnter={e=>{
               e.currentTarget.style.transform='translateY(-3px)';
-              e.currentTarget.style.boxShadow='0 12px 32px rgba(0,0,0,0.12)';
+              e.currentTarget.style.boxShadow=t.shadowLg;
             }}
             onMouseLeave={e=>{
               e.currentTarget.style.transform='translateY(0)';
-              e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.07)';
+              e.currentTarget.style.boxShadow=t.shadowMd;
             }}
           >
             <div style={{
@@ -295,16 +305,16 @@ const Suppliers: React.FC = () => {
                 marginBottom:'14px'
               }}>
                 <div style={{
-                  backgroundColor:'#F8FAFC',
+                  backgroundColor:t.bgHover,
                   borderRadius:'10px',
                   padding:'10px',
                   textAlign:'center',
-                  border:'1px solid #E2E8F0'
+                  border:`1px solid ${t.border}`
                 }}>
                   <div style={{
                     fontSize:'22px',
                     fontWeight:'800',
-                    color:'#6366F1'
+                    color:t.accent
                   }}>
                     {products?.filter(p=>
                       p.supplier===supplier.name
@@ -313,7 +323,7 @@ const Suppliers: React.FC = () => {
                   </div>
                   <div style={{
                     fontSize:'10px',
-                    color:'#94A3B8',
+                    color:t.textMuted,
                     fontWeight:'700',
                     letterSpacing:'0.5px'
                   }}>
@@ -339,7 +349,7 @@ const Suppliers: React.FC = () => {
                   </div>
                   <div style={{
                     fontSize:'10px',
-                    color:'#94A3B8',
+                    color:t.textMuted,
                     fontWeight:'700',
                     letterSpacing:'0.5px'
                   }}>
@@ -354,15 +364,15 @@ const Suppliers: React.FC = () => {
                   alignItems:'center',
                   gap:'8px',
                   padding:'9px 12px',
-                  backgroundColor:'#F8FAFC',
+                  backgroundColor:t.bgHover,
                   borderRadius:'10px',
                   marginBottom:'10px',
-                  border:'1px solid #E2E8F0'
+                  border:`1px solid ${t.border}`
                 }}>
                   <span>📞</span>
                   <span style={{
                     fontSize:'13px',
-                    color:'#374151',
+                    color:t.textPrimary,
                     fontWeight:'500'
                   }}>
                     {supplier.phone}
@@ -392,20 +402,20 @@ const Suppliers: React.FC = () => {
                   style={{
                     flex:1,
                     padding:'10px',
-                    border:'1.5px solid #E2E8F0',
+                    border:`1.5px solid ${t.border}`,
                     borderRadius:'10px',
-                    backgroundColor:'white',
-                    color:'#475569',
+                    backgroundColor:t.bgCard,
+                    color:t.textSecondary,
                     fontSize:'13px',
                     fontWeight:'600',
                     cursor:'pointer',
                     transition:'all 0.15s'
                   }}
                   onMouseEnter={e=>{
-                    e.currentTarget.style.backgroundColor='#F8FAFC';
+                    e.currentTarget.style.backgroundColor=t.bgHover;
                   }}
                   onMouseLeave={e=>{
-                    e.currentTarget.style.backgroundColor='white';
+                    e.currentTarget.style.backgroundColor=t.bgCard;
                   }}
                 >
                   ✏️ Изменить
@@ -445,13 +455,13 @@ const Suppliers: React.FC = () => {
             gridColumn:'1/-1',
             textAlign:'center',
             padding:'60px 20px',
-            color:'#94A3B8'
+            color:t.textMuted
           }}>
             <div style={{fontSize:'56px'}}>🏪</div>
             <div style={{
               fontSize:'18px',
               fontWeight:'700',
-              color:'#475569',
+              color:t.textSecondary,
               marginTop:'16px'
             }}>
               Поставщиков нет
