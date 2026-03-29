@@ -1,42 +1,50 @@
-const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY;
+const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY || '';
 
-if (!IMGBB_API_KEY) {
-  console.error('VITE_IMGBB_API_KEY is missing!');
-}
-
-console.log('ImgBB API key loaded:', IMGBB_API_KEY ? 'YES' : 'NO');
-
-interface ImgBBResult {
+export interface ImgBBResponse {
   url: string;
-  displayUrl: string;
-  thumb: string | undefined;
+  thumb: string;
   deleteUrl: string;
-  size: number;
-  name: string | undefined;
 }
 
-export async function uploadImageToImgBB(file: File): Promise<ImgBBResult> {
-  const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+// Конвертация File в base64 для отправки в API
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Убираем префикс "data:image/jpeg;base64,"
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
-  if (!apiKey) {
-    throw new Error(
-      'VITE_IMGBB_API_KEY not found. Add it to Netlify Environment Variables'
-    );
+// Загрузка одного файла на ImgBB
+export const uploadToImgBB = async (file: File): Promise<ImgBBResponse> => {
+  if (!IMGBB_API_KEY) {
+    throw new Error('VITE_IMGBB_API_KEY не настроен в .env файле');
   }
 
-  if (!file) throw new Error('No file selected');
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error('File exceeds 5MB limit');
+  // Проверка размера файла (макс 32МБ для ImgBB)
+  const maxSize = 32 * 1024 * 1024;
+  if (file.size > maxSize) {
+    throw new Error(`Файл слишком большой: ${Math.round(file.size / 1024 / 1024)}МБ. Максимум 32МБ`);
   }
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Only image files are allowed');
+
+  // Проверка типа файла
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error(`Неподдерживаемый формат. Используй: JPG, PNG, WebP`);
   }
+
+  const base64 = await fileToBase64(file);
 
   const formData = new FormData();
-  formData.append('image', file);
-  formData.append('key', apiKey);
-
-  console.log('Uploading to ImgBB...');
+  formData.append('key', IMGBB_API_KEY);
+  formData.append('image', base64);
+  formData.append('name', `hqf_${Date.now()}_${file.name}`);
 
   const response = await fetch('https://api.imgbb.com/1/upload', {
     method: 'POST',
@@ -44,87 +52,47 @@ export async function uploadImageToImgBB(file: File): Promise<ImgBBResult> {
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    throw new Error(`ImgBB API ошибка: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
 
   if (!data.success) {
-    console.error('ImgBB error:', data);
-    throw new Error(data.error?.message || 'Upload failed');
+    throw new Error(`ImgBB вернул ошибку: ${JSON.stringify(data.error)}`);
   }
-
-  console.log('Upload successful:', data.data.url);
 
   return {
     url: data.data.url,
-    displayUrl: data.data.display_url,
-    thumb: data.data.thumb?.url,
+    thumb: data.data.thumb?.url || data.data.url,
     deleteUrl: data.data.delete_url,
-    size: data.data.size,
-    name: data.data.image?.filename,
   };
-}
+};
 
-interface UploadProgress {
-  current: number;
-  total: number;
-  percent: number;
-  status: 'uploading' | 'done';
-  fileName: string;
-}
-
-interface MultiUploadResult {
-  results: ImgBBResult[];
-  errors: { file: string; error: string }[];
-}
-
-export async function uploadMultipleImages(
+// Загрузка нескольких файлов
+export const uploadMultipleToImgBB = async (
   files: File[],
-  onProgress: (progress: UploadProgress) => void = () => {}
-): Promise<MultiUploadResult> {
-  const results: ImgBBResult[] = [];
-  const errors: { file: string; error: string }[] = [];
+  onProgress?: (current: number, total: number) => void
+): Promise<string[]> => {
+  const urls: string[] = [];
 
   for (let i = 0; i < files.length; i++) {
-    try {
-      onProgress({
-        current: i,
-        total: files.length,
-        percent: Math.round((i / files.length) * 100),
-        status: 'uploading',
-        fileName: files[i].name,
-      });
-
-      const result = await uploadImageToImgBB(files[i]);
-      results.push(result);
-
-      onProgress({
-        current: i + 1,
-        total: files.length,
-        percent: Math.round(((i + 1) / files.length) * 100),
-        status: i + 1 === files.length ? 'done' : 'uploading',
-        fileName: files[i].name,
-      });
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(`Error uploading ${files[i].name}:`, error);
-      errors.push({
-        file: files[i].name,
-        error: msg,
-      });
-    }
+    onProgress?.(i + 1, files.length);
+    const result = await uploadToImgBB(files[i]);
+    urls.push(result.url);
   }
 
-  if (errors.length > 0) {
-    console.warn('Some uploads failed:', errors);
-  }
+  return urls;
+};
 
-  return { results, errors };
-}
+// Проверка что строка является URL а не base64
+export const isValidImageUrl = (str: string): boolean => {
+  if (!str) return false;
+  if (str.startsWith('data:')) return false; // это base64 — плохо
+  return str.startsWith('http://') || str.startsWith('https://');
+};
 
-export async function testImgBBConnection(): Promise<void> {
-  const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
-  console.log('ImgBB API Key exists:', !!apiKey);
-  console.log('Key length:', apiKey?.length);
-}
+// Очистка массива изображений — убираем base64
+export const sanitizeImages = (images: string[]): string[] => {
+  if (!images || !Array.isArray(images)) return [];
+  return images.filter(isValidImageUrl);
+};
