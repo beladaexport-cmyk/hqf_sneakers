@@ -247,18 +247,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         <div style={{ position: 'relative' }}>
           <div style={{
-            fontSize: '22px',
-            fontWeight: '800',
-            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
             marginBottom: '6px',
-            letterSpacing: '-0.3px'
           }}>
-            {new Date().getHours() < 12
-              ? '☀️ Доброе утро'
-              : new Date().getHours() < 18
-              ? '🌤️ Добрый день'
-              : '🌙 Добрый вечер'},
-            HQF Sneakers!
+            <img
+              src="https://i.ibb.co/TxL4dnHM/logo.png"
+              alt="HQF Sneakers"
+              style={{
+                height: '44px',
+                width: 'auto',
+                objectFit: 'contain',
+              }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <div style={{
+              fontSize: '22px',
+              fontWeight: '800',
+              color: 'white',
+              letterSpacing: '-0.3px'
+            }}>
+              {new Date().getHours() < 12
+                ? '☀️ Доброе утро'
+                : new Date().getHours() < 18
+                ? '🌤️ Добрый день'
+                : '🌙 Добрый вечер'},
+              HQF Sneakers!
+            </div>
           </div>
           <div style={{
             fontSize: '14px',

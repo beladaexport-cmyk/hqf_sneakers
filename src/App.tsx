@@ -95,27 +95,18 @@ function AppContent() {
             marginRight: '24px',
             flexShrink: 0
           }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg,#6366F1,#8B5CF6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              boxShadow: '0 4px 10px rgba(99,102,241,0.4)'
-            }}>
-              👟
-            </div>
-            <span style={{
-              fontSize: '17px',
-              fontWeight: '800',
-              color: '#0F172A',
-              letterSpacing: '-0.3px'
-            }}>
-              HQF Sneakers
-            </span>
+            <img
+              src="https://i.ibb.co/TxL4dnHM/logo.png"
+              alt="HQF Sneakers"
+              style={{
+                height: '36px',
+                width: 'auto',
+                objectFit: 'contain',
+              }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
 
           {/* NAV LINKS - desktop only */}
@@ -381,19 +372,18 @@ function AppContent() {
           borderBottom: '1px solid #F1F5F9'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg,#6366F1,#8B5CF6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '14px'
-            }}>
-              👟
-            </div>
-            <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '15px' }}>HQF Sneakers</span>
+            <img
+              src="https://i.ibb.co/TxL4dnHM/logo.png"
+              alt="HQF Sneakers"
+              style={{
+                height: '28px',
+                width: 'auto',
+                objectFit: 'contain',
+              }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
           <button
             onClick={() => setMobileMenuOpen(false)}
