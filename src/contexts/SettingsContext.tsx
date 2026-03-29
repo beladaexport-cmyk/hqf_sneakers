@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState } from 'react';
 
 interface Settings {
   showLowStock: boolean;
+  lowStockThreshold: number;
   lowStockNotifications: boolean;
   orderNotifications: boolean;
   expenseReminders: boolean;
@@ -9,11 +10,12 @@ interface Settings {
 
 interface SettingsContextType {
   settings: Settings;
-  updateSetting: (key: keyof Settings, value: boolean) => void;
+  updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
 }
 
 const defaultSettings: Settings = {
   showLowStock: true,
+  lowStockThreshold: 3,
   lowStockNotifications: true,
   orderNotifications: true,
   expenseReminders: false,
@@ -34,7 +36,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   });
 
-  const updateSetting = (key: keyof Settings, value: boolean) => {
+  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
       localStorage.setItem('hqf_settings', JSON.stringify(newSettings));
