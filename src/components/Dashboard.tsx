@@ -176,13 +176,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   // Low stock alerts
   const lowStockItems = products.filter(p => (Number(p.quantity) || 0) < 2);
 
-  const periodLabels: Record<Period, string> = {
-    week: 'Неделя',
-    month: 'Месяц',
-    year: 'Год',
-    all: 'Всё время'
-  };
-
   return (
     <div style={{
       maxWidth: isMobileView ? '100%' : '1400px',
@@ -247,49 +240,51 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           backgroundColor: 'rgba(255,255,255,0.05)'
         }} />
 
-        <div style={{ position: 'relative' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            marginBottom: '6px',
-          }}>
-            <img
-              src="https://i.ibb.co/TxL4dnHM/logo.png"
-              alt="HQF Sneakers"
-              style={{
-                height: '44px',
-                width: 'auto',
-                objectFit: 'contain',
-              }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+        <div style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+        }}>
+          <img
+            src="https://i.ibb.co/TxL4dnHM/logo.png"
+            alt="HQF"
+            style={{
+              width: isMobileView ? '44px' : '52px',
+              height: isMobileView ? '44px' : '52px',
+              borderRadius: '14px',
+              objectFit: 'contain',
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              padding: '6px',
+              flexShrink: 0,
+            }}
+          />
+          <div>
             <div style={{
-              fontSize: '22px',
+              fontSize: isMobileView ? '17px' : '22px',
               fontWeight: '800',
               color: 'white',
-              letterSpacing: '-0.3px'
+              marginBottom: '4px',
+              letterSpacing: '-0.3px',
+              lineHeight: 1.2,
             }}>
               {new Date().getHours() < 12
                 ? '☀️ Доброе утро'
                 : new Date().getHours() < 18
                 ? '🌤️ Добрый день'
-                : '🌙 Добрый вечер'},
-              HQF Sneakers!
+                : '🌙 Добрый вечер'}!
             </div>
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: 'rgba(255,255,255,0.75)'
-          }}>
-            {new Date().toLocaleDateString('ru-RU', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            })}
+            <div style={{
+              fontSize: isMobileView ? '12px' : '14px',
+              color: 'rgba(255,255,255,0.75)',
+              fontWeight: '500',
+            }}>
+              {new Date().toLocaleDateString('ru-RU', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              })}
+            </div>
           </div>
         </div>
 
@@ -342,26 +337,44 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       <div style={{
         display: 'flex',
         gap: '8px',
-        marginBottom: '20px',
-        flexWrap: 'wrap'
+        marginBottom: isMobileView ? '16px' : '20px',
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
+        paddingBottom: '2px',
       }}>
-        {(['week', 'month', 'year', 'all'] as Period[]).map(p => (
+        {([
+          { key: 'week' as Period, label: '7 дней' },
+          { key: 'month' as Period, label: 'Месяц' },
+          { key: 'year' as Period, label: 'Год' },
+          { key: 'all' as Period, label: 'Всё время' },
+        ]).map(p => (
           <button
-            key={p}
-            onClick={() => setPeriod(p)}
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
             style={{
               padding: '8px 18px',
               borderRadius: '12px',
-              border: period === p ? `2px solid ${t.accent}` : `2px solid ${t.border}`,
-              backgroundColor: period === p ? t.accentBg : t.bgCard,
-              color: period === p ? t.accent : t.textSecondary,
+              border: period === p.key
+                ? 'none'
+                : '1.5px solid #E2E8F0',
+              backgroundColor: period === p.key
+                ? '#6366F1'
+                : 'white',
+              color: period === p.key
+                ? 'white'
+                : '#64748B',
               fontSize: '13px',
               fontWeight: '700',
               cursor: 'pointer',
-              transition: 'all 0.15s'
+              whiteSpace: 'nowrap' as const,
+              flexShrink: 0,
+              boxShadow: period === p.key
+                ? '0 4px 12px rgba(99,102,241,0.35)'
+                : 'none',
+              transition: 'all 0.2s',
             }}
           >
-            {periodLabels[p]}
+            {p.label}
           </button>
         ))}
       </div>
