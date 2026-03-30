@@ -34,7 +34,6 @@ export function useFirestore<T extends { id?: string }>(collectionName: string) 
         setLoading(false);
       }
     );
-
     return () => unsubscribe();
   }, [collectionName]);
 
