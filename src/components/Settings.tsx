@@ -425,6 +425,114 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
+      {/* PWA APP SECTION */}
+      <div style={{
+        backgroundColor: t.bgCard,
+        borderRadius: '20px',
+        padding: '24px',
+        marginBottom: '16px',
+        border: `1px solid ${t.border}`,
+        boxShadow: t.shadow,
+      }}>
+        <h3 style={{
+          margin: '0 0 16px 0',
+          fontSize: '16px',
+          fontWeight: '800',
+          color: t.textPrimary,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          📱 Приложение
+        </h3>
+
+        <div style={{
+          padding: '16px',
+          backgroundColor: t.bgHover,
+          borderRadius: '14px',
+          border: `1px solid ${t.border}`,
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '12px',
+          }}>
+            <img
+              src="https://i.ibb.co/TxL4dnHM/logo.png"
+              alt="HQF"
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '14px',
+                objectFit: 'contain',
+                backgroundColor: '#6366F1',
+                padding: '6px',
+              }}
+            />
+            <div>
+              <div style={{
+                fontSize: '15px',
+                fontWeight: '800',
+                color: t.textPrimary,
+              }}>
+                HQF Sneakers CRM
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: t.textMuted,
+                marginTop: '2px',
+              }}>
+                Версия 1.0 • Доступно как приложение
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px',
+            marginBottom: '14px',
+          }}>
+            {[
+              { icon: '⚡', text: 'Быстрый запуск' },
+              { icon: '📴', text: 'Работает офлайн' },
+              { icon: '🔔', text: 'Уведомления' },
+              { icon: '📱', text: 'Полный экран' },
+            ].map(item => (
+              <div key={item.text} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 12px',
+                backgroundColor: t.bgCard,
+                borderRadius: '10px',
+                border: `1px solid ${t.border}`,
+                fontSize: '12px',
+                fontWeight: '600',
+                color: t.textPrimary,
+              }}>
+                <span>{item.icon}</span>
+                {item.text}
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            padding: '12px',
+            backgroundColor: t.accentBg,
+            borderRadius: '10px',
+            fontSize: '12px',
+            color: t.accent,
+            fontWeight: '600',
+            lineHeight: 1.5,
+          }}>
+            💡 Как установить на iPhone:<br/>
+            Safari → Поделиться → «На экран "Домой"»
+          </div>
+        </div>
+      </div>
+
       {/* TWO COLUMN LAYOUT */}
       <div style={{
         display:'grid',

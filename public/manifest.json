@@ -1,0 +1,60 @@
+{
+  "name": "HQF Sneakers CRM",
+  "short_name": "HQF Sneakers",
+  "description": "Система управления магазином кроссовок",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1117",
+  "theme_color": "#6366F1",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/TxL4dnHM/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/TxL4dnHM/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Продажи",
+      "short_name": "Продажи",
+      "description": "Добавить новую продажу",
+      "url": "/?tab=sales",
+      "icons": [{
+        "src": "https://i.ibb.co/TxL4dnHM/logo.png",
+        "sizes": "96x96"
+      }]
+    },
+    {
+      "name": "Каталог",
+      "short_name": "Каталог",
+      "description": "Просмотр каталога товаров",
+      "url": "/?tab=catalog",
+      "icons": [{
+        "src": "https://i.ibb.co/TxL4dnHM/logo.png",
+        "sizes": "96x96"
+      }]
+    },
+    {
+      "name": "Дашборд",
+      "short_name": "Дашборд",
+      "description": "Аналитика и статистика",
+      "url": "/?tab=dashboard",
+      "icons": [{
+        "src": "https://i.ibb.co/TxL4dnHM/logo.png",
+        "sizes": "96x96"
+      }]
+    }
+  ]
+}
