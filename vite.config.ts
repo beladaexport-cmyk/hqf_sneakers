@@ -3,4 +3,29 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-firebase': [
+            'firebase/app',
+            'firebase/firestore',
+            'firebase/auth',
+          ],
+        },
+      },
+    },
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 600,
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'firebase/app',
+      'firebase/firestore',
+      'firebase/auth',
+    ],
+  },
 })
