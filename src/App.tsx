@@ -1,19 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { useViewMode } from './contexts/ViewModeContext';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import Catalog from './components/Catalog';
-import Sales from './components/Sales';
-import Expenses from './components/Expenses';
-import Suppliers from './components/Suppliers';
-import Preorders from './components/Preorders';
-import SettingsPage from './components/Settings';
-import AIAssistant from './components/AIAssistant';
-import AIAgent from './components/AIAgent';
-import Cash from './components/Cash';
+
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const Catalog = lazy(() => import('./components/Catalog'));
+const Sales = lazy(() => import('./components/Sales'));
+const Expenses = lazy(() => import('./components/Expenses'));
+const Suppliers = lazy(() => import('./components/Suppliers'));
+const Preorders = lazy(() => import('./components/Preorders'));
+const SettingsPage = lazy(() => import('./components/Settings'));
+const AIAssistant = lazy(() => import('./components/AIAssistant'));
+const AIAgent = lazy(() => import('./components/AIAgent'));
+const Cash = lazy(() => import('./components/Cash'));
 
 type Tab = 'dashboard' | 'catalog' | 'sales' | 'preorders' | 'expenses' | 'suppliers' | 'cash' | 'ai-assistant' | 'ai-agent' | 'settings';
 
@@ -76,28 +77,59 @@ function AppContent() {
   ];
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard onNavigate={(tab: string) => setActiveTab(tab as Tab)} />;
-      case 'catalog':
-        return <Catalog />;
-      case 'sales':
-        return <Sales />;
-      case 'preorders':
-        return <Preorders onNavigate={(tab: string) => setActiveTab(tab as Tab)} />;
-      case 'ai-assistant':
-        return <AIAssistant />;
-      case 'ai-agent':
-        return <AIAgent />;
-      case 'expenses':
-        return <Expenses />;
-      case 'cash':
-        return <Cash />;
-      case 'suppliers':
-        return <Suppliers />;
-      case 'settings':
-        return <SettingsPage />;
-    }
+    return (
+      <Suspense fallback={
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '80px',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            border: '3px solid #E2E8F0',
+            borderTop: '3px solid #6366F1',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+          <div style={{
+            fontSize: '14px',
+            color: '#94A3B8',
+            fontWeight: '500'
+          }}>
+            Загрузка...
+          </div>
+        </div>
+      }>
+        {(() => {
+          switch (activeTab) {
+            case 'dashboard':
+              return <Dashboard onNavigate={(tab: string) => setActiveTab(tab as Tab)} />;
+            case 'catalog':
+              return <Catalog />;
+            case 'sales':
+              return <Sales />;
+            case 'preorders':
+              return <Preorders onNavigate={(tab: string) => setActiveTab(tab as Tab)} />;
+            case 'ai-assistant':
+              return <AIAssistant />;
+            case 'ai-agent':
+              return <AIAgent />;
+            case 'expenses':
+              return <Expenses />;
+            case 'cash':
+              return <Cash />;
+            case 'suppliers':
+              return <Suppliers />;
+            case 'settings':
+              return <SettingsPage />;
+          }
+        })()}
+      </Suspense>
+    );
   };
 
   const handleLogout = () => logout();

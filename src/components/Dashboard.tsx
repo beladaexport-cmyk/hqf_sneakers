@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useFirestore } from '../hooks/useFirestore';
 import { useViewMode } from '../contexts/ViewModeContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -83,98 +83,126 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   // Period-based filtering
   const startDate = getStartDate(period);
 
-  const monthSalesData = sales.filter(s => {
-    const d = safeDate(s.sale_date || s.date || s.created_at);
-    if (!d) return false;
-    if (startDate) {
-      const saleDate = new Date(d);
-      if (saleDate < startDate) return false;
-    }
-    // Exclude cancelled/returned sales
-    const isCancelled =
-      s.status === 'cancelled' ||
-      (s.status as string) === 'отменена' ||
-      (s.status as string) === 'возврат' ||
-      (s as any).cancelled === true ||
-      !!s.cancelledAt;
-    if (isCancelled) return false;
-    // Only include completed sales (default to completed if no status)
-    const st = (s.status ?? 'completed').toLowerCase();
-    return st === 'completed' || st === 'завершена';
-  });
+  const stats = useMemo(() => {
+    const monthSalesData = sales.filter(s => {
+      const d = safeDate(s.sale_date || s.date || s.created_at);
+      if (!d) return false;
+      if (startDate) {
+        const saleDate = new Date(d);
+        if (saleDate < startDate) return false;
+      }
+      const isCancelled =
+        s.status === 'cancelled' ||
+        (s.status as string) === 'отменена' ||
+        (s.status as string) === 'возврат' ||
+        (s as any).cancelled === true ||
+        !!s.cancelledAt;
+      if (isCancelled) return false;
+      const st = (s.status ?? 'completed').toLowerCase();
+      return st === 'completed' || st === 'завершена';
+    });
 
-  const monthlyExpenses = expenses.filter(exp => {
-    const d = safeDate(exp.date || exp.created_at);
-    if (!d) return false;
-    if (startDate) {
-      const expDate = new Date(d);
-      if (expDate < startDate) return false;
-    }
-    return true;
-  });
+    const monthlyExpenses = expenses.filter(exp => {
+      const d = safeDate(exp.date || exp.created_at);
+      if (!d) return false;
+      if (startDate) {
+        const expDate = new Date(d);
+        if (expDate < startDate) return false;
+      }
+      return true;
+    });
 
-  const adExpenses = monthlyExpenses
-    .filter(e => e.type === 'advertising')
-    .reduce((s, e) => s + Number(e.amount || 0), 0);
+    const adExpenses = monthlyExpenses
+      .filter(e => e.type === 'advertising')
+      .reduce((s, e) => s + Number(e.amount || 0), 0);
 
-  const deliveryExpenses = monthlyExpenses
-    .filter(e => e.type === 'delivery')
-    .reduce((s, e) => s + Number(e.amount || 0), 0);
+    const deliveryExpenses = monthlyExpenses
+      .filter(e => e.type === 'delivery')
+      .reduce((s, e) => s + Number(e.amount || 0), 0);
 
-  const otherExpenses = monthlyExpenses
-    .filter(e => e.type !== 'advertising' && e.type !== 'delivery')
-    .reduce((s, e) => s + Number(e.amount || 0), 0);
+    const otherExpenses = monthlyExpenses
+      .filter(e => e.type !== 'advertising' && e.type !== 'delivery')
+      .reduce((s, e) => s + Number(e.amount || 0), 0);
 
-  const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
-  const monthExpenses = adExpenses + deliveryExpenses + otherExpenses;
-  const grossProfit = monthSalesData.reduce((sum, sale) => {
-    const price = Number(sale.price) || 0;
-    const purchase = Number(sale.purchase_price ?? sale.purchasePrice ?? 0);
-    return sum + (price - purchase);
-  }, 0);
-  const netProfit = grossProfit - monthExpenses;
-  const totalProducts = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
+    const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
+    const monthExpenses = adExpenses + deliveryExpenses + otherExpenses;
+    const grossProfit = monthSalesData.reduce((sum, sale) => {
+      const price = Number(sale.price) || 0;
+      const purchase = Number(sale.purchase_price ?? sale.purchasePrice ?? 0);
+      return sum + (price - purchase);
+    }, 0);
+    const netProfit = grossProfit - monthExpenses;
+    const totalProducts = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
 
-  const recentSales = [...sales]
-    .sort((a, b) => {
-      const da = new Date(safeDate(a.date) || 0);
-      const db = new Date(safeDate(b.date) || 0);
-      return db.getTime() - da.getTime();
-    })
-    .slice(0, 10);
+    const recentSales = [...sales]
+      .sort((a, b) => {
+        const da = new Date(safeDate(a.date) || 0);
+        const db = new Date(safeDate(b.date) || 0);
+        return db.getTime() - da.getTime();
+      })
+      .slice(0, 10);
 
-  // Chart data: last 7 days
-  const chartData = (() => {
-    const days: { date: string; revenue: number }[] = [];
-    const now = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      const label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-      const dayRevenue = sales
-        .filter(s => {
-          const sd = safeDate(s.sale_date || s.date || s.created_at);
-          if (!sd) return false;
-          const isCancelled =
-            s.status === 'cancelled' ||
-            (s.status as string) === 'отменена' ||
-            (s.status as string) === 'возврат' ||
-            (s as any).cancelled === true ||
-            !!s.cancelledAt;
-          if (isCancelled) return false;
-          const cst = (s.status ?? 'completed').toLowerCase();
-          if (cst !== 'completed' && cst !== 'завершена') return false;
-          return sd.slice(0, 10) === key;
-        })
-        .reduce((sum, s) => sum + Number(s.total || 0), 0);
-      days.push({ date: label, revenue: dayRevenue });
-    }
-    return days;
-  })();
+    // Chart data: last 7 days
+    const chartData = (() => {
+      const days: { date: string; revenue: number }[] = [];
+      const now = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        const label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        const dayRevenue = sales
+          .filter(s => {
+            const sd = safeDate(s.sale_date || s.date || s.created_at);
+            if (!sd) return false;
+            const isCancelled =
+              s.status === 'cancelled' ||
+              (s.status as string) === 'отменена' ||
+              (s.status as string) === 'возврат' ||
+              (s as any).cancelled === true ||
+              !!s.cancelledAt;
+            if (isCancelled) return false;
+            const cst = (s.status ?? 'completed').toLowerCase();
+            if (cst !== 'completed' && cst !== 'завершена') return false;
+            return sd.slice(0, 10) === key;
+          })
+          .reduce((sum, s) => sum + Number(s.total || 0), 0);
+        days.push({ date: label, revenue: dayRevenue });
+      }
+      return days;
+    })();
 
-  // Low stock alerts
-  const lowStockItems = products.filter(p => (Number(p.quantity) || 0) < 2);
+    // Low stock alerts
+    const lowStockItems = products.filter(p => (Number(p.quantity) || 0) < 2);
+
+    return {
+      monthRevenue,
+      monthExpenses,
+      grossProfit,
+      netProfit,
+      totalProducts,
+      recentSales,
+      adExpenses,
+      deliveryExpenses,
+      otherExpenses,
+      chartData,
+      lowStockItems,
+    };
+  }, [sales, expenses, products, startDate]);
+
+  const {
+    monthRevenue,
+    monthExpenses,
+    grossProfit,
+    netProfit,
+    totalProducts,
+    recentSales,
+    adExpenses,
+    deliveryExpenses,
+    otherExpenses,
+    chartData,
+    lowStockItems,
+  } = stats;
 
   return (
     <div style={{
@@ -1118,4 +1146,4 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   );
 };
 
-export default Dashboard;
+export default React.memo(Dashboard);
