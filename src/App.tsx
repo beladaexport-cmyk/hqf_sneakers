@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -23,6 +23,40 @@ function AppContent() {
   const { currentUser, logout } = useAuth();
   const { isMobileView, toggleView } = useViewMode();
   const t = useTheme();
+
+  // PWA Install Banner
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+      return;
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setTimeout(() => setShowInstallBanner(true), 3000);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstalled(true);
+      setShowInstallBanner(false);
+    }
+    setInstallPrompt(null);
+  };
 
   if (!currentUser) {
     return <Login />;
@@ -477,6 +511,100 @@ function AppContent() {
           </div>
         </div>
       </main>
+
+      {/* PWA INSTALL BANNER */}
+      {showInstallBanner && !isInstalled && (
+        <div style={{
+          position: 'fixed',
+          bottom: isMobileView ? '80px' : '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 999,
+          backgroundColor: '#1A1D27',
+          border: '1px solid #6366F1',
+          borderRadius: '20px',
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
+          maxWidth: '380px',
+          width: 'calc(100% - 32px)',
+          animation: 'slideUp 0.4s ease',
+        }}>
+          <img
+            src="https://i.ibb.co/TxL4dnHM/logo.png"
+            alt="HQF"
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              objectFit: 'contain',
+              flexShrink: 0,
+              backgroundColor: '#6366F1',
+              padding: '4px',
+            }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: '14px',
+              fontWeight: '800',
+              color: '#F0F4FF',
+              marginBottom: '3px',
+            }}>
+              Установить приложение
+            </div>
+            <div style={{
+              fontSize: '12px',
+              color: '#8B92B8',
+              lineHeight: 1.4,
+            }}>
+              Добавь HQF Sneakers на экран телефона
+            </div>
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            flexShrink: 0
+          }}>
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1px solid #2D3250',
+                backgroundColor: 'transparent',
+                color: '#8B92B8',
+                fontSize: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              ✕
+            </button>
+            <button
+              onClick={handleInstall}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+                color: 'white',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 12px rgba(99,102,241,0.4)',
+              }}
+            >
+              Установить
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* MOBILE BOTTOM NAVIGATION */}
       <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} isMobileView={isMobileView} />

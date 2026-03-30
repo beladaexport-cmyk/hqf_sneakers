@@ -2,19 +2,71 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="https://i.ibb.co/TxL4dnHM/logo.png" />
-    <link rel="apple-touch-icon" href="https://i.ibb.co/TxL4dnHM/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#6366F1" />
-    <meta name="description" content="HQF Sneakers — система управления магазином кроссовок" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- PWA основное -->
     <title>HQF Sneakers CRM</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#6366F1" />
+
+    <!-- iOS поддержка -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="HQF Sneakers" />
+    <link rel="apple-touch-icon" href="https://i.ibb.co/TxL4dnHM/logo.png" />
+
+    <!-- Android поддержка -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="HQF Sneakers" />
+
+    <!-- Иконки -->
+    <link rel="icon" type="image/png" href="https://i.ibb.co/TxL4dnHM/logo.png" />
+
+    <!-- SEO и описание -->
+    <meta name="description" content="HQF Sneakers — система управления магазином кроссовок" />
+    <meta name="keywords" content="кроссовки, sneakers, CRM, магазин" />
+
+    <!-- Запрет кэша старых версий -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
+    <!-- Стили для PWA -->
     <style>
       * {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
         transition: background-color 0.25s ease,
                     border-color 0.25s ease,
                     color 0.15s ease !important;
       }
 
+      body {
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Safe area для iPhone с чёлкой */
+      .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 16px);
+      }
+
+      /* Скроллбар светлая тема */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #F1F5F9;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #CBD5E1;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94A3B8;
+      }
+
+      /* Скроллбар тёмная тема */
       .dark-mode ::-webkit-scrollbar {
         width: 8px;
       }
@@ -27,6 +79,18 @@
       }
       .dark-mode ::-webkit-scrollbar-thumb:hover {
         background: #3D4270;
+      }
+
+      /* Анимация баннера установки */
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
       }
     </style>
   </head>
