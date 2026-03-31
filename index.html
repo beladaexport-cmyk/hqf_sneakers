@@ -42,13 +42,16 @@
       * {
         -webkit-tap-highlight-color: transparent;
         -webkit-touch-callout: none;
+      }
+
+      button, a, input, select, textarea, [role="button"] {
         transition: background-color 0.25s ease,
                     border-color 0.25s ease,
-                    color 0.15s ease !important;
+                    color 0.15s ease;
       }
 
       body {
-        overscroll-behavior: none;
+        overscroll-behavior-x: none;
         -webkit-overflow-scrolling: touch;
       }
 
