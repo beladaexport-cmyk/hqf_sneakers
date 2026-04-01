@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 
@@ -77,6 +77,15 @@ const CashRegister: React.FC = () => {
       alert('Ошибка: ' + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Удалить операцию?')) return;
+    try {
+      await deleteDoc(doc(db, 'cash_entries', id));
+    } catch (e: unknown) {
+      alert('Ошибка: ' + (e instanceof Error ? e.message : String(e)));
     }
   };
 
@@ -376,6 +385,26 @@ const CashRegister: React.FC = () => {
                   {Number(entry.amount)
                     .toLocaleString('ru-RU')} Br
                 </div>
+
+                <button
+                  onClick={() => handleDelete(entry.id)}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#FEF2F2',
+                    color: '#EF4444',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  🗑️
+                </button>
               </div>
             );
           })}
