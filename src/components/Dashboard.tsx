@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useFirestore } from '../hooks/useFirestore';
 import { useViewMode } from '../contexts/ViewModeContext';
 import { Product, Sale, Expense } from '../types';
@@ -21,6 +21,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     );
   }
 
+  const [dashPeriod, setDashPeriod] = useState<'month' | 'all'>('month');
+
   const navigate = (tab: string) => {
     if (onNavigate) onNavigate(tab);
   };
@@ -28,7 +30,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   // Monthly calculations
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthSalesData = sales.filter(s => {
-    if (!s.date || !s.date.startsWith(currentMonth)) return false;
+    if (dashPeriod === 'month') {
+      if (!s.date || !s.date.startsWith(currentMonth)) return false;
+    }
     // Exclude cancelled/returned sales
     const isCancelled =
       s.status === 'cancelled' ||
@@ -42,15 +46,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   });
 
   const adExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type === 'advertising')
+    .filter(e => (dashPeriod === 'month' ? e.date.startsWith(currentMonth) : true) && e.type === 'advertising')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const deliveryExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type === 'delivery')
+    .filter(e => (dashPeriod === 'month' ? e.date.startsWith(currentMonth) : true) && e.type === 'delivery')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const otherExpenses = expenses
-    .filter(e => e.date.startsWith(currentMonth) && e.type !== 'advertising' && e.type !== 'delivery')
+    .filter(e => (dashPeriod === 'month' ? e.date.startsWith(currentMonth) : true) && e.type !== 'advertising' && e.type !== 'delivery')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const monthRevenue = monthSalesData.reduce((s, e) => s + Number(e.total || 0), 0);
@@ -240,7 +244,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             lightBg: '#EEF2FF'
           },
           {
-            label: 'Выручка за месяц',
+            label: dashPeriod === 'month' ? 'Выручка за месяц' : 'Выручка за всё время',
             value: `${monthRevenue || 0}`,
             unit: 'Br',
             icon: '💰',
@@ -249,7 +253,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             lightBg: '#F0FDF4'
           },
           {
-            label: 'Расходы за месяц',
+            label: dashPeriod === 'month' ? 'Расходы за месяц' : 'Расходы за всё время',
             value: `${monthExpenses || 0}`,
             unit: 'Br',
             icon: '📉',
@@ -367,6 +371,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           border: '1px solid #F1F5F9',
           height: '100%'
         }}>
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '16px'
+          }}>
+            {[
+              { key: 'month', label: '📅 Этот месяц' },
+              { key: 'all',   label: '📊 Всё время'  }
+            ].map(p => (
+              <button
+                key={p.key}
+                onClick={() => setDashPeriod(p.key as 'month' | 'all')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  backgroundColor: dashPeriod === p.key ? '#6366F1' : 'white',
+                  color: dashPeriod === p.key ? 'white' : '#64748B',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  boxShadow: dashPeriod === p.key
+                    ? '0 4px 12px rgba(99,102,241,0.35)'
+                    : '0 1px 4px rgba(0,0,0,0.08)'
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
           <h3 style={{
             margin: '0 0 20px 0',
             fontSize: '17px',
@@ -376,7 +410,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             alignItems: 'center',
             gap: '8px'
           }}>
-            📊 Детализация за месяц
+            📊 {dashPeriod === 'month' ? 'Детализация за месяц' : 'Детализация за всё время'}
           </h3>
           <div style={{
             display: 'grid',
