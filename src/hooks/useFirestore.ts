@@ -12,7 +12,9 @@ import {
 import { db } from '../config/firebase';
 import { sanitizeForFirestore } from '../utils/sanitizeFirestore';
 
-export function useFirestore<T extends { id?: string }>(collectionName: string) {
+export function useFirestore<T extends { id?: string }>(
+  collectionName: string
+) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,6 @@ export function useFirestore<T extends { id?: string }>(collectionName: string) 
         setLoading(false);
       },
       (err) => {
-        console.error('Firestore error:', err);
         setError(err.message);
         setLoading(false);
       }
@@ -39,10 +40,16 @@ export function useFirestore<T extends { id?: string }>(collectionName: string) 
 
   const add = async (item: Omit<T, 'id'>) => {
     try {
-      const sanitized = sanitizeForFirestore(item as Record<string, unknown>);
-      await addDoc(collection(db, collectionName), sanitized as DocumentData);
+      const sanitized = sanitizeForFirestore(
+        item as Record<string, unknown>
+      );
+      await addDoc(
+        collection(db, collectionName),
+        sanitized as DocumentData
+      );
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = err instanceof Error
+        ? err.message : String(err);
       setError(message);
       throw err;
     }
@@ -50,11 +57,14 @@ export function useFirestore<T extends { id?: string }>(collectionName: string) 
 
   const update = async (id: string, item: Partial<T>) => {
     try {
-      const sanitized = sanitizeForFirestore(item as Record<string, unknown>);
+      const sanitized = sanitizeForFirestore(
+        item as Record<string, unknown>
+      );
       const docRef = doc(db, collectionName, id);
       await updateDoc(docRef, sanitized as DocumentData);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = err instanceof Error
+        ? err.message : String(err);
       setError(message);
       throw err;
     }
@@ -64,7 +74,8 @@ export function useFirestore<T extends { id?: string }>(collectionName: string) 
     try {
       await deleteDoc(doc(db, collectionName, id));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = err instanceof Error
+        ? err.message : String(err);
       setError(message);
       throw err;
     }
