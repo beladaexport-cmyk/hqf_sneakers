@@ -420,13 +420,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
   };
 
   const handleArrived = async (preorder: Preorder) => {
-    console.log('=== handleArrived START ===');
-    console.log('preorder object:', preorder);
-    console.log('preorder keys:', Object.keys(preorder));
-
     try {
       // STEP 1: Update preorder status
-      console.log('Step 1: Updating preorder status...');
       await updateDoc(
         doc(db, 'preorders', preorder.id),
         {
@@ -434,11 +429,9 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           arrivedAt: new Date().toISOString()
         }
       );
-      console.log('✅ Step 1 done: Status updated to arrived');
 
       // STEP 2: Extract Instagram username / buyer tag
       const forWhoRaw = preorder.forWho || '';
-      console.log('Step 2: forWhoRaw:', forWhoRaw);
 
       let buyerTag = forWhoRaw;
       if (forWhoRaw.includes('instagram.com/')) {
@@ -448,20 +441,15 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
       } else if (forWhoRaw.startsWith('http')) {
         buyerTag = forWhoRaw;
       }
-      console.log('buyerTag:', buyerTag);
 
       // STEP 3: Check if already in catalog
-      console.log('Step 3: Checking if already in catalog...');
-      console.log('Querying products where preorderId ==', preorder.id);
       const q = query(
         collection(db, 'products'),
         where('preorderId', '==', preorder.id)
       );
       const existing = await getDocs(q);
-      console.log('Existing docs count:', existing.size);
 
       if (!existing.empty) {
-        console.log('⚠️ Already in catalog, showing modal');
         setArrivedModal({
           show: true,
           preorder,
@@ -474,7 +462,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
 
       // STEP 4: Build product object
       const productName = preorder.modelName || 'Без названия';
-      console.log('Step 4: Building product. Name:', productName);
 
       const newProduct = {
         sku: `PRE-${preorder.id.slice(0, 6).toUpperCase()}`,
@@ -513,18 +500,14 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
 
       // Sanitize to remove any undefined values that Firestore would reject
       const sanitizedProduct = sanitizeForFirestore(newProduct as unknown as Record<string, unknown>);
-      console.log('Step 4 done. Sanitized product:', sanitizedProduct);
 
       // STEP 5: Save to catalog (products collection)
-      console.log('Step 5: Saving to Firestore collection: products');
       const docRef = await addDoc(
         collection(db, 'products'),
         sanitizedProduct
       );
-      console.log('✅ Step 5 done: Product added! ID:', docRef.id);
 
       // STEP 6: Update preorder with catalog reference
-      console.log('Step 6: Updating preorder with catalogProductId...');
       await updateDoc(
         doc(db, 'preorders', preorder.id),
         {
@@ -532,7 +515,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
           addedToCatalog: true
         }
       );
-      console.log('✅ Step 6 done: Preorder updated');
 
       // STEP 7: Show success modal
       setArrivedModal({
@@ -543,15 +525,8 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
         alreadyExists: false
       });
 
-      console.log('=== handleArrived DONE ===');
 
     } catch (err: unknown) {
-      console.error('❌ ERROR in handleArrived:', err);
-      if (err instanceof Error) {
-        console.error('Error name:', err.name);
-        console.error('Error message:', err.message);
-        console.error('Error stack:', err.stack);
-      }
       const msg = err instanceof Error ? err.message : 'Unknown error';
       alert('❌ Ошибка при добавлении в каталог:\n' + msg);
     }
@@ -676,7 +651,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
         collection(db, 'preorders'),
         sanitizeForFirestore(newPreorder as unknown as Record<string, unknown>)
       );
-      console.log('✅ Clone created:', docRef.id);
 
       const existingClones = Array.isArray(original.cloneIds)
         ? original.cloneIds
@@ -767,7 +741,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
       };
 
       const saleRef = await addDoc(collection(db, 'sales'), newSale);
-      console.log('✅ Sale created:', saleRef.id);
 
       await updateDoc(doc(db, 'preorders', preorder.id), {
         status: 'sold',
@@ -776,7 +749,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
         soldPrice: salePrice,
         soldTo: sellForm.customerName
       });
-      console.log('✅ Preorder updated to sold');
 
       // Update catalog product if exists (mark as sold / qty 0)
       if (preorder.catalogProductId) {
@@ -791,7 +763,6 @@ const Preorders: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigat
               soldViaPreorder: true
             }
           );
-          console.log('✅ Catalog product marked sold');
         } catch (e) {
           console.warn('Could not update catalog:', e);
         }

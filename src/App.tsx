@@ -135,7 +135,7 @@ function AppContent() {
   const handleLogout = () => logout();
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: t.bgPrimary }}>
+    <div style={{ minHeight: '100vh', backgroundColor: t.bgPrimary, overflowX: 'hidden' }}>
       {/* NAVBAR */}
       <div style={{
         backgroundColor: t.bgNavbar,
@@ -527,7 +527,7 @@ function AppContent() {
       )}
 
       {/* Main Content */}
-      <main>
+      <main style={{ overflowX: 'hidden' }}>
         <div style={{
           minWidth: isMobileView ? 'auto' : '1280px',
           overflowX: isMobileView ? 'hidden' : 'visible',
