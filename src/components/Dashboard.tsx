@@ -13,6 +13,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { data: sales, loading: loadingSales } = useFirestore<Sale>('sales');
   const { data: expenses, loading: loadingExpenses } = useFirestore<Expense>('expenses');
 
+  const [dashPeriod, setDashPeriod] = useState<'month' | 'all'>('month');
+
   if (loadingProducts || loadingSales || loadingExpenses) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px' }}>
@@ -20,8 +22,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
     );
   }
-
-  const [dashPeriod, setDashPeriod] = useState<'month' | 'all'>('month');
 
   const navigate = (tab: string) => {
     if (onNavigate) onNavigate(tab);
@@ -72,32 +72,47 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const grossProfit = monthRevenue - monthCost;
   const netProfit = grossProfit - monthExpenses;
 
-  // === COST DEBUG ===
-  const cancelledThisMonth = sales.filter(s => s.date && s.date.startsWith(currentMonth) && (
-    s.status === 'cancelled' || (s.status as string) === 'отменена' || (s.status as string) === 'возврат' || (s as any).cancelled === true || !!s.cancelledAt
-  ));
-  console.log('=== COST DEBUG ===');
-  console.log('Current month:', currentMonth);
-  console.log('All sales count:', sales.length, '| Active this month:', monthSalesData.length, '| Cancelled this month:', cancelledThisMonth.length);
-  monthSalesData.forEach((s, i) => {
-    console.log(
-      `Active Sale ${i + 1}:`, s.productName,
-      '| price:', s.price,
-      '| purchasePrice:', s.purchasePrice,
-      '| total:', s.total,
-      '| quantity:', s.quantity,
-      '| status:', s.status
+  const cashSales = sales.filter(s => {
+    const isCancelled =
+      s.status === 'cancelled' ||
+      (s as any).cancelled === true ||
+      !!s.cancelledAt;
+    if (isCancelled) return false;
+    if ((s.status ?? 'completed') !== 'completed')
+      return false;
+    const pm = (s as any).paymentMethod || '';
+    return (
+      pm === 'наличные' ||
+      pm === 'нал' ||
+      pm === 'cash' ||
+      s.deliveryMethod === 'in_person'
     );
   });
-  cancelledThisMonth.forEach((s, i) => {
-    console.log(
-      `Cancelled ${i + 1}:`, s.productName,
-      '| purchasePrice:', s.purchasePrice,
-      '| status:', s.status,
-      '| cancelledAt:', s.cancelledAt
+
+  const cardSales = sales.filter(s => {
+    const isCancelled =
+      s.status === 'cancelled' ||
+      (s as any).cancelled === true ||
+      !!s.cancelledAt;
+    if (isCancelled) return false;
+    if ((s.status ?? 'completed') !== 'completed')
+      return false;
+    const pm = (s as any).paymentMethod || '';
+    return (
+      pm === 'карта' ||
+      pm === 'перевод' ||
+      pm === 'card' ||
+      pm === 'transfer'
     );
   });
-  console.log('monthRevenue:', monthRevenue, '| monthCost:', monthCost, '| grossProfit:', grossProfit, '| monthExpenses:', monthExpenses, '| netProfit:', netProfit);
+
+  const totalCash = cashSales.reduce(
+    (sum, s) => sum + Number(s.total || 0), 0
+  );
+  const totalCard = cardSales.reduce(
+    (sum, s) => sum + Number(s.total || 0), 0
+  );
+
   const totalProducts = products.reduce((s, p) => s + Number(p.quantity || 0), 0);
 
   const recentSales = [...sales]
@@ -351,6 +366,107 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* КАССА */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '20px',
+        padding: '20px 24px',
+        marginBottom: '20px',
+        border: '2px solid #A7F3D0',
+        boxShadow: '0 4px 20px rgba(16,185,129,0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          flex: 1,
+          minWidth: '200px'
+        }}>
+          <span style={{ fontSize: '28px' }}>💰</span>
+          <div>
+            <div style={{
+              fontSize: '12px',
+              color: '#94A3B8',
+              fontWeight: '600',
+              marginBottom: '2px'
+            }}>
+              КАССА (все время)
+            </div>
+            <div style={{
+              fontSize: '26px',
+              fontWeight: '900',
+              color: '#10B981',
+              letterSpacing: '-0.5px'
+            }}>
+              {(totalCash + totalCard)
+                .toLocaleString('ru-RU')} Br
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{
+            backgroundColor: '#F0FDF4',
+            borderRadius: '14px',
+            padding: '12px 20px',
+            border: '1.5px solid #A7F3D0',
+            textAlign: 'center',
+            minWidth: '120px'
+          }}>
+            <div style={{
+              fontSize: '11px',
+              color: '#94A3B8',
+              fontWeight: '700',
+              letterSpacing: '0.5px',
+              marginBottom: '4px'
+            }}>
+              💵 НАЛИЧНЫЕ
+            </div>
+            <div style={{
+              fontSize: '20px',
+              fontWeight: '800',
+              color: '#10B981'
+            }}>
+              {totalCash.toLocaleString('ru-RU')} Br
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: '#EEF2FF',
+            borderRadius: '14px',
+            padding: '12px 20px',
+            border: '1.5px solid #C7D2FE',
+            textAlign: 'center',
+            minWidth: '120px'
+          }}>
+            <div style={{
+              fontSize: '11px',
+              color: '#94A3B8',
+              fontWeight: '700',
+              letterSpacing: '0.5px',
+              marginBottom: '4px'
+            }}>
+              💳 КАРТА/ПЕРЕВОД
+            </div>
+            <div style={{
+              fontSize: '20px',
+              fontWeight: '800',
+              color: '#6366F1'
+            }}>
+              {totalCard.toLocaleString('ru-RU')} Br
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* MAIN GRID */}
